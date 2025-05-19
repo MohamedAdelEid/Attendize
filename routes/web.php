@@ -867,3 +867,6 @@ Route::get('language/{locale}', function ($locale) {
 Route::get('/events/{event}', function() {
     return view('ViewEvent.show');
 })->name('events.show');
+
+
+// jamal made
