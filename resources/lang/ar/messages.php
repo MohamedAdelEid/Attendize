@@ -4,19 +4,46 @@ return [
     // General
     'platform_name' => 'منصة الفعاليات الحديثة',
     'all_rights_reserved' => 'جميع الحقوق محفوظة',
-
+    
     // Navigation
     'registration' => 'التسجيل',
     'sponsors' => 'الرعاة',
     'about_us' => 'من نحن',
     'all_events' => 'جميع الفعاليات',
-
+    
     // Event Details
     'event_name' => 'مؤتمر التكنولوجيا 2023',
     'event_logo_alt' => 'شعار الفعالية',
     'event_image' => 'صورة الفعالية',
     'event_description' => 'انضم إلينا في أكبر مؤتمر تقني لهذا العام. يضم متحدثين رئيسيين وورش عمل وفرص للتواصل مع قادة الصناعة. هذا الحدث مثالي للمطورين والمصممين وعشاق التكنولوجيا الذين يتطلعون للبقاء في المقدمة.',
-
+    
+    // Registration Forms
+    'registration_forms' => 'نماذج التسجيل',
+    'registration_image' => 'صورة نموذج التسجيل',
+    'early_bird_registration' => 'التسجيل المبكر',
+    'standard_registration' => 'التسجيل العادي',
+    'vip_registration' => 'تسجيل كبار الشخصيات',
+    'workshop_registration' => 'تسجيل ورشة العمل',
+    'speaker_registration' => 'تسجيل المتحدثين',
+    'student_registration' => 'تسجيل الطلاب',
+    'general_admission' => 'القبول العام',
+    'premium_access' => 'وصول متميز',
+    'technical_workshop' => 'ورشة عمل تقنية',
+    'speaker_submission' => 'تقديم المتحدثين',
+    'student_discount' => 'خصم للطلاب',
+    'open' => 'مفتوح',
+    'closed' => 'مغلق',
+    'limited' => 'أماكن محدودة',
+    'starts' => 'يبدأ',
+    'ends' => 'ينتهي',
+    'time_remaining' => 'الوقت المتبقي',
+    'days' => 'يوم',
+    'hours' => 'ساعة',
+    'minutes' => 'دقيقة',
+    'registration_closed' => 'التسجيل مغلق',
+    'submissions_under_review' => 'الطلبات قيد المراجعة',
+    'no_longer_available' => 'لم يعد متاحًا',
+    
     // Months
     'january' => 'يناير',
     'february' => 'فبراير',
