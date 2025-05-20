@@ -1,6 +1,7 @@
 @extends('ViewEvent.layouts.layout')
 
 @section('content')
+
     <!-- Hero Section -->
     <section class="relative pt-32 pb-20 overflow-hidden">
         <!-- Background Pattern -->

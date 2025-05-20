@@ -250,6 +250,8 @@
                             <option value="checkbox">Checkbox</option>
                             <option value="radio">Radio Button</option>
                             <option value="file">File Upload</option>
+                            <option value="country">Country</option>
+                            <option value="city">City</option>
                         </select>
                     </div>
                 </div>
@@ -285,7 +287,7 @@
 </div>
 
 <script>
-    // Wait for the document to be fully loaded
+// Wait for the document to be fully loaded
 $(document).ready(function() {
     // Initialize field counter
     let fieldCounter = 0;
@@ -311,7 +313,17 @@ $(document).ready(function() {
 
         // Set up field type change handler
         $newField.find('.field-type').on('change', function() {
+            const fieldType = $(this).val();
             toggleOptionsField($(this));
+            
+            // Auto-fill label for country and city fields
+            if (fieldType === 'country') {
+                $newField.find('.field-label').val('Country');
+                $newField.find('.field-title').text('Country');
+            } else if (fieldType === 'city') {
+                $newField.find('.field-label').val('City');
+                $newField.find('.field-title').text('City');
+            }
         });
 
         // Set up field label change handler
@@ -367,9 +379,7 @@ $(document).ready(function() {
             updatePositionNumbers();
         }
     });
-});
-// Additional code to add to your script for position control buttons
-$(document).ready(function() {
+    
     // Delegate event handler for the move up button
     $(document).on('click', '.move-up-btn', function() {
         const $currentField = $(this).closest('.dynamic-field');

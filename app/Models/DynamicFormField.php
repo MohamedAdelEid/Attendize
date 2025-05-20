@@ -58,6 +58,8 @@ class DynamicFormField extends Model
             'checkbox' => 'Checkbox',
             'radio' => 'Radio Button',
             'file' => 'File Upload',
+            'country' => 'Country',
+            'city' => 'City',
         ];
     }
 }

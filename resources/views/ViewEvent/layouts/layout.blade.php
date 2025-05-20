@@ -7,7 +7,61 @@
     
     <!-- Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Cairo:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
+    <style>
+        /* Custom Toastr Styling */
+        .toast {
+            border-radius: 5px !important;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+            font-family: inherit !important;
+        }
+        
+        .toast-success {
+            background-color: #10B981 !important; /* Tailwind green-500 */
+        }
+        
+        .toast-error {
+            background-color: #EF4444 !important; /* Tailwind red-500 */
+        }
+        
+        .toast-info {
+            background-color: #3B82F6 !important; /* Tailwind blue-500 */
+        }
+        
+        .toast-warning {
+            background-color: #F59E0B !important; /* Tailwind amber-500 */
+        }
+        
+        .toast-title {
+            font-weight: 600 !important;
+            margin-bottom: 4px !important;
+        }
+        
+        .toast-message {
+            font-size: 0.95rem !important;
+        }
+        
+        .toast-close-button {
+            color: #fff !important;
+            opacity: 0.7 !important;
+        }
+        
+        .toast-close-button:hover {
+            opacity: 1 !important;
+        }
+        
+        .toast-progress {
+            height: 4px !important;
+            opacity: 0.7 !important;
+        }
+    </style>
     
+    <!-- jQuery (required for Toastr) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    
+    <!-- Toastr JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
     <!-- Tailwind CSS via CDN -->
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     @stack('styles')
@@ -169,7 +223,53 @@ select:focus,
 textarea:focus {
   @apply ring-2 ring-primary-500 ring-opacity-50 border-primary-500;
 }
+input[type="text"],
+        input[type="email"],
+        input[type="tel"],
+        input[type="number"],
+        input[type="date"],
+        select,
+        textarea {
+            height: 3.5rem;
+            font-size: 1.125rem;
+            padding: 0.75rem 1rem;
+            width: 100%;
+            transition: all 0.2s ease;
+        }
 
+        textarea {
+            height: auto;
+            min-height: 6rem;
+        }
+
+        /* Custom file input styling */
+        input[type="file"] {
+            padding: 0.5rem;
+            height: auto;
+        }
+
+        /* Enhance focus states */
+        input:focus,
+        select:focus,
+        textarea:focus {
+            box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.2);
+        }
+
+        /* Form section styling */
+        .form-section {
+            background-color: #f9fafb;
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        /* Registration image styling */
+        .registration-image {
+            border-radius: 0.5rem;
+            overflow: hidden;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            margin-bottom: 2rem;
+        }
 /* Custom file input styling */
 input[type="file"] {
   @apply cursor-pointer;
@@ -498,6 +598,7 @@ input[type="file"] {
             }
         }
     </script>
+   
     <!-- Animation Script -->
     <script>
         document.addEventListener('DOMContentLoaded', () => {
@@ -775,5 +876,40 @@ input[type="file"] {
         });
     });
 </script>
+@if(session('success') || session('error') || session('info') || session('warning'))
+    <script>
+        // Configure Toastr options
+        toastr.options = {
+            "closeButton": true,
+            "progressBar": true,
+            "positionClass": "toast-top-right",
+            "showDuration": "300",
+            "hideDuration": "1000",
+            "timeOut": "5000",
+            "extendedTimeOut": "1000",
+            "showEasing": "swing",
+            "hideEasing": "linear",
+            "showMethod": "fadeIn",
+            "hideMethod": "fadeOut"
+        };
+        
+        // Display messages
+        @if(session('success'))
+            toastr.success('{{ session('success') }}', 'Success');
+        @endif
+        
+        @if(session('error'))
+            toastr.error('{{ session('error') }}', 'Error');
+        @endif
+        
+        @if(session('info'))
+            toastr.info('{{ session('info') }}', 'Information');
+        @endif
+        
+        @if(session('warning'))
+            toastr.warning('{{ session('warning') }}', 'Warning');
+        @endif
+    </script>
+@endif
 </body>
 </html>

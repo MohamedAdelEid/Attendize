@@ -6,7 +6,7 @@
             <div class="flex flex-col lg:flex-row">
                 <!-- Left Panel: Registration Information -->
                 <div class="lg:w-1/3 bg-gray-50 p-6 md:p-8">
-                    <div class="sticky top-8">
+                    <div class="sticky top-5">
                         <h2 class="text-2xl font-bold text-gray-900 mb-4">Registration Details</h2>
                         
                         <!-- Event Information -->
@@ -143,22 +143,43 @@
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div>
                                     <label for="first_name" class="block text-sm font-medium text-gray-700 after:content-['*'] after:ml-0.5 after:text-red-500">First Name</label>
-                                    <input type="text" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500" id="first_name" name="first_name" required>
+                                    <input  placeholder="Enter First Name"
+  type="text" 
+  class="mt-2 block w-full h-14 px-4 text-lg rounded-lg border border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500" 
+  id="first_name" 
+  name="first_name" 
+  required
+>
+
                                 </div>
                                 <div>
                                     <label for="last_name" class="block text-sm font-medium text-gray-700 after:content-['*'] after:ml-0.5 after:text-red-500">Last Name</label>
-                                    <input type="text" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500" id="last_name" name="last_name" required>
+                                    <input placeholder="Enter Last Name" type="text" 
+                                    class="mt-2 block w-full h-14 px-4 text-lg rounded-lg border border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500" 
+                                    id="last_name" 
+                                    name="last_name" 
+                                    required
+>
                                 </div>
                             </div>
 
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
                                 <div>
                                     <label for="email" class="block text-sm font-medium text-gray-700 after:content-['*'] after:ml-0.5 after:text-red-500">Email Address</label>
-                                    <input type="email" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500" id="email" name="email" required>
+                                    <input placeholder="Enter Email Address" type="email" 
+                                    class="mt-2 block w-full h-14 px-4 text-lg rounded-lg border border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500" 
+                                    id="email" 
+                                    name="email" 
+                                    required
+>
                                 </div>
                                 <div>
                                     <label for="phone" class="block text-sm font-medium text-gray-700">Phone Number</label>
-                                    <input type="tel" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500" id="phone" name="phone">
+                                    <input placeholder="Enter Phone Number" type="tel" 
+                                    class="mt-2 block w-full h-14 px-4 text-lg rounded-lg border border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500" 
+                                    id="phone" 
+                                    name="phone"
+>
                                 </div>
                             </div>
                         </div>
@@ -173,7 +194,12 @@
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <div>
                                         <label for="conference_id" class="block text-sm font-medium text-gray-700 after:content-['*'] after:ml-0.5 after:text-red-500">Select Conference</label>
-                                        <select class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500" id="conference_id" name="conference_id" required>
+                                        <select placeholder="Select Conference" 
+                                        class="mt-2 block w-full h-14 px-4 text-lg rounded-lg border border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500" 
+                                        id="conference_id" 
+                                        name="conference_id" 
+                                        required
+>
                                             <option value="">-- Loading Conferences... --</option>
                                         </select>
                                         <div class="mt-1 text-sm text-red-600 hidden" id="conference-error">
@@ -182,7 +208,13 @@
                                     </div>
                                     <div>
                                         <label for="profession_id" class="block text-sm font-medium text-gray-700 after:content-['*'] after:ml-0.5 after:text-red-500">Profession</label>
-                                        <select class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500" id="profession_id" name="profession_id" required disabled>
+                                        <select placeholder="Select Profession" 
+                                        class="mt-2 block w-full h-14 px-4 text-lg rounded-lg border border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500" 
+                                        id="profession_id" 
+                                        name="profession_id" 
+                                        required 
+                                        disabled
+>
                                             <option value="">-- Select Profession --</option>
                                         </select>
                                         <div class="mt-1 text-sm text-red-600 hidden" id="profession-error">
@@ -204,73 +236,103 @@
                                                 class="block text-sm font-medium text-gray-700 {{ $field->is_required ? 'after:content-[\'*\'] after:ml-0.5 after:text-red-500' : '' }}">{{ $field->label }}</label>
 
                                             @if ($field->type == 'text')
-                                                <input type="text" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500" id="field_{{ $field->id }}"
-                                                    name="fields[{{ $field->id }}]" {{ $field->is_required ? 'required' : '' }}>
+                                                <input type="text" 
+                                                class="mt-2 block w-full h-14 px-4 text-lg rounded-lg border border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500" 
+                                                id="field_{{ $field->id }}"
+                            name="fields[{{ $field->id }}]" {{ $field->is_required ? 'required' : '' }}>
                                             @elseif($field->type == 'email')
-                                                <input type="email" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500" id="field_{{ $field->id }}"
-                                                    name="fields[{{ $field->id }}]" {{ $field->is_required ? 'required' : '' }}>
+                                                <input type="email" 
+                                                class="mt-2 block w-full h-14 px-4 text-lg rounded-lg border border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500" 
+                                                id="field_{{ $field->id }}"
+                            name="fields[{{ $field->id }}]" {{ $field->is_required ? 'required' : '' }}>
                                             @elseif($field->type == 'tel')
-                                                <input type="tel" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500" id="field_{{ $field->id }}"
-                                                    name="fields[{{ $field->id }}]" {{ $field->is_required ? 'required' : '' }}>
+                                                <input type="tel"  placeholder="Enter Phone Number"
+                                                class="mt-2 block w-full h-14 px-4 text-lg rounded-lg border border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500" 
+                                                id="field_{{ $field->id }}"
+                            name="fields[{{ $field->id }}]" {{ $field->is_required ? 'required' : '' }}>
                                             @elseif($field->type == 'number')
-                                                <input type="number" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500" id="field_{{ $field->id }}"
-                                                    name="fields[{{ $field->id }}]" {{ $field->is_required ? 'required' : '' }}>
+                                                <input type="number" placeholder="Enter Number" 
+                                                class="mt-2 block w-full h-14 px-4 text-lg rounded-lg border border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500" 
+                                                id="field_{{ $field->id }}"
+                            name="fields[{{ $field->id }}]" {{ $field->is_required ? 'required' : '' }}>
                                             @elseif($field->type == 'textarea')
-                                                <textarea class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500" id="field_{{ $field->id }}" name="fields[{{ $field->id }}]" rows="3"
-                                                    {{ $field->is_required ? 'required' : '' }}></textarea>
+                                                <textarea placeholder="Enter Text" 
+                                                class="mt-2 block w-full h-14 px-4 text-lg rounded-lg border border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500" 
+                                                id="field_{{ $field->id }}" 
+                                                name="fields[{{ $field->id }}]" 
+                                                rows="3"
+                            {{ $field->is_required ? 'required' : '' }}></textarea>
                                             @elseif($field->type == 'select')
-                                                <select class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500" id="field_{{ $field->id }}"
-                                                    name="fields[{{ $field->id }}]" {{ $field->is_required ? 'required' : '' }}>
-                                                    <option value="">-- Select Option --</option>
-                                                    @foreach (explode(',', $field->options) as $option)
-                                                        <option value="{{ trim($option) }}">{{ trim($option) }}</option>
-                                                    @endforeach
-                                                </select>
+                                                <select 
+                                                class="mt-2 block w-full h-14 px-4 text-lg rounded-lg border border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500" 
+                                                id="field_{{ $field->id }}"
+                            name="fields[{{ $field->id }}]" {{ $field->is_required ? 'required' : '' }}>
+                            <option value="">-- Select Option --</option>
+                            @foreach (explode(',', $field->options) as $option)
+                                <option value="{{ trim($option) }}">{{ trim($option) }}</option>
+                            @endforeach
+                        </select>
+                                            @elseif($field->type == 'country')
+                                                <select 
+                                                class="mt-2 block w-full h-14 px-4 text-lg rounded-lg border border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500" 
+                                                id="field_{{ $field->id }}"
+                            name="fields[{{ $field->id }}]" {{ $field->is_required ? 'required' : '' }}>
+                            <option value="">-- Select Country --</option>
+                            @foreach ($countries as $country)
+                                <option value="{{ $country->id }}">{{ $country->name }} - {{ $country->country_code }}</option>
+                            @endforeach
+                        </select>
+                                            @elseif($field->type == 'city')
+                                                <input type="text" placeholder="Enter City" 
+                                                class="mt-2 block w-full h-10 px-4 text-lg rounded-lg 
+                                                border border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500" 
+                                                id="field_{{ $field->id }}"
+                            name="fields[{{ $field->id }}]" {{ $field->is_required ? 'required' : '' }}>
                                             @elseif($field->type == 'checkbox')
                                                 <div class="mt-1">
                                                     <div class="flex items-start">
                                                         <div class="flex items-center h-5">
-                                                            <input class="h-4 w-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500" type="checkbox" id="field_{{ $field->id }}"
-                                                                name="fields[{{ $field->id }}]" value="1"
-                                                                {{ $field->is_required ? 'required' : '' }}>
-                                                        </div>
-                                                        <div class="ml-3 text-sm">
-                                                            <label class="font-medium text-gray-700" for="field_{{ $field->id }}">{{ $field->description }}</label>
-                                                        </div>
-                                                    </div>
-                                                </div>
+                                                            <input class="h-4 w-4 text-primary-600 border border-gray-300 rounded focus:ring-primary-500" type="checkbox" id="field_{{ $field->id }}"
+                                        name="fields[{{ $field->id }}]" value="1"
+                                        {{ $field->is_required ? 'required' : '' }}>
+                                </div>
+                                <div class="ml-3 text-sm">
+                                    <label class="font-medium text-gray-700" for="field_{{ $field->id }}">{{ $field->description }}</label>
+                                </div>
+                            </div>
+                        </div>
                                             @elseif($field->type == 'radio')
                                                 <div class="mt-1 space-y-2">
                                                     @foreach (explode(',', $field->options) as $option)
                                                         <div class="flex items-center">
-                                                            <input class="h-4 w-4 text-primary-600 border-gray-300 focus:ring-primary-500" type="radio"
-                                                                name="fields[{{ $field->id }}]"
-                                                                id="field_{{ $field->id }}_{{ $loop->index }}"
-                                                                value="{{ trim($option) }}" {{ $field->is_required ? 'required' : '' }}>
-                                                            <label class="ml-3 block text-sm font-medium text-gray-700"
-                                                                for="field_{{ $field->id }}_{{ $loop->index }}">{{ trim($option) }}</label>
-                                                        </div>
-                                                    @endforeach
-                                                </div>
+                                                            <input class="h-4 w-4 text-primary-600 border border-gray-300 focus:ring-primary-500" type="radio"
+                                        name="fields[{{ $field->id }}]"
+                                        id="field_{{ $field->id }}_{{ $loop->index }}"
+                                        value="{{ trim($option) }}" {{ $field->is_required ? 'required' : '' }}>
+                                    <label class="ml-3 block text-sm font-medium text-gray-700"
+                                        for="field_{{ $field->id }}_{{ $loop->index }}">{{ trim($option) }}</label>
+                                </div>
+                            @endforeach
+                        </div>
                                             @elseif($field->type == 'date')
-                                                <input type="date" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500" id="field_{{ $field->id }}"
-                                                    name="fields[{{ $field->id }}]" {{ $field->is_required ? 'required' : '' }}>
+                                                <input type="date" class="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500" id="field_{{ $field->id }}"
+                            name="fields[{{ $field->id }}]" {{ $field->is_required ? 'required' : '' }}>
                                             @elseif($field->type == 'file')
                                                 <input type="file" class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100" id="field_{{ $field->id }}"
-                                                    name="fields[{{ $field->id }}]" {{ $field->is_required ? 'required' : '' }}>
-                                                @if ($field->description)
-                                                    <p class="mt-1 text-sm text-gray-500">{{ $field->description }}</p>
-                                                @endif
-                                            @endif
-
-                                            @if ($field->description && $field->type != 'checkbox' && $field->type != 'file')
+                            name="fields[{{ $field->id }}]" {{ $field->is_required ? 'required' : '' }}>
+                                            @if ($field->description)
                                                 <p class="mt-1 text-sm text-gray-500">{{ $field->description }}</p>
                                             @endif
-                                        </div>
-                                    @endforeach
-                                </div>
+                                        @endif
+
+                                        @if ($field->description && $field->type != 'checkbox' && $field->type != 'file')
+                                            <p class="mt-1 text-sm text-gray-500">{{ $field->description }}</p>
+                                        @endif
+                                    </div>
+                                @endforeach
                             </div>
-                        @endif
+                        </div>
+                @endif
 
                         <div class="mt-8">
                             <button type="submit" class="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors duration-200">

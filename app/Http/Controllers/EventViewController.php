@@ -3,7 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Attendize\Utils;
+use App\Mail\RegistrationApproved;
+use App\Mail\RegistrationPending;
 use App\Models\Affiliate;
+use App\Models\Country;
 use App\Models\DynamicFormFieldValue;
 use App\Models\Event;
 use App\Models\EventAccessCodes;
@@ -221,7 +224,7 @@ class EventViewController extends Controller
     {
         $event = Event::with('registrations.category.conferences.professions')->findOrFail($event_id);
         $registration = $event->registrations()->with('dynamicFormFields')->findOrFail($registration_id);
-
+        $countries = Country::all();
         if (!$event->is_live) {
             return view('Public.ViewEvent.EventNotLivePage');
         }
@@ -235,6 +238,7 @@ class EventViewController extends Controller
         $data = [
             'event' => $event,
             'registration' => $registration,
+            'countries' => $countries,
         ];
 
         return view('Public.ViewEvent.Partials.EventRegistrationForm', $data);
@@ -357,8 +361,15 @@ class EventViewController extends Controller
                 }
             }
 
-            // Send confirmation email
-            // Mail::to($registrationUser->email)->send(new RegistrationConfirmation($registrationUser));
+            if ($registration->approval_status === 'automatic') {
+                $registrationUser->status = 'approved';
+                $registrationUser->save();
+                // Mail::to($registrationUser->email)->send(new RegistrationApproved($registrationUser, $event));
+            } else {
+                $registrationUser->status = 'pending';
+                $registrationUser->save();
+                // Mail::to($registrationUser->email)->send(new RegistrationPending($registrationUser, $event));
+            }
 
             DB::commit();
 

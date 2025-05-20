@@ -235,6 +235,8 @@
                                                                     <option value="checkbox" {{ $field->type == 'checkbox' ? 'selected' : '' }}>Checkbox</option>
                                                                     <option value="radio" {{ $field->type == 'radio' ? 'selected' : '' }}>Radio Button</option>
                                                                     <option value="file" {{ $field->type == 'file' ? 'selected' : '' }}>File Upload</option>
+                                                                    <option value="country" {{ $field->type == 'country' ? 'selected' : '' }}>Country</option>
+                                                                    <option value="city" {{ $field->type == 'city' ? 'selected' : '' }}>City</option>
                                                                 </select>
                                                             </div>
                                                         </div>
@@ -337,6 +339,8 @@
                             <option value="checkbox">Checkbox</option>
                             <option value="radio">Radio Button</option>
                             <option value="file">File Upload</option>
+                            <option value="country">Country</option>
+                            <option value="city">City</option>
                         </select>
                     </div>
                 </div>
