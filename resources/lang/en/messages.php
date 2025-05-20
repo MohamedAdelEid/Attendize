@@ -4,19 +4,16 @@ return [
     // General
     'platform_name' => 'Modern Events Platform',
     'all_rights_reserved' => 'All rights reserved',
-    
     // Navigation
     'registration' => 'Registration',
     'sponsors' => 'Sponsors',
     'about_us' => 'About Us',
     'all_events' => 'All Events',
-    
     // Event Details
     'event_name' => 'Tech Conference 2023',
     'event_logo_alt' => 'Event Logo',
     'event_image' => 'Event Image',
     'event_description' => 'Join us for the biggest tech conference of the year. Featuring keynote speakers, workshops, and networking opportunities with industry leaders. This event is perfect for developers, designers, and tech enthusiasts looking to stay ahead of the curve.',
-    
     // Registration Forms
     'registration_forms' => 'Registration Forms',
     'registration_image' => 'Registration Form Image',
@@ -33,6 +30,8 @@ return [
     'student_discount' => 'Student Discount',
     'open' => 'Open',
     'closed' => 'Closed',
+    'upcoming' => 'Upcoming',
+    'full' => 'Full',
     'limited' => 'Limited Spots',
     'starts' => 'Starts',
     'ends' => 'Ends',
@@ -40,10 +39,12 @@ return [
     'days' => 'days',
     'hours' => 'hrs',
     'minutes' => 'min',
+    'seconds' => 'sec',
     'registration_closed' => 'Registration Closed',
     'submissions_under_review' => 'Submissions Under Review',
     'no_longer_available' => 'No Longer Available',
-    
+    'no_registrations_available' => 'No Registrations Available',
+    'coming_soon' => 'Coming Soon',
     // Months
     'january' => 'Jan',
     'february' => 'Feb',
@@ -57,4 +58,7 @@ return [
     'october' => 'Oct',
     'november' => 'Nov',
     'december' => 'Dec',
+    'register_now' => 'Register Now',
+    'price' => 'Price',
+    'second' => 'sec',
 ];

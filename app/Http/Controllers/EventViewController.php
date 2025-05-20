@@ -83,7 +83,7 @@ class EventViewController extends Controller
             }
         }
 
-        return view('Public.ViewEvent.EventPage', $data);
+        return view('ViewEvent.show', $data);
     }
 
     /**
@@ -353,7 +353,6 @@ class EventViewController extends Controller
                         $formFieldValue->dynamic_form_field_id = $fieldId;
                         $formFieldValue->value = $value;
                         $formFieldValue->save();
-
                     }
                 }
             }

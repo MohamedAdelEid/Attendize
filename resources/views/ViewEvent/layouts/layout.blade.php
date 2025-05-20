@@ -10,9 +10,9 @@
     
     <!-- Tailwind CSS via CDN -->
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-    
+    @stack('styles')
     <style>
-        /* Font settings based on language */
+       
         html[lang="en"] body {
             font-family: 'Poppins', sans-serif;
         }
@@ -131,6 +131,75 @@
             display: none;  /* Chrome, Safari, Opera */
         }
     </style>
+    <style>
+        price-updated {
+  transition: all 0.3s ease;
+  transform: scale(1.1);
+}
+
+/* Hide scrollbar for the registration cards container */
+.hide-scrollbar {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none; /* Chrome, Safari and Opera */
+}
+
+/* Animation for elements */
+.animate-on-scroll {
+  animation: fadeInUp 0.8s ease forwards;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Custom focus styles */
+input:focus,
+select:focus,
+textarea:focus {
+  @apply ring-2 ring-primary-500 ring-opacity-50 border-primary-500;
+}
+
+/* Custom file input styling */
+input[type="file"] {
+  @apply cursor-pointer;
+}
+
+/* Custom styles for the countdown timer */
+.countdown-timer .days,
+.countdown-timer .hours,
+.countdown-timer .minutes,
+.countdown-timer .seconds {
+  @apply transition-all duration-300;
+}
+    .hide-scrollbar::-webkit-scrollbar {
+        display: none;
+    }
+    
+    .hide-scrollbar {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+    }
+    
+    .registration-card {
+        transition: transform 0.3s, box-shadow 0.3s;
+    }
+    
+    .registration-card:hover {
+        transform: translateY(-8px) !important;
+        box-shadow: 0 15px 30px rgba(0, 0, 0, 0.15) !important;
+    }
+</style>
 </head>
 <body class="antialiased bg-gray-50 text-gray-900 transition-colors duration-300">
     <div id="app" class="min-h-screen flex flex-col">
@@ -142,7 +211,293 @@
         
         @include('ViewEvent.layouts.partials.footer')
     </div>
+    @stack('scripts')
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Extract end date from PHP variable using data attribute
+        const endDateStr = "{{ $event->end_date->format('Y-m-d H:i:s') }}";
+        const endDate = new Date(endDateStr.replace(/-/g, '/'));
+        
+        // Get countdown element
+        const countdownElement = document.getElementById('event-countdown');
+        
+        // Update countdown every second
+        const countdownInterval = setInterval(function() {
+            const now = new Date();
+            const timeRemaining = endDate - now;
+            
+            // If countdown is over
+            if (timeRemaining <= 0) {
+                clearInterval(countdownInterval);
+                countdownElement.innerHTML = '<div class="text-xl font-bold text-red-600">This event has ended</div>';
+                return;
+            }
+            
+            // Calculate time units
+            const days = Math.floor(timeRemaining / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((timeRemaining % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((timeRemaining % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((timeRemaining % (1000 * 60)) / 1000);
+            
+            // Update the countdown display
+            countdownElement.innerHTML = `
+                <div class="grid grid-cols-4 gap-4 text-center">
+                    <div class="flex flex-col">
+                        <div class="flex items-center justify-center px-4 py-6 text-3xl font-bold bg-white rounded-lg shadow-md text-primary-600">
+                            ${days.toString().padStart(2, '0')}
+                        </div>
+                        <span class="mt-2 text-sm font-medium text-gray-600">Days</span>
+                    </div>
+                    <div class="flex flex-col">
+                        <div class="flex items-center justify-center px-4 py-6 text-3xl font-bold bg-white rounded-lg shadow-md text-primary-600">
+                            ${hours.toString().padStart(2, '0')}
+                        </div>
+                        <span class="mt-2 text-sm font-medium text-gray-600">Hours</span>
+                    </div>
+                    <div class="flex flex-col">
+                        <div class="flex items-center justify-center px-4 py-6 text-3xl font-bold bg-white rounded-lg shadow-md text-primary-600">
+                            ${minutes.toString().padStart(2, '0')}
+                        </div>
+                        <span class="mt-2 text-sm font-medium text-gray-600">Minutes</span>
+                    </div>
+                    <div class="flex flex-col">
+                        <div class="flex items-center justify-center px-4 py-6 text-3xl font-bold bg-white rounded-lg shadow-md text-primary-600">
+                            ${seconds.toString().padStart(2, '0')}
+                        </div>
+                        <span class="mt-2 text-sm font-medium text-gray-600">Seconds</span>
+                    </div>
+                </div>
+            `;
+        }, 1000);
+    });
+</script>
+ <!-- Add toast notifications inline -->
+ <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
 
+    <script>
+        $(document).ready(function() {
+            // Configure Toastr
+            toastr.options = {
+                "closeButton": true,
+                "debug": false,
+                "newestOnTop": true,
+                "progressBar": true,
+                "positionClass": "toast-top-right",
+                "preventDuplicates": false,
+                "onclick": null,
+                "showDuration": "300",
+                "hideDuration": "1000",
+                "timeOut": "5000",
+                "extendedTimeOut": "1000",
+                "showEasing": "swing",
+                "hideEasing": "linear",
+                "showMethod": "fadeIn",
+                "hideMethod": "fadeOut"
+            };
+
+            @if(session('error'))
+                toastr.error("{{ session('error') }}", "Error");
+            @endif
+        });
+    </script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize countdown timer
+            initCountdownTimer();
+
+            // Load conferences via AJAX
+            if (document.getElementById('conference_id')) {
+                loadConferences();
+            }
+        });
+
+        function initCountdownTimer() {
+            const countdownTimer = document.querySelector('.countdown-timer');
+            if (!countdownTimer) return;
+
+            const endDate = new Date(countdownTimer.dataset.end).getTime();
+
+            // Update the countdown every second
+            const countdownInterval = setInterval(function() {
+                // Get current date and time
+                const now = new Date().getTime();
+
+                // Calculate the time remaining
+                const distance = endDate - now;
+
+                // Calculate days, hours, minutes, and seconds
+                const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+                const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+                const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+                // Update the timer display
+                countdownTimer.querySelector('.days').textContent = days.toString().padStart(2, '0');
+                countdownTimer.querySelector('.hours').textContent = hours.toString().padStart(2, '0');
+                countdownTimer.querySelector('.minutes').textContent = minutes.toString().padStart(2, '0');
+                countdownTimer.querySelector('.seconds').textContent = seconds.toString().padStart(2, '0');
+
+                // If the countdown is finished, display expired message
+                if (distance < 0) {
+                    clearInterval(countdownInterval);
+                    const container = countdownTimer.closest('.countdown-container');
+                    if (container) {
+                        container.innerHTML =
+                        '<div class="bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-3 rounded relative" role="alert">Registration period has ended</div>';
+                    }
+                }
+            }, 1000);
+        }
+
+        // Load conferences via AJAX
+        function loadConferences() {
+            const conferenceSelect = document.getElementById('conference_id');
+            const categoryId = {{ $registration->category_id ?? 'null' }};
+
+            if (!conferenceSelect || !categoryId) return;
+
+            // Show loading state
+            conferenceSelect.innerHTML = '<option value="">-- Loading Conferences... --</option>';
+            conferenceSelect.disabled = true;
+
+            // Fetch conferences for this category
+            fetch(`/e/api/categories/${categoryId}/conferences`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    // Clear loading option
+                    conferenceSelect.innerHTML = '<option value="">-- Select Conference --</option>';
+
+                    if (data.conferences && data.conferences.length > 0) {
+                        data.conferences.forEach(conference => {
+                            // Format the price to 2 decimal places
+                            const formattedPrice = parseFloat(conference.price).toFixed(2);
+
+                            // Include the price in the option text
+                            const optionText = `${conference.name} - $${formattedPrice}`;
+
+                            const option = new Option(optionText, conference.id);
+                            option.dataset.price = conference.price;
+                            option.dataset.name = conference.name;
+                            conferenceSelect.add(option);
+                        });
+
+                        // Enable the select
+                        conferenceSelect.disabled = false;
+
+                        // Add change event listener
+                        conferenceSelect.addEventListener('change', function() {
+                            loadProfessions(this.value);
+                            updateFeeCard();
+                        });
+                    } else {
+                        conferenceSelect.innerHTML = '<option value="">No conferences available</option>';
+                        document.getElementById('conference-error').textContent =
+                            'No conferences are currently available for this registration.';
+                        document.getElementById('conference-error').classList.remove('hidden');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading conferences:', error);
+                    conferenceSelect.innerHTML = '<option value="">Error loading conferences</option>';
+                    document.getElementById('conference-error').textContent =
+                        'Failed to load conferences. Please try again later.';
+                    document.getElementById('conference-error').classList.remove('hidden');
+                });
+        }
+
+        // Load professions via AJAX
+        function loadProfessions(conferenceId) {
+            const professionSelect = document.getElementById('profession_id');
+
+            if (!professionSelect || !conferenceId) {
+                professionSelect.disabled = true;
+                professionSelect.innerHTML = '<option value="">-- Select Profession --</option>';
+                return;
+            }
+
+            // Show loading state
+            professionSelect.innerHTML = '<option value="">-- Loading Professions... --</option>';
+            professionSelect.disabled = true;
+
+            // Fetch professions for the selected conference
+            fetch(`/e/api/conferences/${conferenceId}/professions`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    // Clear loading option
+                    professionSelect.innerHTML = '<option value="">-- Select Profession --</option>';
+
+                    if (data.professions && data.professions.length > 0) {
+                        data.professions.forEach(profession => {
+                            const option = new Option(profession.name, profession.id);
+                            professionSelect.add(option);
+                        });
+
+                        // Enable the select
+                        professionSelect.disabled = false;
+                        document.getElementById('profession-error').classList.add('hidden');
+                    } else {
+                        professionSelect.innerHTML = '<option value="">No professions available</option>';
+                        document.getElementById('profession-error').textContent =
+                            'No professions are available for this conference.';
+                        document.getElementById('profession-error').classList.remove('hidden');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading professions:', error);
+                    professionSelect.innerHTML = '<option value="">Error loading professions</option>';
+                    document.getElementById('profession-error').textContent =
+                        'Failed to load professions. Please try again later.';
+                    document.getElementById('profession-error').classList.remove('hidden');
+                });
+        }
+
+        // Update the fee card with selected conference details
+        function updateFeeCard() {
+            const conferenceSelect = document.getElementById('conference_id');
+            const feeCard = document.getElementById('fee-card');
+            const feeCardConference = document.getElementById('fee-card-conference');
+            const feeCardAmount = document.getElementById('fee-card-amount');
+
+            if (!conferenceSelect || !feeCard || !feeCardConference || !feeCardAmount) return;
+
+            const selectedOption = conferenceSelect.options[conferenceSelect.selectedIndex];
+
+            if (selectedOption && selectedOption.value) {
+                const price = selectedOption.dataset.price || 0;
+                const conferenceName = selectedOption.dataset.name || 'Selected Conference';
+
+                // Update the fee card content
+                feeCardConference.textContent = conferenceName;
+                feeCardAmount.textContent = `$${parseFloat(price).toFixed(2)}`;
+
+                // Show the fee card with animation
+                feeCard.classList.remove('hidden');
+                feeCard.classList.add('block');
+
+                // Add animation effect
+                feeCardAmount.classList.add('scale-110');
+                setTimeout(() => {
+                    feeCardAmount.classList.remove('scale-110');
+                }, 500);
+            } else {
+                // Hide the fee card if no conference is selected
+                feeCard.classList.remove('block');
+                feeCard.classList.add('hidden');
+            }
+        }
+    </script>
     <!-- Animation Script -->
     <script>
         document.addEventListener('DOMContentLoaded', () => {
@@ -315,5 +670,110 @@
             setInterval(updateCountdowns, 60000);
         });
     </script>
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Horizontal scroll buttons
+        const scrollLeftBtn = document.getElementById('scroll-left');
+        const scrollRightBtn = document.getElementById('scroll-right');
+        const container = document.getElementById('registration-cards-container');
+        
+        if (scrollLeftBtn && scrollRightBtn && container) {
+            const scrollAmount = 300;
+            
+            scrollLeftBtn.addEventListener('click', function() {
+                container.scrollBy({
+                    left: -scrollAmount,
+                    behavior: 'smooth'
+                });
+            });
+            
+            scrollRightBtn.addEventListener('click', function() {
+                container.scrollBy({
+                    left: scrollAmount,
+                    behavior: 'smooth'
+                });
+            });
+        }
+        
+        // Initialize countdown timers
+        const countdownTimers = document.querySelectorAll('.countdown');
+        
+        countdownTimers.forEach(timer => {
+            const endDate = new Date(timer.dataset.end).getTime();
+            
+            // Update the countdown every second
+            const countdownInterval = setInterval(function() {
+                // Get current date and time
+                const now = new Date().getTime();
+                
+                // Calculate the time remaining
+                const distance = endDate - now;
+                
+                // Calculate days, hours, minutes, and seconds
+                const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+                const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+                const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+                
+                // Update the timer display
+                const daysElement = timer.querySelector('.days');
+                const hoursElement = timer.querySelector('.hours');
+                const minutesElement = timer.querySelector('.minutes');
+                const secondsElement = timer.querySelector('.seconds');
+                
+                if (daysElement) daysElement.textContent = days.toString().padStart(2, '0');
+                if (hoursElement) hoursElement.textContent = hours.toString().padStart(2, '0');
+                if (minutesElement) minutesElement.textContent = minutes.toString().padStart(2, '0');
+                if (secondsElement) secondsElement.textContent = seconds.toString().padStart(2, '0');
+                
+                // If the countdown is finished, display expired message
+                if (distance < 0) {
+                    clearInterval(countdownInterval);
+                    
+                    // Check if this is a "opens in" countdown or a "time remaining" countdown
+                    const isOpeningCountdown = timer.querySelector('.mb-1')?.textContent.includes('opens');
+                    
+                    if (isOpeningCountdown) {
+                        // Reload the page to show the now-open registration
+                        window.location.reload();
+                    } else {
+                        // Show expired message
+                        timer.innerHTML = `
+                            <div class="mb-1 text-xs text-gray-600">${timer.querySelector('.mb-1').textContent}</div>
+                            <div class="text-sm font-semibold text-red-600">${__('messages.registration_closed')}</div>
+                        `;
+                        
+                        // Disable the register button
+                        const card = timer.closest('.registration-card');
+                        const registerBtn = card?.querySelector('a.bg-primary-600');
+                        
+                        if (registerBtn) {
+                            registerBtn.classList.remove('bg-primary-600', 'hover:bg-primary-700');
+                            registerBtn.classList.add('bg-gray-400', 'cursor-not-allowed');
+                            registerBtn.setAttribute('disabled', 'true');
+                            registerBtn.textContent = __('messages.registration_closed');
+                        }
+                    }
+                }
+            }, 1000);
+        });
+        
+        // Animation on scroll
+        const animateElements = document.querySelectorAll('.animate-on-scroll');
+        
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.style.opacity = '1';
+                    entry.target.style.transform = 'translateY(0)';
+                }
+            });
+        }, { threshold: 0.1 });
+        
+        animateElements.forEach(element => {
+            observer.observe(element);
+        });
+    });
+</script>
 </body>
 </html>
