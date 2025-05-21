@@ -23,7 +23,7 @@ class RegistrationApproved extends Mailable
     public function build()
     {
         return $this
-            ->subject('Registration Approved - ' . $this->event->name)
+            ->subject('Registration Approved - ' . $this->event->title)
             ->view('Emails.registration-approved');
     }
 }

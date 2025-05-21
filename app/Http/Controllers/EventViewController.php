@@ -364,11 +364,11 @@ class EventViewController extends Controller
             if ($registration->approval_status === 'automatic') {
                 $registrationUser->status = 'approved';
                 $registrationUser->save();
-                // Mail::to($registrationUser->email)->send(new RegistrationApproved($registrationUser, $event));
+                Mail::to($registrationUser->email)->send(new RegistrationApproved($registrationUser, $event));
             } else {
                 $registrationUser->status = 'pending';
                 $registrationUser->save();
-                // Mail::to($registrationUser->email)->send(new RegistrationPending($registrationUser, $event));
+                Mail::to($registrationUser->email)->send(new RegistrationPending($registrationUser, $event));
             }
 
             DB::commit();

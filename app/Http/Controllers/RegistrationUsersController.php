@@ -2,14 +2,16 @@
 
 namespace App\Http\Controllers;
 
+use App\Mail\RegistrationApproved;
+use App\Mail\RegistrationRejected;
 use App\Models\Event;
 use App\Models\Registration;
 use App\Models\RegistrationUser;
 use Illuminate\Http\Request;
+use Mail;
 
 class RegistrationUsersController extends Controller
 {
-
     /**
      * Show all users registered across all registration forms for an event.
      *
@@ -33,10 +35,11 @@ class RegistrationUsersController extends Controller
         // Apply search filter if provided
         if (!empty($filters['search'])) {
             $search = $filters['search'];
-            $query->where(function($q) use ($search) {
-                $q->where('first_name', 'like', "%{$search}%")
-                  ->orWhere('last_name', 'like', "%{$search}%")
-                  ->orWhere('email', 'like', "%{$search}%");
+            $query->where(function ($q) use ($search) {
+                $q
+                    ->where('first_name', 'like', "%{$search}%")
+                    ->orWhere('last_name', 'like', "%{$search}%")
+                    ->orWhere('email', 'like', "%{$search}%");
             });
         }
 
@@ -94,7 +97,8 @@ class RegistrationUsersController extends Controller
         if (!empty($filters['search'])) {
             $search = $filters['search'];
             $query->where(function ($q) use ($search) {
-                $q->where('first_name', 'like', "%{$search}%")
+                $q
+                    ->where('first_name', 'like', "%{$search}%")
                     ->orWhere('last_name', 'like', "%{$search}%")
                     ->orWhere('email', 'like', "%{$search}%");
             });
@@ -125,6 +129,7 @@ class RegistrationUsersController extends Controller
 
         return view('ManageEvent.RegistrationUsers', compact('event', 'registration', 'users', 'filters', 'registrations'));
     }
+
     /**
      * Update the status of a registration user.
      *
@@ -137,7 +142,7 @@ class RegistrationUsersController extends Controller
     public function updateUserStatus(Request $request, $event_id, $user_id)
     {
         $user = RegistrationUser::findOrFail($user_id);
-
+        $event = Event::findOrFail($event_id);
         // Validate the request
         $this->validate($request, [
             'status' => 'required|in:pending,approved,rejected',
@@ -149,10 +154,10 @@ class RegistrationUsersController extends Controller
         // Send notification email based on status change
         if ($request->input('status') === 'approved') {
             // Send approval email
-            // Mail::to($user->email)->send(new RegistrationApproved($user));
+            Mail::to($user->email)->send(new RegistrationApproved($user, $event));
         } elseif ($request->input('status') === 'rejected') {
             // Send rejection email
-            // Mail::to($user->email)->send(new RegistrationRejected($user));
+            Mail::to($user->email)->send(new RegistrationRejected($user, $event));
         }
 
         return response()->json([
@@ -237,6 +242,6 @@ class RegistrationUsersController extends Controller
         $user = RegistrationUser::with(['registration', 'formFieldValues.field'])->findOrFail($user_id);
         $event = Event::findOrFail($event_id);
 
-        return view('ManageEvent.Modals.UserDetails', compact('user' , 'event'));
+        return view('ManageEvent.Modals.UserDetails', compact('user', 'event'));
     }
 }

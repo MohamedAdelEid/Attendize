@@ -6,8 +6,8 @@ use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Str;
 use Superbalist\Money\Money;
+use Str;
 use URL;
 
 /**
@@ -18,6 +18,7 @@ class Event extends MyBaseModel
     use SoftDeletes;
 
     protected $dates = ['start_date', 'end_date', 'on_sale_date'];
+
     /**
      * The validation error messages.
      *
@@ -344,7 +345,6 @@ class Event extends MyBaseModel
 
     /**
      * Get a usable address for embedding Google Maps
-     *
      */
     public function getMapAddressAttribute()
     {
@@ -399,20 +399,20 @@ class Event extends MyBaseModel
         $timestamp = new Carbon();
 
         $icsTemplate = <<<ICSTemplate
-BEGIN:VCALENDAR
-VERSION:2.0
-PRODID:{$siteUrl}
-BEGIN:VEVENT
-UID:{$eventUrl}
-DTSTAMP:{$timestamp->format('Ymd\THis\Z')}
-DTSTART:{$start_date->format('Ymd\THis\Z')}
-DTEND:{$end_date->format('Ymd\THis\Z')}
-SUMMARY:$this->title
-LOCATION:{$this->venue_name}
-DESCRIPTION:{$description}
-END:VEVENT
-END:VCALENDAR
-ICSTemplate;
+            BEGIN:VCALENDAR
+            VERSION:2.0
+            PRODID:{$siteUrl}
+            BEGIN:VEVENT
+            UID:{$eventUrl}
+            DTSTAMP:{$timestamp->format('Ymd\THis\Z')}
+            DTSTART:{$start_date->format('Ymd\THis\Z')}
+            DTEND:{$end_date->format('Ymd\THis\Z')}
+            SUMMARY:$this->title
+            LOCATION:{$this->venue_name}
+            DESCRIPTION:{$description}
+            END:VEVENT
+            END:VCALENDAR
+            ICSTemplate;
 
         return $icsTemplate;
     }
@@ -424,8 +424,8 @@ ICSTemplate;
      */
     public function getEventUrlAttribute()
     {
-        return route("showEventPage", ["event_id" => $this->id, "event_slug" => Str::slug($this->title)]);
-        //return URL::to('/') . '/e/' . $this->id . '/' . Str::slug($this->title);
+        return route('showEventPage', ['event_id' => $this->id, 'event_slug' => Str::slug($this->title)]);
+        // return URL::to('/') . '/e/' . $this->id . '/' . Str::slug($this->title);
     }
 
     public function getSlugAttribute()
@@ -528,5 +528,10 @@ ICSTemplate;
         $calculatedBookingFee = $calculatedBookingFee->add($percentageFeeValue);
 
         return $calculatedBookingFee;
+    }
+
+    public function getEventContactUsMessages()
+    {
+        return $this->hasMany(ContactUs::class);
     }
 }

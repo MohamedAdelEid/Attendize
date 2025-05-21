@@ -23,7 +23,7 @@
             <a href="#sponsors" class="font-medium text-gray-700 transition-colors hover:text-primary-600">
                 {{ __('messages.sponsors') }}
             </a>
-            <a href="#about" class="font-medium text-gray-700 transition-colors hover:text-primary-600">
+            <a href="{{ route('events.about-us', ['event' => $event->id]) }}" class="font-medium text-gray-700 transition-colors hover:text-primary-600">
                 {{ __('messages.about_us') }}
             </a>
         </nav>
@@ -59,7 +59,7 @@
             <a href="#sponsors" class="block px-3 py-2 text-base font-medium text-gray-700 rounded-md hover:bg-gray-100">
                 {{ __('messages.sponsors') }}
             </a>
-            <a href="#about" class="block px-3 py-2 text-base font-medium text-gray-700 rounded-md hover:bg-gray-100">
+            <a href="{{ route('events.about-us', ['event' => $event->id]) }}" class="block px-3 py-2 text-base font-medium text-gray-700 rounded-md hover:bg-gray-100">
                 {{ __('messages.about_us') }}
             </a>
         </div>

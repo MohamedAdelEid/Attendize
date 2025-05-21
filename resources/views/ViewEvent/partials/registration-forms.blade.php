@@ -19,7 +19,7 @@
             <div id="registration-cards-container" class="overflow-x-auto hide-scrollbar">
                 <div id="registration-cards" class="flex px-2 py-4 space-x-6">
                     @if ($event->registrations->count() > 0 )
-                        @foreach ($event->registrations as $registration)
+                    @foreach ($event->registrations->sortByDesc('created_at') as $registration)
                                 <!-- Registration Card -->
                                 <div class="flex-shrink-0 w-full overflow-hidden transition-transform bg-white shadow-md registration-card sm:w-1/2 md:w-1/3 lg:w-1/4 rounded-xl hover:shadow-lg hover:-translate-y-1">
                                     <div class="relative">

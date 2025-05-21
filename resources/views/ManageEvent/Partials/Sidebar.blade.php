@@ -47,6 +47,12 @@
                     <span class="text">@lang("basic.customize")</span>
                 </a>
             </li>
+            <li class="{{ Request::is('*contact-us*') ? 'active' : '' }}">
+                <a href="{{route('events.contact-us', array('event' => $event))}}">
+                    <span class="figure"><i class="ico-envelope"></i></span>
+                    <span class="text">Contact Us</span>
+                </a>
+            </li>
         </ul>
         <h5 class="heading">@lang("ManageEvent.event_tools")</h5>
         <ul id="nav_event" class="topmenu">
