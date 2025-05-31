@@ -7,11 +7,20 @@ use App\Mail\RegistrationRejected;
 use App\Models\Event;
 use App\Models\Registration;
 use App\Models\RegistrationUser;
+use App\Services\TicketService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use Mail;
 
 class RegistrationUsersController extends Controller
 {
+    protected $ticketService;
+
+    public function __construct(TicketService $ticketService)
+    {
+        $this->ticketService = $ticketService;
+    }
+
     /**
      * Show all users registered across all registration forms for an event.
      *
@@ -135,7 +144,6 @@ class RegistrationUsersController extends Controller
      *
      * @param Request $request
      * @param int $event_id
-     * @param int $registration_id
      * @param int $user_id
      * @return \Illuminate\Http\Response
      */
@@ -143,22 +151,31 @@ class RegistrationUsersController extends Controller
     {
         $user = RegistrationUser::findOrFail($user_id);
         $event = Event::findOrFail($event_id);
+
         // Validate the request
         $this->validate($request, [
             'status' => 'required|in:pending,approved,rejected',
         ]);
 
+        $oldStatus = $user->status;
         $user->status = $request->input('status');
-        $user->save();
 
-        // Send notification email based on status change
-        if ($request->input('status') === 'approved') {
-            // Send approval email
+        // Process approval if status changed to approved
+        if ($request->input('status') === 'approved' && $oldStatus !== 'approved') {
+            // Process approval and generate ticket
+            $this->ticketService->processApproval($user);
+
+            // Send approval email with ticket download link
+            Mail::to($user->email)->send(new RegistrationApproved($user, $event));
+        } elseif ($request->input('status') === 'approved') {
+            // Just send approval email if already approved but status was resubmitted
             Mail::to($user->email)->send(new RegistrationApproved($user, $event));
         } elseif ($request->input('status') === 'rejected') {
             // Send rejection email
             Mail::to($user->email)->send(new RegistrationRejected($user, $event));
         }
+
+        $user->save();
 
         return response()->json([
             'status' => 'success',
@@ -170,7 +187,6 @@ class RegistrationUsersController extends Controller
      * Delete a registration user.
      *
      * @param int $event_id
-     * @param int $registration_id
      * @param int $user_id
      * @return \Illuminate\Http\Response
      */
@@ -190,7 +206,6 @@ class RegistrationUsersController extends Controller
      *
      * @param Request $request
      * @param int $event_id
-     * @param int $registration_id
      * @return \Illuminate\Http\Response
      */
     public function bulkUpdateUsers(Request $request, $event_id)
@@ -203,23 +218,41 @@ class RegistrationUsersController extends Controller
 
         $userIds = $request->input('user_ids');
         $action = $request->input('action');
+        $event = Event::findOrFail($event_id);
 
         if ($action === 'delete') {
             RegistrationUser::whereIn('id', $userIds)->delete();
             $message = 'Selected users have been deleted';
         } else {
             $status = ($action === 'approve') ? 'approved' : 'rejected';
+
+            // Get users before updating status
+            $users = RegistrationUser::whereIn('id', $userIds)->get();
+
+            // Update status
             RegistrationUser::whereIn('id', $userIds)->update(['status' => $status]);
 
-            // Send emails to users
-            // $users = RegistrationUser::whereIn('id', $userIds)->get();
-            // foreach ($users as $user) {
-            //     if ($status === 'approved') {
-            //         Mail::to($user->email)->send(new RegistrationApproved($user));
-            //     } else {
-            //         Mail::to($user->email)->send(new RegistrationRejected($user));
-            //     }
-            // }
+            // Process each user individually for approvals
+            if ($status === 'approved') {
+                foreach ($users as $user) {
+                    // Only process if not already approved
+                    if ($user->status !== 'approved') {
+                        // Refresh user data after status update
+                        $user->refresh();
+
+                        // Process approval and generate ticket
+                        $this->ticketService->processApproval($user);
+
+                        // Send approval email with ticket download link
+                        Mail::to($user->email)->send(new RegistrationApproved($user, $event));
+                    }
+                }
+            } else {
+                // Send rejection emails
+                foreach ($users as $user) {
+                    Mail::to($user->email)->send(new RegistrationRejected($user, $event));
+                }
+            }
 
             $message = 'Selected users have been ' . $status;
         }

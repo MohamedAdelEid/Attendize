@@ -6,6 +6,7 @@ use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use App\Models\TicketTemplate; // Added for TicketTemplate relationship
 use Superbalist\Money\Money;
 use Str;
 use URL;
@@ -533,5 +534,13 @@ class Event extends MyBaseModel
     public function getEventContactUsMessages()
     {
         return $this->hasMany(ContactUs::class);
+    }
+
+    /**
+     * Get the ticket template associated with the event.
+     */
+    public function ticketTemplate()
+    {
+        return $this->hasOne(TicketTemplate::class);
     }
 }

@@ -200,7 +200,11 @@
                 <li data-route="{{route('showEventCustomizeTab', ['event_id' => $event->id, 'tab' => 'fees'])}}"
                     class="{{$tab == 'fees' ? 'active' : ''}}"><a href="#fees" data-toggle="tab">@lang("basic.service_fees")</a></li>
                 <li data-route="{{route('showEventCustomizeTab', ['event_id' => $event->id, 'tab' => 'ticket_design'])}}"
-                    class="{{$tab == 'ticket_design' ? 'active' : ''}}"><a href="#ticket_design" data-toggle="tab">@lang("basic.ticket_design")</a></li>
+                    class="{{$tab == 'ticket_design' ? 'active' : ''}}"><a href="#ticket_design" data-toggle="tab">@lang("event.ticket_design")</a>
+                </li>
+                <li data-route="{{route('showEventCustomizeTab', ['event_id' => $event->id, 'tab' => 'ticket_template'])}}"
+                    class="{{$tab == 'ticket_template' ? 'active' : ''}}"><a href="#ticket_template"
+                                                                        data-toggle="tab">Ticket Template</a></li>
             </ul>
             <!--/ tab -->
             <!-- tab content -->
@@ -516,7 +520,89 @@
                 </div>
 
 
-                <div class="tab-pane {{$tab == 'ticket_design' ? 'active' : ''}}" id="ticket_design">
+                <div class="tab-pane {{$tab == 'ticket_template' ? 'active' : ''}}" id="ticket_template">
+                    {!! Form::model($event->ticketTemplate, ['url' => route('postEditEventTicketTemplate', ['event_id' => $event->id]), 'class' => 'ajax gf',
+                        'method' => 'POST', 'files' => true]) !!}
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                {!! Form::label('background_image', 'Background Image (Recommended: 800x400px)', []) !!}
+                                {!! Form::file('background_image', ['class' => 'form-control']) !!}
+                                @if($event->ticketTemplate && $event->ticketTemplate->background_image_path)
+                                    <p class="help-block">Current: <a href="{{ Storage::url($event->ticketTemplate->background_image_path) }}" target="_blank">View Image</a></p>
+                                @endif
+                            </div>
+                        </div>
+                    </div>
+                    <fieldset>
+                        <legend>Name Placement</legend>
+                        <div class="row">
+                            <div class="col-md-3">
+                                {!! Form::label('name_position_x', 'Position X (e.g., 10px or 5%)', []) !!}
+                                {!! Form::text('name_position_x', null, ['class' => 'form-control']) !!}
+                            </div>
+                            <div class="col-md-3">
+                                {!! Form::label('name_position_y', 'Position Y (e.g., 20px or 10%)', []) !!}
+                                {!! Form::text('name_position_y', null, ['class' => 'form-control']) !!}
+                            </div>
+                            <div class="col-md-3">
+                                {!! Form::label('name_font_size', 'Font Size (e.g., 16px)', []) !!}
+                                {!! Form::text('name_font_size', null, ['class' => 'form-control']) !!}
+                            </div>
+                            <div class="col-md-3">
+                                {!! Form::label('name_font_color', 'Font Color (e.g., #000000)', []) !!}
+                                {!! Form::text('name_font_color', null, ['class' => 'form-control colorpicker']) !!}
+                            </div>
+                        </div>
+                    </fieldset>
+                    <fieldset>
+                        <legend>Unique Code Placement</legend>
+                        <div class="row">
+                            <div class="col-md-3">
+                                {!! Form::label('code_position_x', 'Position X', []) !!}
+                                {!! Form::text('code_position_x', null, ['class' => 'form-control']) !!}
+                            </div>
+                            <div class="col-md-3">
+                                {!! Form::label('code_position_y', 'Position Y', []) !!}
+                                {!! Form::text('code_position_y', null, ['class' => 'form-control']) !!}
+                            </div>
+                            <div class="col-md-3">
+                                {!! Form::label('code_font_size', 'Font Size', []) !!}
+                                {!! Form::text('code_font_size', null, ['class' => 'form-control']) !!}
+                            </div>
+                            <div class="col-md-3">
+                                {!! Form::label('code_font_color', 'Font Color', []) !!}
+                                {!! Form::text('code_font_color', null, ['class' => 'form-control colorpicker']) !!}
+                            </div>
+                        </div>
+                    </fieldset>
+                    <fieldset>
+                        <legend>QR Code Placement</legend>
+                        <div class="row">
+                            <div class="col-md-4">
+                                {!! Form::label('qr_position_x', 'Position X', []) !!}
+                                {!! Form::text('qr_position_x', null, ['class' => 'form-control']) !!}
+                            </div>
+                            <div class="col-md-4">
+                                {!! Form::label('qr_position_y', 'Position Y', []) !!}
+                                {!! Form::text('qr_position_y', null, ['class' => 'form-control']) !!}
+                            </div>
+                            <div class="col-md-4">
+                                {!! Form::label('qr_size', 'Size (e.g., 100px)', []) !!}
+                                {!! Form::text('qr_size', null, ['class' => 'form-control']) !!}
+                            </div>
+                        </div>
+                    </fieldset>
+
+                    <div class="p10">
+                        {!! Form::submit('Save Ticket Template Settings', ['class' => 'btn btn-primary']) !!}
+                    </div>
+                    {!! Form::close() !!}
+                </div>
+                {{-- END TAB Ticket Template --}}
+
+
+            <div class="tab-pane {{$tab == 'ticket_design' ? 'active' : ''}}" id="ticket_design">
                     {!! Form::model($event, array('url' => route('postEditEventTicketDesign', ['event_id' => $event->id]), 'class' => 'ajax ')) !!}
                     <h4>@lang("Ticket.ticket_design")</h4>
                     <div class="row">

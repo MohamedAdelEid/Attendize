@@ -48,7 +48,7 @@
         </a>
     </div>
 
-    <div class="navbar-toolbar clearfix">
+    <div class="clearfix navbar-toolbar">
         @yield('top_nav')
 
         <ul class="nav navbar-nav navbar-right">

@@ -20,6 +20,8 @@ class RegistrationUser extends Model
         'email',
         'phone',
         'status',
+        'unique_code',
+        'qr_code_path',
         'is_new',
         // 'state_id',
     ];
@@ -29,7 +31,7 @@ class RegistrationUser extends Model
     ];
 
 
-     /**
+    /**
      * Get the registration that owns the registration user.
      */
     public function registration()
@@ -74,6 +76,6 @@ class RegistrationUser extends Model
      */
     public function formFieldValues()
     {
-        return $this->hasMany(DynamicFormFieldValue::class , 'registration_user_id');
+        return $this->hasMany(DynamicFormFieldValue::class, 'registration_user_id');
     }
 }

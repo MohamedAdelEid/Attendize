@@ -56,6 +56,12 @@
         </ul>
         <h5 class="heading">@lang("ManageEvent.event_tools")</h5>
         <ul id="nav_event" class="topmenu">
+            <li class="{{ Request::is('*ticket_template*') ? 'active' : '' }}">
+                <a href="{{route('showEventTicketTemplate', array('event_id' => $event->id))}}">
+                    <span class="figure"><i class="ico-image"></i></span>
+                    <span class="text">Ticket Template</span>
+                </a>
+            </li>
             <li class="{{ Request::is('*registration*') ? 'active' : '' }}">
                 <a href="{{ route('showEventRegistration', ['event_id' => $event->id]) }}">
                     <span class="figure"><i class="ico-file-text"></i></span>

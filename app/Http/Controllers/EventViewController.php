@@ -12,6 +12,7 @@ use App\Models\Event;
 use App\Models\EventAccessCodes;
 use App\Models\EventStats;
 use App\Models\RegistrationUser;
+use App\Services\TicketService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Lang;
@@ -25,9 +26,11 @@ use Validator;
 class EventViewController extends Controller
 {
     protected $captchaService;
+    protected $ticketService;
 
-    public function __construct()
+    public function __construct(TicketService $ticketService)
     {
+        $this->ticketService = $ticketService;
         $captchaConfig = config('attendize.captcha');
         if ($captchaConfig['captcha_is_on']) {
             $this->captchaService = Factory::create($captchaConfig);
@@ -304,7 +307,7 @@ class EventViewController extends Controller
 
                 if ($field->type == 'file') {
                     $fieldRules[] = 'file';
-                    $fieldRules[] = 'max:10240';  // 10MB max file size
+                    $fieldRules[] = 'max:10240';
                 } elseif ($field->type == 'email') {
                     $fieldRules[] = 'email';
                 } elseif ($field->type == 'date') {
@@ -342,7 +345,6 @@ class EventViewController extends Controller
                 foreach ($request->input('fields') as $fieldId => $value) {
                     $field = $registration->dynamicFormFields()->find($fieldId);
 
-                    // dd($request->all());
                     if ($field) {
                         // Handle file uploads
                         if ($field->type == 'file' && $request->hasFile('fields.' . $fieldId)) {
@@ -364,6 +366,9 @@ class EventViewController extends Controller
             if ($registration->approval_status === 'automatic') {
                 $registrationUser->status = 'approved';
                 $registrationUser->save();
+
+                $this->ticketService->processApproval($registrationUser);
+
                 Mail::to($registrationUser->email)->send(new RegistrationApproved($registrationUser, $event));
             } else {
                 $registrationUser->status = 'pending';
