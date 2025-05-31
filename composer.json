@@ -22,6 +22,7 @@
         "guzzlehttp/guzzle": "^6.4",
         "guzzlehttp/psr7": "^1.6",
         "intervention/image": "^2.5",
+        "khaled.alshamaa/ar-php": "^7.0",
         "laracasts/utilities": "^3.0",
         "laravel/framework": "^6.5",
         "laravel/socialite": "^4.3",

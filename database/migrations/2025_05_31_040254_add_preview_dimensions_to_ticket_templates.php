@@ -13,9 +13,9 @@ class AddPreviewDimensionsToTicketTemplates extends Migration
      */
     public function up()
     {
-        Schema::table('ticket_templates', function (Blueprint $table) {
-            $table->integer('preview_width')->nullable()->after('background_image_path');
-            $table->integer('preview_height')->nullable()->after('preview_width');
+       Schema::table('ticket_templates', function (Blueprint $table) {
+            $table->integer('preview_width')->nullable();
+            $table->integer('preview_height')->nullable();
         });
     }
 
@@ -26,7 +26,7 @@ class AddPreviewDimensionsToTicketTemplates extends Migration
      */
     public function down()
     {
-        Schema::table('ticket_templates', function (Blueprint $table) {
+         Schema::table('ticket_templates', function (Blueprint $table) {
             $table->dropColumn(['preview_width', 'preview_height']);
         });
     }

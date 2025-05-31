@@ -107,6 +107,8 @@ class TicketTemplateController extends MyBaseController
             'code_font_size' => 'nullable|numeric|min:8|max:72',
             'code_font_color' => 'nullable|string',
             'qr_size' => 'nullable|numeric|min:50|max:300',
+            'preview_width' => 'nullable|numeric',
+            'preview_height' => 'nullable|numeric',
         ]);
 
         if ($validator->fails()) {
@@ -133,6 +135,12 @@ class TicketTemplateController extends MyBaseController
             $template->code_font_size = $request->code_font_size ?? 20;
             $template->code_font_color = $request->code_font_color ?? '#000000';
             $template->qr_size = $request->qr_size ?? 100;
+
+            // Save preview dimensions for scaling
+            if ($request->has('preview_width') && $request->has('preview_height')) {
+                $template->preview_width = $request->preview_width;
+                $template->preview_height = $request->preview_height;
+            }
 
             $template->save();
 

@@ -9,7 +9,24 @@
             margin: 0;
             padding: 0;
             color: #333;
+            direction: ltr;
         }
+
+        /* Arabic text styling */
+        .arabic-text {
+            direction: rtl;
+            text-align: right;
+            font-family: 'NotoNaskhArabic-Regular', Arial, sans-serif;
+            unicode-bidi: bidi-override;
+        }
+
+        /* English text styling */
+        .english-text {
+            direction: ltr;
+            text-align: left;
+            font-family: Arial, sans-serif;
+        }
+
         .ticket-container {
             width: 100%;
             max-width: 800px;
@@ -84,6 +101,20 @@
         th {
             background-color: #f9fafb;
         }
+
+        /* Arabic support for table content */
+        .arabic-content td {
+            direction: rtl;
+            text-align: right;
+        }
+
+        /* Font face definitions */
+        @font-face {
+            font-family: 'NotoNaskhArabic-Regular';
+            src: url('{{ public_path('fonts/NotoNaskhArabic-Regular.ttf') }}') format('truetype');
+            font-weight: normal;
+            font-style: normal;
+        }
     </style>
 </head>
 <body>
@@ -101,29 +132,35 @@
             <div class="ticket-content">
                 <div class="attendee-info">
                     <h2>Attendee Information</h2>
-                    <table>
+                    <table class="{{ preg_match('/[\x{0600}-\x{06FF}]/u', $user->first_name . ' ' . $user->last_name) ? 'arabic-content' : '' }}">
                         <tr>
                             <th>Name</th>
-                            <td>{{ $user->first_name }} {{ $user->last_name }}</td>
+                            <td class="{{ preg_match('/[\x{0600}-\x{06FF}]/u', $user->first_name . ' ' . $user->last_name) ? 'arabic-text' : 'english-text' }}">
+                                {{ $user->first_name }} {{ $user->last_name }}
+                            </td>
                         </tr>
                         <tr>
                             <th>Email</th>
-                            <td>{{ $user->email }}</td>
+                            <td class="english-text">{{ $user->email }}</td>
                         </tr>
                         @if($user->phone)
                         <tr>
                             <th>Phone</th>
-                            <td>{{ $user->phone }}</td>
+                            <td class="english-text">{{ $user->phone }}</td>
                         </tr>
                         @endif
                         <tr>
                             <th>Registration Type</th>
-                            <td>{{ $user->registration->name }}</td>
+                            <td class="{{ preg_match('/[\x{0600}-\x{06FF}]/u', $user->registration->name) ? 'arabic-text' : 'english-text' }}">
+                                {{ $user->registration->name }}
+                            </td>
                         </tr>
                         @if($user->conference)
                         <tr>
                             <th>Conference</th>
-                            <td>{{ $user->conference->name }}</td>
+                            <td class="{{ preg_match('/[\x{0600}-\x{06FF}]/u', $user->conference->name) ? 'arabic-text' : 'english-text' }}">
+                                {{ $user->conference->name }}
+                            </td>
                         </tr>
                         @endif
                     </table>
@@ -134,20 +171,24 @@
                     <table>
                         <tr>
                             <th>Event</th>
-                            <td>{{ $event->title }}</td>
+                            <td class="{{ preg_match('/[\x{0600}-\x{06FF}]/u', $event->title) ? 'arabic-text' : 'english-text' }}">
+                                {{ $event->title }}
+                            </td>
                         </tr>
                         <tr>
                             <th>Date</th>
-                            <td>{{ $event->start_date->format('F j, Y') }} - {{ $event->end_date->format('F j, Y') }}</td>
+                            <td class="english-text">{{ $event->start_date->format('F j, Y') }} - {{ $event->end_date->format('F j, Y') }}</td>
                         </tr>
                         <tr>
                             <th>Time</th>
-                            <td>{{ $event->start_date->format('g:i A') }} - {{ $event->end_date->format('g:i A') }}</td>
+                            <td class="english-text">{{ $event->start_date->format('g:i A') }} - {{ $event->end_date->format('g:i A') }}</td>
                         </tr>
                         @if($event->location)
                         <tr>
                             <th>Location</th>
-                            <td>{{ $event->location }}</td>
+                            <td class="{{ preg_match('/[\x{0600}-\x{06FF}]/u', $event->location) ? 'arabic-text' : 'english-text' }}">
+                                {{ $event->location }}
+                            </td>
                         </tr>
                         @endif
                     </table>
@@ -159,7 +200,7 @@
                 </div>
 
                 <div class="qr-code">
-                    <img src="{{ storage_path('app/public/' . $user->qr_code_path) }}" alt="QR Code" style="width: 200px; height: 200px;">
+                    <img src="{{ storage_path('app/public/' . $user->qr_code_path) }}" alt="QR Code" style="width: 200px; height: 200px; border-radius: 12px;">
                 </div>
             </div>
 

@@ -357,7 +357,7 @@
                                 top: {{ $template->name_position_y ?? 50 }}px;
                                 font-size: {{ $template->name_font_size ?? 24 }}px;
                                 color: {{ $template->name_font_color ?? '#000000' }};">
-                        John Doe
+                        Full Name
                     </div>
 
                     <div id="codeElement" class="draggable-element element-code"
