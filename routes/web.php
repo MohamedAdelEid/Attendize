@@ -27,6 +27,7 @@ use App\Http\Controllers\EventRegistrationController;
 use App\Http\Controllers\EventRegistrationProfessionController;
 use App\Http\Controllers\EventSurveyController;
 use App\Http\Controllers\EventTicketsController;
+use App\Http\Controllers\EventUserTypeController;
 use App\Http\Controllers\EventViewController;
 use App\Http\Controllers\EventViewEmbeddedController;
 use App\Http\Controllers\EventWidgetsController;
@@ -493,6 +494,57 @@ Route::group(
                     '/event/{event_id}/registrations/users/{user_id}/details',
                     [RegistrationUsersController::class, 'getUserDetails']
                 )->name('getUserDetails');
+
+                 // Add User
+                Route::get('{event_id}/registration/users/add/{registration_id?}', [App\Http\Controllers\RegistrationUsersController::class, 'showAddUser'])
+                    ->name('showAddUser');
+                Route::post('{event_id}/registration/users/store', [App\Http\Controllers\RegistrationUsersController::class, 'storeUser'])
+                    ->name('storeUser');
+
+                // Edit User
+                Route::get('{event_id}/registration/users/{user_id}/edit', [App\Http\Controllers\RegistrationUsersController::class, 'showEditUser'])
+                    ->name('showEditUserResgistration');
+                Route::post('{event_id}/registration/users/{user_id}/update', [App\Http\Controllers\RegistrationUsersController::class, 'updateUser'])
+                    ->name('updateUser');
+
+                // Import Users
+                Route::get('{event_id}/registration/users/import', [App\Http\Controllers\RegistrationUsersController::class, 'showImportUsers'])
+                    ->name('showImportUsers');
+                Route::post('{event_id}/registration/users/import', [App\Http\Controllers\RegistrationUsersController::class, 'importUsers'])
+                    ->name('importUsers');
+                Route::get('{event_id}/registration/users/template', [App\Http\Controllers\RegistrationUsersController::class, 'downloadTemplate'])
+                    ->name('downloadTemplate');
+
+                // AJAX Routes
+                Route::get('{event_id}/registrations/{registration_id}/fields', [App\Http\Controllers\RegistrationUsersController::class, 'getRegistrationFields'])
+                    ->name('getRegistrationFields');
+
+                 Route::get('{event_id}/conferences/{conference_id}/professions', [App\Http\Controllers\RegistrationUsersController::class, 'getConferenceProfessions'])
+                        ->name('getConferenceProfessions');
+
+                Route::get('{event_id}/registration/user-types', [EventUserTypeController::class, 'showUserTypes'])
+                    ->name('showEventUserTypes');
+
+                Route::get('{event_id}/registration/user-types/create', [EventUserTypeController::class, 'showCreateUserType'])
+                    ->name('showCreateEventUserType');
+
+                Route::post('{event_id}/registration/user-types/create', [EventUserTypeController::class, 'postCreateUserType'])
+                    ->name('postCreateEventUserType');
+
+                Route::get('{event_id}/registration/user-types/{user_type_id}/edit', [EventUserTypeController::class, 'showEditUserType'])
+                    ->name('showEditEventUserType');
+
+                Route::post('{event_id}/registration/user-types/{user_type_id}/edit', [EventUserTypeController::class, 'postEditUserType'])
+                    ->name('postEditEventUserType');
+
+                Route::get('{event_id}/registration/user-types/{user_type_id}/delete', [EventUserTypeController::class, 'showDeleteUserType'])
+                    ->name('showDeleteEventUserType');
+
+                Route::post('{event_id}/registration/user-types/{user_type_id}/delete', [EventUserTypeController::class, 'postDeleteUserType'])
+                    ->name('postDeleteEventUserType');
+
+                Route::post('{event_id}/registration/user-types/bulk-delete', [EventUserTypeController::class, 'postBulkDeleteUserTypes'])
+                    ->name('postBulkDeleteUserTypes');
 
                 /*
                  * ----------
@@ -1049,3 +1101,6 @@ Route::get('/ticket/download/{token}', [App\Http\Controllers\TicketController::c
     ->name('downloadTicket');
 Route::get('/ticket/view/{token}', [App\Http\Controllers\TicketController::class, 'viewTicket'])
     ->name('viewTicket');
+
+Route::get('/events/{event_id}/registration-confirmation', [EventViewController::class , 'showRegistrationConfirmation'])->name('showRegistrationConfirmation');
+

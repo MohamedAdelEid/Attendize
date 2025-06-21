@@ -1,9 +1,18 @@
 <!DOCTYPE html>
-<html lang="{{ app()->getLocale() }}" dir="{{ app()->getLocale() == 'ar' ? 'rtl' : 'ltr' }}" class="scroll-smooth">
+<html lang="{{ app()->getLocale() }}" dir="{{ app()->getLocale() == 'ar' ? 'rtl' : 'rtl' }}" class="scroll-smooth">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ __('messages.event_name') }} - {{ __('messages.platform_name') }}</title>
+    <title>Four-Links - {{ $event->title }}</title>
+    
+    
+    <meta property="og:site_name" content="{{ $event->title }}">
+	<meta property="og:title" content="{{ $event->title }}" />
+	<meta property="og:description" content="To register for the Invitation, you will need to fill the Registration Form. Please enter the details required below. 
+	Once you've signed up we'll check your information and back to you with confirmation." />
+	<meta property="og:image" itemprop="image" content="{{ asset($event->bg_image_path) }}">
+	<meta property="og:type" content="website" />
+	
     
     <!-- Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Cairo:wght@300;400;500;600;700&display=swap" rel="stylesheet">

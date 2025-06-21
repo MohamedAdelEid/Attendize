@@ -15,7 +15,7 @@
                 <div class="transition-all duration-700 ease-out translate-y-8 opacity-0 animate-on-scroll rtl:text-right">
                     <!-- Breadcrumb -->
                     <nav class="flex mb-6 rtl:flex-row-reverse" aria-label="Breadcrumb">
-                        <ol class="inline-flex items-center space-x-1 md:space-x-3 rtl:space-x-reverse">
+                        <!--<ol class="inline-flex items-center space-x-1 md:space-x-3 rtl:space-x-reverse">
                             <li class="inline-flex items-center">
                                 <a href="#" class="inline-flex items-center text-sm font-medium text-gray-700 hover:text-primary-600">
                                     {{ __('messages.all_events') }}
@@ -29,7 +29,7 @@
                                     <span class="ml-1 text-sm font-medium text-gray-500 md:ml-2 rtl:mr-1 rtl:ml-0">{{ $event->title }}</span>
                                 </div>
                             </li>
-                        </ol>
+                        </ol>-->
                     </nav>
                     
                     <!-- Event Title -->
@@ -121,9 +121,135 @@
                 </div>
             </div>
         </div>
+        
+        
+       
+
+
     </section>
     
+
+        
+                    <style>
+
+
+/* The Modal (background) */
+.modal {
+  display: none; /* Hidden by default */
+  position: fixed; /* Stay in place */
+  z-index: 100000; /* Sit on top */
+  padding-top: 100px; /* Location of the box */
+  left: 0;
+  top: 0;
+  width: 100%; /* Full width */
+  height: 100%; /* Full height */
+  overflow: auto; /* Enable scroll if needed */
+  background-color: rgb(0,0,0); /* Fallback color */
+  background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
+}
+
+/* Modal Content */
+.modal-content {
+  background-color: #fefefe;
+  margin: auto;
+  padding: 20px;
+  border: 1px solid #888;
+  width: 80%;
+}
+
+/* The Close Button */
+.close {
+  color: #aaaaaa;
+  float: right;
+  font-size: 28px;
+  font-weight: bold;
+}
+
+.close:hover,
+.close:focus {
+  color: #000;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.btn {
+            margin: 10px;
+            padding: 10px 20px;
+            border: none;
+            background-color: #4CAF50;
+            color: white;
+            cursor: pointer;
+        }
+        .btn:hover {
+            background-color: #45a049;
+        }
+        
+        button#noBtn {
+    background-color: #d56979;
+
+}
+
+</style>
+        
+
+        <!-- The Modal -->
+        <div id="myModal" class="modal">
+        
+          <!-- Modal content -->
+          <div class="modal-content">
+            <span class="close">&times;</span></br></br>
+            <p>هل تود الاستمرار في التسجيل للحصول على الدعوة لحضور حفل استقبال اليوم الوطني للذكرى 73 ثورة يوليو 1952 م </p>
+            
+            <button id="yesBtn" class="btn">قبول الدعوة</button>
+            <button id="noBtn" class="btn">الاعتذار عن الحضور</button>
+          </div>
+        
+        </div>
+        
+        
+        
+        <script>
+        // Get the modal
+        var modal = document.getElementById("myModal");
+        @if ($errors->any() == null && session('success') == null) 
+         modal.style.display = "block";
+        @endif
+        // Get the button that opens the modal
+       
+        
+        // Get the <span> element that closes the modal
+        var span = document.getElementsByClassName("close")[0];
+        
+        // When the user clicks the button, open the modal 
+        
+        
+        // When the user clicks on <span> (x), close the modal
+        span.onclick = function() {
+          modal.style.display = "none";
+        }
+        
+        // When the user clicks anywhere outside of the modal, close it
+        window.onclick = function(event) {
+          if (event.target == modal) {
+            modal.style.display = "none";
+          }
+        }
+        
+        yesBtn.onclick = function() {
+            modal.style.display = "none";
+        }
+    
+        noBtn.onclick = function() {
+          var frmREg = document.getElementById("FormRegistration");
+            frmREg.style.display = 'none';
+            modal.style.display = "none";
+        }
+        
+        
+        </script>
+        
     <!-- Registration Forms Section -->
-    @include('ViewEvent.partials.registration-forms')
+	{{-- @include('ViewEvent.partials.registration-forms') --}}
+	@include('ViewEvent.partials.EventRegistrationForm')
 @endsection
 

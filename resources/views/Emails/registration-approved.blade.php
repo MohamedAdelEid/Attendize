@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!DOCTYPE html dir="rtl" >
 <html>
 <head>
     <meta charset="utf-8">
@@ -14,6 +14,7 @@
             background-color: #f8f9fa;
             margin: 0;
             padding: 0;
+            direction: rtl;
         }
 
         .container {
@@ -21,8 +22,13 @@
             margin: 0 auto;
             padding: 20px;
             background-color: #f8f9fa;
+             direction: rtl;
         }
 
+        .ii a[href] {
+            color: white;
+        }
+        
         .card {
             background-color: #ffffff;
             border-radius: 12px;
@@ -88,7 +94,7 @@
 
         .button {
             display: inline-block;
-            background-color:rgb(236, 236, 236);
+            background-color:#4e558f;
             color: white;
             text-decoration: none;
             padding: 12px 24px;
@@ -144,38 +150,38 @@
     <div class="container">
         <div class="card">
             <div class="header">
-                <h1>Registration Approved!</h1>
-                <p>Your event registration has been confirmed</p>
+                <h1>تم تأكيد الدعوة والحضور!</h1>
+                <p>{{ $event->title }}</p>
             </div>
 
             <div class="content">
-                <p>Dear {{ $user->first_name }} {{ $user->last_name }},</p>
+                <p>عزيزي {{ $user->first_name }} {{ $user->last_name }},</p>
 
-                <p>Great news! Your registration for <strong>{{ $event->title }}</strong> has been approved. We're excited to have you join us for this event.</p>
+                <p>أخبار رائعة! تم الموافقة على تسجيلك لـ حفل استقبال اليوم الوطني للذكرى 73 ثورة يوليو 1952 م. كما نسعد بحضوركم و مشاركتكم في هذا الحفل.</p>
 
                 <div class="event-details">
-                    <h3>Event Details</h3>
+                    <h3>تفاصيل الفعالية</h3>
                     <ul>
                         <li><strong>Event:</strong> {{ $event->title }}</li>
-                        <li><strong>Date:</strong> {{ date('F j, Y', strtotime($user->registration->start_date)) }}</li>
-                        <li><strong>Status:</strong> <span class="status-badge">Approved</span></li>
+                        <li><strong>Date:</strong> {{ date('F j, Y H:i', strtotime($event->start_date)) }}</li>
+                        <li><strong>حالة الطلب:</strong> <span class="status-badge">تمت الموافقة</span></li>
                     </ul>
                 </div>
 
-                <p>You can download your ticket by clicking the button below:</p>
+                <p>يمكنك تحميل تذكرة الدعوة من خلال النقر على الزر أدناه::</p>
 
                 <div style="text-align: center;">
-                    <a href="{{ $downloadUrl }}" class="button">Download Your Ticket</a>
+                    <a href="{{ $downloadUrl }}" class="button">تحميل بطاقة الدعوة الخاصة بك</a>
                 </div>
 
-            <p>If the button doesn't work, you can copy and paste this link into your browser:</p>
+            <p>إذا لم يعمل الزر، يمكنك نسخ الرابط ولصقه في متصفحك:</p>
             <p style="word-break: break-all;">{{ $downloadUrl }}</p>
 
-                <p>We look forward to seeing you at the event. If you have any questions or need assistance, please don't hesitate to contact our support team.</p>
+                <p>نتطلع إلى رؤيتك في هذه الفعالية. إذا كان لديك أي أسئلة أو تحتاج إلى مساعدة، فلا تتردد في الاتصال بفريق الدعم لدينا.</p>
 
                 <a href="{{route('showEventPage', $event->id)}}" class="button">View Event Details</a>
 
-                <p style="margin-top: 25px;">Best regards,<br>
+                <p style="margin-top: 25px;">شاكرين لكم اهتمامكم,<br>
                 The {{ $event->title }} Team</p>
             </div>
 

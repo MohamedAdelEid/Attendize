@@ -1,9 +1,9 @@
-{{-- resources/views/ManageEvent/EventRegistrationUsers.blade.php --}}
+{{-- resources/views/ManageEvent/RegistrationUsers.blade.php --}}
 @extends('Shared.Layouts.Master')
 
 @section('title')
     @parent
-    {{ $event->title }} - All Registered Users
+    {{ $event->title }} - Registered Users
 @stop
 
 @section('top_nav')
@@ -12,20 +12,36 @@
 
 @section('page_title')
     <i class="ico-users mr5"></i>
-    All Registered Users
-    <span class="page-title-buttons">
-        <a href="{{ route('showEventRegistration', ['event_id' => $event->id]) }}" class="btn btn-default btn-sm">
-            <i class="ico-arrow-left"></i> Back to Registrations
-        </a>
-        <a href="{{ route('showEventRegistrationUsers', ['event_id' => $event->id, 'mark_as_viewed' => 1]) }}"
-            class="btn btn-success btn-sm">
-            <i class="ico-checkmark"></i> Mark All as Viewed
-        </a>
-    </span>
+    @if(isset($registration))
+        {{ $registration->name }} - Registered Users
+    @else
+        All Registered Users
+    @endif
 @stop
 
 @section('head')
     <style>
+        .header-actions {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 5px;
+            border: 1px solid #dee2e6;
+        }
+
+        .header-actions h4 {
+            margin: 0 0 15px 0;
+            color: #495057;
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
         .search-form {
             margin-bottom: 20px;
         }
@@ -155,6 +171,12 @@
             display: inline-block;
             margin-left: 20px;
         }
+
+        .code-display {
+            font-family: monospace;
+            font-weight: bold;
+            color: #007bff;
+        }
     </style>
 @stop
 
@@ -162,9 +184,46 @@
     @include('ManageEvent.Partials.Sidebar')
 @stop
 
+@section('page_header')
+    <div class="col-md-12">
+        <span class="page-title-buttons">
+            <a href="{{ route('showEventRegistration', ['event_id' => $event->id]) }}" class="btn btn-default btn-sm">
+                <i class="ico-arrow-left"></i> Back to Registrations
+            </a>
+            @if(isset($registration))
+                <a href="{{ route('showEventRegistrationUsers', ['event_id' => $event->id]) }}" class="btn btn-info btn-sm">
+                    <i class="ico-users"></i> View All Event Users
+                </a>
+            @endif
+            <a href="{{ route('showEventRegistrationUsers', ['event_id' => $event->id, 'mark_as_viewed' => 1]) }}"
+                class="btn btn-success btn-sm">
+                <i class="ico-checkmark"></i> Mark All as Viewed
+            </a>
+        </span>
+    </div>
+@stop
+
 @section('content')
     <div class="row">
         <div class="col-md-12">
+            <!-- Header Actions -->
+            <div class="header-actions">
+                <h4><i class="ico-plus"></i> User Management</h4>
+                <div class="action-buttons">
+                    <button class="btn btn-success loadModal"
+                            data-modal-id="AddUser"
+                            data-href="{{ route('showAddUser', ['event_id' => $event->id, 'registration_id' => $registration->id ?? null]) }}">
+                        <i class="ico-user-plus"></i> Add User
+                    </button>
+                    <button class="btn btn-primary loadModal"
+                            data-modal-id="ImportUsers"
+                            data-href="{{ route('showImportUsers', ['event_id' => $event->id]) }}">
+                        <i class="ico-upload"></i> Import Users
+                    </button>
+                </div>
+            </div>
+
+            <!-- Filters Panel -->
             <div class="panel panel-default">
                 <div class="panel-heading">
                     <h3 class="panel-title">
@@ -172,15 +231,14 @@
                     </h3>
                 </div>
                 <div class="panel-body">
-                    <form class="search-form" method="GET"
-                        action="{{ route('showEventRegistrationUsers', ['event_id' => $event->id]) }}">
+                    <form class="search-form" method="GET">
                         <div class="row">
                             <div class="col-md-4">
                                 <div class="form-group">
                                     <label for="search">Search</label>
                                     <div class="input-group">
                                         <input type="text" class="form-control" id="search" name="search"
-                                            placeholder="Search by name or email" value="{{ $filters['search'] ?? '' }}">
+                                            placeholder="Search by name, email, or code" value="{{ $filters['search'] ?? '' }}">
                                         <span class="input-group-btn">
                                             <button class="btn btn-default" type="submit">
                                                 <i class="ico-search"></i>
@@ -189,6 +247,7 @@
                                     </div>
                                 </div>
                             </div>
+                            @if(!isset($registration))
                             <div class="col-md-4">
                                 <div class="form-group">
                                     <label for="registration_id">Registration Form</label>
@@ -203,17 +262,18 @@
                                     </select>
                                 </div>
                             </div>
+                            @endif
                             <div class="col-md-4">
                                 <div class="form-group">
                                     <label>Status</label>
                                     <div>
-                                        <a href="{{ route('showEventRegistrationUsers', array_merge(request()->except(['status', 'page']), ['event_id' => $event->id])) }}"
+                                        <a href="{{ request()->fullUrlWithQuery(['status' => null, 'page' => null]) }}"
                                             class="filter-status {{ empty($filters['status']) ? 'active' : '' }}">All</a>
-                                        <a href="{{ route('showEventRegistrationUsers', array_merge(request()->except(['status', 'page']), ['event_id' => $event->id, 'status' => 'pending'])) }}"
+                                        <a href="{{ request()->fullUrlWithQuery(['status' => 'pending', 'page' => null]) }}"
                                             class="filter-status {{ isset($filters['status']) && $filters['status'] === 'pending' ? 'active' : '' }}">Pending</a>
-                                        <a href="{{ route('showEventRegistrationUsers', array_merge(request()->except(['status', 'page']), ['event_id' => $event->id, 'status' => 'approved'])) }}"
+                                        <a href="{{ request()->fullUrlWithQuery(['status' => 'approved', 'page' => null]) }}"
                                             class="filter-status {{ isset($filters['status']) && $filters['status'] === 'approved' ? 'active' : '' }}">Approved</a>
-                                        <a href="{{ route('showEventRegistrationUsers', array_merge(request()->except(['status', 'page']), ['event_id' => $event->id, 'status' => 'rejected'])) }}"
+                                        <a href="{{ request()->fullUrlWithQuery(['status' => 'rejected', 'page' => null]) }}"
                                             class="filter-status {{ isset($filters['status']) && $filters['status'] === 'rejected' ? 'active' : '' }}">Rejected</a>
                                     </div>
                                 </div>
@@ -221,8 +281,7 @@
                         </div>
                         <div class="row">
                             <div class="col-md-12 text-right">
-                                <a href="{{ route('showEventRegistrationUsers', ['event_id' => $event->id]) }}"
-                                    class="btn btn-default">
+                                <a href="{{ request()->url() }}" class="btn btn-default">
                                     <i class="ico-undo"></i> Clear Filters
                                 </a>
                                 <button type="submit" class="btn btn-success">
@@ -234,6 +293,7 @@
                 </div>
             </div>
 
+            <!-- Users Table -->
             <div class="panel panel-default">
                 <div class="panel-heading">
                     <h3 class="panel-title">
@@ -270,8 +330,12 @@
                                             </th>
                                             <th>Name</th>
                                             <th>Email</th>
-                                            <th>Registration Form</th>
+                                            @if(!isset($registration))
+                                                <th>Registration Form</th>
+                                            @endif
+                                            <th>User Type</th>
                                             <th class="status-column">Status</th>
+                                            <th>CR Code</th>
                                             <th>Registered On</th>
                                             <th class="actions-column">Actions</th>
                                         </tr>
@@ -285,16 +349,38 @@
                                                 </td>
                                                 <td>{{ $user->first_name }} {{ $user->last_name }}</td>
                                                 <td>{{ $user->email }}</td>
+                                                @if(!isset($registration))
+                                                    <td>
+                                                        <a href="{{ route('showRegistrationUsers', ['event_id' => $event->id, 'registration_id' => $user->registration_id]) }}">
+                                                            {{ $user->registration->name }}
+                                                        </a>
+                                                    </td>
+                                                @endif
                                                 <td>
-                                                    <a
-                                                        href="{{ route('showRegistrationUsers', ['event_id' => $event->id, 'registration_id' => $user->registration_id]) }}">
-                                                        {{ $user->registration->name }}
-                                                    </a>
+                                                    @if($user->userType)
+                                                        <span class="badge badge-info">{{ $user->userType->name }}</span>
+                                                    @else
+                                                        <span class="text-muted">-</span>
+                                                    @endif
                                                 </td>
                                                 <td class="status-column">
                                                     <span class="user-status status-{{ $user->status }}">
                                                         {{ ucfirst($user->status) }}
                                                     </span>
+                                                </td>
+                                                <td>
+                                                    @if($user->status === 'approved' && $user->unique_code)
+                                                        <span class="code-display">{{ $user->unique_code }}</span>
+                                                        @if($user->ticket_token)
+                                                            <br>
+                                                            <a href="{{ route('downloadUserTicket', ['event_id' => $event->id, 'user_id' => $user->id]) }}"
+                                                               class="btn btn-xs btn-success" title="Download Ticket">
+                                                                <i class="ico-download"></i>
+                                                            </a>
+                                                        @endif
+                                                    @else
+                                                        <span class="text-muted">-</span>
+                                                    @endif
                                                 </td>
                                                 <td>{{ $user->created_at->format('M d, Y H:i') }}</td>
                                                 <td class="actions-column">
@@ -309,8 +395,16 @@
                                                                 <a href="javascript:void(0);"
                                                                     data-href="{{ route('getUserDetails', ['event_id' => $event->id, 'user_id' => $user->id]) }}"
                                                                     class="loadModal view-user"
-                                                                    data-user-id="{{ $user->id }}">
+                                                                    data-modal-id="UserDetails">
                                                                     <i class="ico-eye"></i> View Details
+                                                                </a>
+                                                            </li>
+                                                            <li>
+                                                                <a href="javascript:void(0);"
+                                                                    data-href="{{ route('showEditUserResgistration', ['event_id' => $event->id, 'user_id' => $user->id]) }}"
+                                                                    class="loadModal edit-user"
+                                                                    data-modal-id="EditUser">
+                                                                    <i class="ico-edit"></i> Edit
                                                                 </a>
                                                             </li>
                                                             @if ($user->status !== 'approved')
@@ -361,38 +455,13 @@
                             <h4>No users found</h4>
                             <p>
                                 @if (!empty($filters))
-                                    No users match your search criteria. <a
-                                        href="{{ route('showEventRegistrationUsers', ['event_id' => $event->id]) }}">Clear
-                                        filters</a>
+                                    No users match your search criteria. <a href="{{ request()->url() }}">Clear filters</a>
                                 @else
                                     No users have registered for this event yet.
                                 @endif
                             </p>
                         </div>
                     @endif
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- User Details Modal -->
-    <div class="modal fade" id="user-details-modal" tabindex="-1" role="dialog">
-        <div class="modal-dialog" role="document">
-            <div class="modal-content">
-                <div class="modal-header text-center">
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span
-                            aria-hidden="true">&times;</span></button>
-                    <h4 class="modal-title"><i class="ico-user"></i> User Details</h4>
-                </div>
-                <div class="modal-body">
-                    <div class="user-details-content">
-                        <div class="text-center">
-                            <i class="ico-spinner ico-spin"></i> Loading...
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
                 </div>
             </div>
         </div>
@@ -495,7 +564,7 @@
                             }
                         },
                         error: function(xhr) {
-                            console.error(xhr.responseText); // خليها تطبع التفاصيل
+                            console.error(xhr.responseText);
                             alert('An error occurred. Please try again.');
                         }
                     });
@@ -509,9 +578,9 @@
                 const userId = $(this).data('user-id');
 
                 if (confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
-                    let url =
-                        '{{ route('deleteUser', ['event_id' => $event->id, 'user_id' => '__USER_ID__']) }}';
+                    let url = '{{ route('deleteUser', ['event_id' => $event->id, 'user_id' => '__USER_ID__']) }}';
                     url = url.replace('__USER_ID__', userId);
+
                     $.ajax({
                         url: url,
                         type: 'DELETE',
@@ -531,35 +600,6 @@
                     });
                 }
             });
-
-            // View user details
-            // $('.view-user').on('click', function(e) {
-            //     e.preventDefault();
-
-            //     const userId = $(this).data('user-id');
-            //     const modal = $('#user-details-modal');
-
-            //     // Show modal with loading indicator
-            //     modal.modal('show');
-
-            //     // Load user details via AJAX
-            //     let url =
-            //         '{{ route('getUserDetails', ['event_id' => $event->id, 'user_id' => '__USER_ID__']) }}';
-            //     url = url.replace('__USER_ID__', userId);
-            //     $.ajax({
-            //         url: url,
-            //         type: 'GET',
-            //         success: function(response) {
-            //             modal.find('.user-details-content').html(response);
-            //         },
-            //         error: function(xhr) {
-            //             console.error(xhr);
-            //             modal.find('.user-details-content').html(
-            //                 '<div class="alert alert-danger">Failed to load user details</div>'
-            //                 );
-            //         }
-            //     });
-            // });
         });
     </script>
 @stop

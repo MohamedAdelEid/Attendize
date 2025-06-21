@@ -11,26 +11,26 @@
         </ul>
         <h5 class="heading">@lang('basic.event_menu')</h5>
         <ul id="nav_event" class="topmenu">
-            <li class="{{ Request::is('*dashboard*') ? 'active' : '' }}">
+            {{-- <li class="{{ Request::is('*dashboard*') ? 'active' : '' }}">
                 <a href="{{route('showEventDashboard', array('event_id' => $event->id))}}">
                     <span class="figure"><i class="ico-home2"></i></span>
                     <span class="text">@lang("basic.dashboard")</span>
                 </a>
-            </li>
-            <li class="{{ Request::is('*tickets*') ? 'active' : '' }}">
+            </li> --}}
+            {{-- <li class="{{ Request::is('*tickets*') ? 'active' : '' }}">
                 <a href="{{route('showEventTickets', array('event_id' => $event->id))}}">
                     <span class="figure"><i class="ico-ticket"></i></span>
                     <span class="text">@lang("basic.tickets")</span>
                 </a>
-            </li>
-            <li class="{{ Request::is('*orders*') ? 'active' : '' }}">
+            </li> --}}
+            {{-- <li class="{{ Request::is('*orders*') ? 'active' : '' }}">
                 <a href="{{route('showEventOrders', array('event_id' => $event->id))}}">
                     <span class="figure"><i class="ico-cart"></i></span>
                     <span class="text">@lang("basic.orders")</span>
                 </a>
-            </li>
+            </li> --}}
             <li class="{{ Request::is('*attendees*') ? 'active' : '' }}">
-                <a href="{{route('showEventAttendees', array('event_id' => $event->id))}}">
+                <a href=" {{route('showEventRegistrationUsers', ['event_id' => $event->id]) }}">
                     <span class="figure"><i class="ico-user"></i></span>
                     <span class="text">@lang("basic.attendees")</span>
                 </a>
@@ -47,12 +47,12 @@
                     <span class="text">@lang("basic.customize")</span>
                 </a>
             </li>
-            <li class="{{ Request::is('*contact-us*') ? 'active' : '' }}">
+            {{-- <li class="{{ Request::is('*contact-us*') ? 'active' : '' }}">
                 <a href="{{route('events.contact-us', array('event' => $event))}}">
                     <span class="figure"><i class="ico-envelope"></i></span>
                     <span class="text">Contact Us</span>
                 </a>
-            </li>
+            </li> --}}
         </ul>
         <h5 class="heading">@lang("ManageEvent.event_tools")</h5>
         <ul id="nav_event" class="topmenu">

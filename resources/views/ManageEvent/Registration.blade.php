@@ -138,7 +138,6 @@
             color: white;
         }
 
-        /* Add these new styles */
         .notification-badge {
             position: absolute;
             top: -8px;
@@ -199,46 +198,45 @@
             padding-right: 25px;
         }
 
-
         .users-count-cell {
-    position: relative;
-}
+            position: relative;
+        }
 
-.users-count-btn {
-    position: relative;
-    display: inline-flex;
-    align-items: center;
-    padding: 6px 12px;
-    background-color: #2563eb;
-    color: #fff;
-    font-size: 14px;
-    border-radius: 8px;
-    transition: background-color 0.3s ease;
-    text-decoration: none;
-}
+        .users-count-btn {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            padding: 6px 12px;
+            background-color: #2563eb;
+            color: #fff;
+            font-size: 14px;
+            border-radius: 8px;
+            transition: background-color 0.3s ease;
+            text-decoration: none;
+        }
 
-.users-count-btn:hover {
-    background-color: #1e40af;
-}
+        .users-count-btn:hover {
+            background-color: #1e40af;
+        }
 
-.users-count-btn i {
-    margin-right: 6px;
-}
+        .users-count-btn i {
+            margin-right: 6px;
+        }
 
-.badge-notification {
-    position: absolute;
-    top: -14px;
-    right: -14px;
-    background-color: #ef4444;
-    color: #fff;
-    border-radius: 9999px;
-    padding: 2px 6px;
-    font-size: 11px;
-    font-weight: bold;
-    min-width: 18px;
-    text-align: center;
-    box-shadow: 0 0 0 2px white;
-}
+        .badge-notification {
+            position: absolute;
+            top: -14px;
+            right: -14px;
+            background-color: #ef4444;
+            color: #fff;
+            border-radius: 9999px;
+            padding: 2px 6px;
+            font-size: 11px;
+            font-weight: bold;
+            min-width: 18px;
+            text-align: center;
+            box-shadow: 0 0 0 2px white;
+        }
 
         @keyframes pulse {
             0% {
@@ -255,6 +253,30 @@
                 transform: scale(0.95);
                 box-shadow: 0 0 0 0 rgba(255, 65, 54, 0);
             }
+        }
+
+        /* User Types Button Styling */
+        .user-types-btn {
+            background-color: #17a2b8;
+            color: white;
+            border: 1px solid #17a2b8;
+            padding: 8px 16px;
+            border-radius: 4px;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            transition: all 0.3s ease;
+        }
+
+        .user-types-btn:hover {
+            background-color: #138496;
+            border-color: #117a8b;
+            color: white;
+            text-decoration: none;
+        }
+
+        .user-types-btn i {
+            margin-right: 6px;
         }
     </style>
 @stop
@@ -280,6 +302,12 @@
             <div class="btn-group btn-group-responsive">
                 <a href="{{ route('showEventRegistrationConferences', ['event_id' => $event->id]) }}"
                     class='btn btn-success' type="button"><i class="ico-users"></i> @lang('Registration.show_conferences_register')
+                </a>
+            </div>
+            <div class="btn-group btn-group-responsive">
+                <a href="{{ route('showEventUserTypes', ['event_id' => $event->id]) }}"
+                   class='btn btn-success' type="button">
+                    <i class="ico-user"></i> User Types
                 </a>
             </div>
         </div>
@@ -397,9 +425,7 @@
                                             <span class="ml-2">{{ $reg->name }}</span>
                                         </td>
                                         <td>
-                                            {{-- @foreach ($reg->categories as $category) --}}
                                             <span class="badge">{{ $reg->category->name }}</span>
-                                            {{-- @endforeach --}}
                                         </td>
                                         <td>
                                             {{{$reg->max_participants ?? 'N/A'}}}

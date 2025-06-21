@@ -125,6 +125,16 @@ class Event extends MyBaseModel
     }
 
     /**
+     * The user types associated with the event.
+     *
+     * @return HasMany
+     */
+    public function userTypes()
+    {
+        return $this->hasMany(UserType::class);
+    }
+
+    /**
      * The tickets associated with the event.
      *
      * @return HasMany

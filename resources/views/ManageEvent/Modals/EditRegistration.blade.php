@@ -237,6 +237,9 @@
                                                                     <option value="file" {{ $field->type == 'file' ? 'selected' : '' }}>File Upload</option>
                                                                     <option value="country" {{ $field->type == 'country' ? 'selected' : '' }}>Country</option>
                                                                     <option value="city" {{ $field->type == 'city' ? 'selected' : '' }}>City</option>
+                                                                    <option value="user_types" {{ $field->type == 'user_types' ? 'selected' : '' }}>User Types</option>
+                                                                    <option value="conference" {{ $field->type == 'conference' ? 'selected' : '' }}>Conference</option>
+                                                                    <option value="profession" {{ $field->type == 'profession' ? 'selected' : '' }}>Profession</option>
                                                                 </select>
                                                             </div>
                                                         </div>
@@ -341,6 +344,9 @@
                             <option value="file">File Upload</option>
                             <option value="country">Country</option>
                             <option value="city">City</option>
+                            <option value="user_types">User Types</option>
+                            <option value="conference">Conference</option>
+                            <option value="profession">Profession</option>
                         </select>
                     </div>
                 </div>

@@ -252,6 +252,9 @@
                             <option value="file">File Upload</option>
                             <option value="country">Country</option>
                             <option value="city">City</option>
+                            <option value="user_types">User Types</option>
+                            <option value="conference">Conference</option>
+                            <option value="profession">Profession</option>
                         </select>
                     </div>
                 </div>
@@ -315,7 +318,7 @@ $(document).ready(function() {
         $newField.find('.field-type').on('change', function() {
             const fieldType = $(this).val();
             toggleOptionsField($(this));
-            
+
             // Auto-fill label for country and city fields
             if (fieldType === 'country') {
                 $newField.find('.field-label').val('Country');
@@ -323,6 +326,15 @@ $(document).ready(function() {
             } else if (fieldType === 'city') {
                 $newField.find('.field-label').val('City');
                 $newField.find('.field-title').text('City');
+            } else if (fieldType === 'user_types') {
+                $newField.find('.field-label').val('User Types');
+                $newField.find('.field-title').text('User Types');
+            } else if (fieldType === 'conference') {
+                $newField.find('.field-label').val('Conference');
+                $newField.find('.field-title').text('Conference');
+            } else if (fieldType === 'profession') {
+                $newField.find('.field-label').val('Profession');
+                $newField.find('.field-title').text('Profession');
             }
         });
 
@@ -379,7 +391,7 @@ $(document).ready(function() {
             updatePositionNumbers();
         }
     });
-    
+
     // Delegate event handler for the move up button
     $(document).on('click', '.move-up-btn', function() {
         const $currentField = $(this).closest('.dynamic-field');

@@ -23,6 +23,8 @@ class RegistrationUser extends Model
         'unique_code',
         'qr_code_path',
         'is_new',
+        'ticket_token',
+        'user_type_id',
         // 'state_id',
     ];
 
@@ -77,5 +79,13 @@ class RegistrationUser extends Model
     public function formFieldValues()
     {
         return $this->hasMany(DynamicFormFieldValue::class, 'registration_user_id');
+    }
+
+    /**
+     * Get the user type that owns the registration user.
+     */
+    public function userType()
+    {
+        return $this->belongsTo(UserType::class);
     }
 }

@@ -51,6 +51,8 @@ class TicketService
             'event_id' => $user->registration->event_id,
             'timestamp' => now()->timestamp
         ]);
+        
+        $qrData = $uniqueCode;
 
         // Generate QR code
         $qrCodeFileName = 'qr_codes/' . $user->id . '_' . time() . '.png';
@@ -62,8 +64,8 @@ class TicketService
 
         // Generate and save QR code with minimal margin
         QrCode::format('png')
-            ->size(200)
-            ->margin(5) // Reduced from 10 to 1 for minimal white space
+            ->size(220)
+            ->margin(2) // Reduced from 10 to 1 for minimal white space
             ->generate($qrData, storage_path('app/public/' . $qrCodeFileName));
 
         return $qrCodeFileName;
@@ -91,7 +93,8 @@ class TicketService
             'event' => $event,
             'ticket_image' => $ticketImagePath ?? null,
             'template' => $template ?? null
-        ]);
+        ])->setPaper('a4', 'landscape'); 
+        
 
         // Save PDF
         $pdfFileName = 'tickets/ticket_' . $user->unique_code . '.pdf';
@@ -175,7 +178,7 @@ class TicketService
                     $nameX,
                     $nameY,
                     function($font) use ($fontSize, $template) {
-                        $defaultFontPath = public_path('fonts/arial.ttf');
+                        $defaultFontPath = public_path('fonts/ARIAL.ttf');
                         if (file_exists($defaultFontPath)) {
                             $font->file($defaultFontPath);
                         }
@@ -214,7 +217,7 @@ class TicketService
                     $codeX,
                     $codeY,
                     function($font) use ($fontSize, $template) {
-                        $defaultFontPath = public_path('fonts/arial.ttf');
+                        $defaultFontPath = public_path('fonts/ARIAL.ttf');
                         if (file_exists($defaultFontPath)) {
                             $font->file($defaultFontPath);
                         }
@@ -228,6 +231,12 @@ class TicketService
         }
 
         // Add QR code with scaling and rounded corners
+        if(!isset($user->qr_code_path)){
+            $qrCodePath = $this->generateQRCode($user, $user->unique_code);
+            $user->qr_code_path = $qrCodePath;
+            $user->save();
+        }
+        
         if (isset($template->qr_position_x) && isset($template->qr_position_y) && $user->qr_code_path) {
             $qrX = (int) ($template->qr_position_x * $scaleX);
             $qrY = (int) ($template->qr_position_y * $scaleY);

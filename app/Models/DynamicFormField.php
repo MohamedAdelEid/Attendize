@@ -60,6 +60,9 @@ class DynamicFormField extends Model
             'file' => 'File Upload',
             'country' => 'Country',
             'city' => 'City',
+            'user_types' => 'User Types',
+            'conference' => 'Conference',
+            'profession' => 'Profession',
         ];
     }
 }

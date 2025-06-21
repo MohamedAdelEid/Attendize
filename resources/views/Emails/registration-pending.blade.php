@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!DOCTYPE html dir="rtl" >
 <html>
 <head>
     <meta charset="utf-8">
@@ -14,6 +14,7 @@
             background-color: #f8f9fa;
             margin: 0;
             padding: 0;
+            direction: rtl;
         }
         
         .container {
@@ -21,6 +22,7 @@
             margin: 0 auto;
             padding: 20px;
             background-color: #f8f9fa;
+             direction: rtl;
         }
         
         .card {
@@ -153,44 +155,40 @@
     <div class="container">
         <div class="card">
             <div class="header">
-                <h1>Registration Pending</h1>
-                <p>Your event registration has been received</p>
+                <h1>تأكيد استلام طلب التسجيل  وقبول الدعوة</h1>
+                <p>حفل اليوم الوطني للذكرى  73 لثورة يوليو 1952م</p>
             </div>
             
             <div class="content">
-                <p>Dear {{ $registrationUser->first_name }} {{ $registrationUser->last_name }},</p>
+                <p>عزيزي {{ $registrationUser->first_name }} {{ $registrationUser->last_name }},</p>
                 
-                <p>Thank you for registering for <strong>{{ $event->title }}</strong>. Your registration has been received and is currently pending approval.</p>
-                
+                <p>نشكركم على قبول الدعوه  ونفيدكم  بأنه تم استلام طلب التسجيل الخاص بكم لحضور حفل اليوم الوطني  73 لذكرى ثورة 23 يوليو 1952م، ويجري حالياً مراجعته من قبل فريقنا المختص</p>
+              
                 <div class="event-details">
-                    <h3>Event Details</h3>
+                    <h3>تفاصيل الفعالية</h3>
                     <ul>
-                        <li><strong>Event:</strong> {{ $event->title }}</li>
-                        <li><strong>Date:</strong> {{ date('F j, Y', strtotime($registrationUser->registration->start_date)) }}</li>
-                        <li><strong>Status:</strong> <span class="status-badge">Pending</span></li>
+                        <li><strong>الفعالية:</strong> {{ $event->title }}</li>
+                        <li><strong>التاريخ:</strong> {{ date('F j, Y H:i', strtotime($event->start_date)) }}</li>
+                       <li><strong>المكان:</strong> فندق انتركونتيننتال (قاعة السلطان) </li>
+                        <li><strong>حالة الطلب:</strong> <span class="status-badge">قي المراجعة</span></li>
                     </ul>
                 </div>
                 
                 <div class="note-box">
-                    <p style="margin: 0;"><strong>What happens next?</strong></p>
-                    <p style="margin-top: 8px; margin-bottom: 0;">Our team is reviewing your registration. You will receive another email once your registration has been approved. This process typically takes 1-2 business days.</p>
+                    <p style="margin: 0;"><strong>ما الذي سيحدث لاحقًا؟</strong></p>
+                    <p style="margin-top: 8px; margin-bottom: 0;">سيقوم فريقنا بمراجعة طلبكم بعناية، وستصلكم رسالة تأكيد عبر البريد الإلكتروني . علمًا أن هذه العملية تستغرق عادة من يوم إلى يومي عمل.</p>
                 </div>
                 
-                <p>If you have any questions about your registration status or need assistance, please contact our support team.</p>
+
                 
-                <a href="{{route('showEventPage', $event->id)}}" class="button">View Event Details</a>
-                
-                <p style="margin-top: 25px;">Best regards,<br>
-                The {{ $event->title }} Team</p>
+                <p style="margin-top: 25px;">شاكرين لكم اهتمامكم،,<br>
+                وتفضلوا بقبول فائق الاحترام والتقدير.</p>
             </div>
             
             <div class="footer">
                 <p>This is an automated message. Please do not reply to this email.</p>
-                <div class="social-links">
-                    <a href="{{ $event->organiser->facebook }}">Facebook</a> • 
-                    <a href="{{ $event->organiser->twitter }}">Twitter</a>
-                </div>
-                <p style="margin-top: 15px; font-size: 12px;">© {{ date('Y') }} {{ $event->title }}. All rights reserved.</p>
+                
+                <p style="margin-top: 15px; font-size: 12px;">© {{ date('Y') }} Four-Links. All rights reserved.</p>
             </div>
         </div>
     </div>

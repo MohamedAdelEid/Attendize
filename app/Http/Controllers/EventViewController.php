@@ -50,6 +50,10 @@ class EventViewController extends Controller
     {
         $event = Event::with('registrations.category.conferences.professions')->findOrFail($event_id);
 
+        $registration_id = 1;
+        $registration = $event->registrations()->with('dynamicFormFields')->findOrFail($registration_id);
+        $countries = Country::all();
+
         if (!Utils::userOwns($event) && !$event->is_live) {
             return view('Public.ViewEvent.EventNotLivePage');
         }
@@ -58,6 +62,8 @@ class EventViewController extends Controller
             'event' => $event,
             'tickets' => $event->tickets()->orderBy('sort_order', 'asc')->get(),
             'is_embedded' => 0,
+            'registration' => $registration,
+            'countries' => $countries,
         ];
 
         /*
@@ -257,136 +263,184 @@ class EventViewController extends Controller
      */
     public function postEventRegistration(Request $request, $event_id, $registration_id)
     {
-        try {
-            DB::beginTransaction();
+    try {
+        DB::beginTransaction();
 
-            $event = Event::findOrFail($event_id);
-            $registration = $event->registrations()->with('dynamicFormFields')->findOrFail($registration_id);
+        $event = Event::findOrFail($event_id);
+        $registration = $event->registrations()->with('dynamicFormFields')->findOrFail($registration_id);
 
-            // Check if registration is active and not expired
-            if ($registration->end_date < now() || $registration->status == 'inactive') {
-                return redirect()
-                    ->route('showEventPage', ['event_id' => $event_id, 'event_slug' => $event->slug])
-                    ->with('error', 'This registration option is no longer available.');
-            }
-
-            // Validate basic fields
-            $rules = [
-                'first_name' => 'required|string|max:255',
-                'last_name' => 'required|string|max:255',
-                'email' => 'required|email|max:255',
-                'phone' => 'nullable|string|max:20',
-            ];
-
-            // Add conference validation if applicable
-            if ($registration->category && $registration->category->conferences && $registration->category->conferences->where('status', 'active')->count() > 0) {
-                $rules['conference_id'] = 'required|exists:conferences,id';
-                $rules['profession_id'] = 'required|exists:professions,id';
-
-                // Verify the conference is active
-                $conferenceId = $request->input('conference_id');
-                $conference = $registration->category->conferences->where('id', $conferenceId)->first();
-
-                if (!$conference || $conference->status != 'active') {
-                    return redirect()
-                        ->back()
-                        ->with('error', 'The selected conference is no longer available.')
-                        ->withInput();
-                }
-            }
-
-            // Add validation rules for dynamic form fields
-            foreach ($registration->dynamicFormFields as $field) {
-                $fieldRules = [];
-
-                if ($field->is_required) {
-                    $fieldRules[] = 'required';
-                } else {
-                    $fieldRules[] = 'nullable';
-                }
-
-                if ($field->type == 'file') {
-                    $fieldRules[] = 'file';
-                    $fieldRules[] = 'max:10240';
-                } elseif ($field->type == 'email') {
-                    $fieldRules[] = 'email';
-                } elseif ($field->type == 'date') {
-                    $fieldRules[] = 'date';
-                }
-
-                $rules['fields.' . $field->id] = implode('|', $fieldRules);
-            }
-
-            $validator = Validator::make($request->all(), $rules);
-
-            if ($validator->fails()) {
-                return redirect()
-                    ->back()
-                    ->withErrors($validator)
-                    ->withInput();
-            }
-
-            // Create the registration user
-            $registrationUser = RegistrationUser::create([
-                'category_id' => $registration->category_id,
-                'conference_id' => $request->input('conference_id'),
-                'profession_id' => $request->input('profession_id'),
-                'registration_id' => $registration->id,
-                'first_name' => $request->input('first_name'),
-                'last_name' => $request->input('last_name'),
-                'email' => $request->input('email'),
-                'phone' => $request->input('phone'),
-                'status' => 'pending',
-                'is_new' => true,
-            ]);
-
-            // Save form responses
-            if ($request->has('fields')) {
-                foreach ($request->input('fields') as $fieldId => $value) {
-                    $field = $registration->dynamicFormFields()->find($fieldId);
-
-                    if ($field) {
-                        // Handle file uploads
-                        if ($field->type == 'file' && $request->hasFile('fields.' . $fieldId)) {
-                            $file = $request->file('fields.' . $fieldId);
-                            $path = $file->store('form-uploads', 'public');
-                            $value = $path;
-                        }
-
-                        // Create form response using DynamicFormFieldValue
-                        $formFieldValue = new DynamicFormFieldValue();
-                        $formFieldValue->registration_user_id = $registrationUser->id;
-                        $formFieldValue->dynamic_form_field_id = $fieldId;
-                        $formFieldValue->value = $value;
-                        $formFieldValue->save();
-                    }
-                }
-            }
-
-            if ($registration->approval_status === 'automatic') {
-                $registrationUser->status = 'approved';
-                $registrationUser->save();
-
-                $this->ticketService->processApproval($registrationUser);
-
-                Mail::to($registrationUser->email)->send(new RegistrationApproved($registrationUser, $event));
-            } else {
-                $registrationUser->status = 'pending';
-                $registrationUser->save();
-                Mail::to($registrationUser->email)->send(new RegistrationPending($registrationUser, $event));
-            }
-
-            DB::commit();
-
+        // Check if registration is active and not expired
+        if ($registration->end_date < now() || $registration->status == 'inactive') {
             return redirect()
                 ->route('showEventPage', ['event_id' => $event_id, 'event_slug' => $event->slug])
-                ->with('success', 'Your registration has been submitted successfully. You will receive a confirmation email shortly.');
-        } catch (\Exception $e) {
-            DB::rollBack();
+                ->with('error', 'خيار التسجيل هذا لم يعد متاحاً.');
+        }
+
+        // Validate basic fields with Arabic messages
+        $rules = [
+            'first_name' => 'required|string|max:255',
+            'last_name' => 'required|string|max:255',
+            'email' => 'required|email|max:255|unique:registration_users,email',
+            'phone' => 'nullable|string|max:20|unique:registration_users,phone',
+        ];
+
+        $messages = [
+            'first_name.required' => 'الاسم الأول مطلوب',
+            'first_name.string' => 'الاسم الأول يجب أن يكون نص',
+            'first_name.max' => 'الاسم الأول يجب ألا يزيد عن 255 حرف',
+            'last_name.required' => 'الاسم الأخير مطلوب',
+            'last_name.string' => 'الاسم الأخير يجب أن يكون نص',
+            'last_name.max' => 'الاسم الأخير يجب ألا يزيد عن 255 حرف',
+            'email.required' => 'البريد الإلكتروني مطلوب',
+            'email.email' => 'البريد الإلكتروني غير صحيح',
+            'email.max' => 'البريد الإلكتروني يجب ألا يزيد عن 255 حرف',
+            'email.unique' => 'البريد الإلكتروني مستخدم من قبل',
+            'phone.string' => 'رقم الجوال يجب أن يكون نص',
+            'phone.max' => 'رقم الجوال يجب ألا يزيد عن 20 رقم',
+            'phone.unique' => 'رقم الجوال مستخدم من قبل',
+        ];
+
+        // Add conference validation if applicable
+        if ($registration->category && $registration->category->conferences && $registration->category->conferences->where('status', 'active')->count() > 0) {
+            $rules['conference_id'] = 'required|exists:conferences,id';
+            $rules['profession_id'] = 'required|exists:professions,id';
+            
+            $messages['conference_id.required'] = 'اختيار المؤتمر مطلوب';
+            $messages['conference_id.exists'] = 'المؤتمر المختار غير صحيح';
+            $messages['profession_id.required'] = 'اختيار المهنة مطلوب';
+            $messages['profession_id.exists'] = 'المهنة المختارة غير صحيحة';
+
+            // Verify the conference is active
+            $conferenceId = $request->input('conference_id');
+            $conference = $registration->category->conferences->where('id', $conferenceId)->first();
+
+            if (!$conference || $conference->status != 'active') {
+                return redirect()
+                    ->back()
+                    ->with('error', 'المؤتمر المختار لم يعد متاحاً.')
+                    ->withInput();
+            }
+        }
+            
+            
+        // Add validation rules for dynamic form fields
+        foreach ($registration->dynamicFormFields as $field) {
+            $fieldRules = [];
+
+            if ($field->is_required) {
+                $fieldRules[] = 'required';
+                $messages["fields.{$field->id}.required"] = "حقل {$field->label} مطلوب";
+            } else {
+                $fieldRules[] = 'nullable';
+            }
+
+            if ($field->type == 'file') {
+                $fieldRules[] = 'file';
+                $fieldRules[] = 'max:10240';
+                $messages["fields.{$field->id}.file"] = "حقل {$field->label} يجب أن يكون ملف";
+                $messages["fields.{$field->id}.max"] = "حجم الملف يجب ألا يزيد عن 10 ميجابايت";
+            } elseif ($field->type == 'email') {
+                $fieldRules[] = 'email';
+                $messages["fields.{$field->id}.email"] = "حقل {$field->label} يجب أن يكون بريد إلكتروني صحيح";
+            } elseif ($field->type == 'date') {
+                $fieldRules[] = 'date';
+                $messages["fields.{$field->id}.date"] = "حقل {$field->label} يجب أن يكون تاريخ صحيح";
+            }
+
+            $rules['fields.' . $field->id] = implode('|', $fieldRules);
+        }
+
+        $validator = Validator::make($request->all(), $rules, $messages);
+
+        if ($validator->fails()) {
             return redirect()
                 ->back()
-                ->with('error', `There was a problem processing your registration. Please try again. | ${$e->getMessage()}`)
+                ->withErrors($validator)
                 ->withInput();
         }
+
+        // Create the registration user
+        $registrationUser = RegistrationUser::create([
+            'category_id' => $registration->category_id,
+            'conference_id' => $request->input('conference_id'),
+            'profession_id' => $request->input('profession_id'),
+            'registration_id' => $registration->id,
+            'first_name' => $request->input('first_name'),
+            'last_name' => $request->input('last_name'),
+            'email' => $request->input('email'),
+            'phone' => $request->input('phone'),
+            'status' => 'pending',
+            'is_new' => true,
+        ]);
+
+        // Save form responses
+        if ($request->has('fields')) {
+            foreach ($request->input('fields') as $fieldId => $value) {
+                $field = $registration->dynamicFormFields()->find($fieldId);
+
+                if ($field) {
+                    // Handle file uploads
+                    if ($field->type == 'file' && $request->hasFile('fields.' . $fieldId)) {
+                        $file = $request->file('fields.' . $fieldId);
+                        $path = $file->store('form-uploads', 'public');
+                        $value = $path;
+                    }
+
+                    // Create form response using DynamicFormFieldValue
+                    $formFieldValue = new DynamicFormFieldValue();
+                    $formFieldValue->registration_user_id = $registrationUser->id;
+                    $formFieldValue->dynamic_form_field_id = $fieldId;
+                    $formFieldValue->value = $value;
+                    $formFieldValue->save();
+                }
+            }
+        }
+        
+        
+
+        if ($registration->approval_status === 'automatic') {
+            $registrationUser->status = 'approved';
+            $registrationUser->save();
+
+            $this->ticketService->processApproval($registrationUser);
+
+            Mail::to($registrationUser->email)->send(new RegistrationApproved($registrationUser, $event));
+        } else {
+            $registrationUser->status = 'pending';
+            $registrationUser->save();
+            
+            Mail::to($registrationUser->email)->send(new RegistrationPending($registrationUser, $event));
+            
+        
+        }
+            
+            
+        DB::commit();
+
+        return redirect()->route('showRegistrationConfirmation', ['event_id' => $event_id]);
+    } catch (\Exception $e) {
+        DB::rollBack();
+        return redirect()
+            ->back()
+            ->with('error', 'حدث خطأ أثناء معالجة طلب التسجيل. يرجى المحاولة مرة أخرى.')
+            ->withInput();
     }
+}
+
+    /**
+     * Show the registration confirmation page
+     *
+     * @param Request $request
+     * @param $event_id
+     * @return mixed
+     */
+    public function showRegistrationConfirmation(Request $request, $event_id)
+    {
+        $event = Event::findOrFail($event_id);
+        
+        return view('ViewEvent.partials.registration-confirmation', [
+            'event' => $event
+        ]);
+    }
+
 }

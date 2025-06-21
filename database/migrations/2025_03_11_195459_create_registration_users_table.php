@@ -16,7 +16,7 @@ class CreateRegistrationUsersTable extends Migration
         Schema::create('registration_users', function (Blueprint $table) {
             $table->increments('id');
             $table->unsignedInteger('registration_id');
-            $table->unsignedInteger('user_id')->nullable(); // Nullable if guests can register
+            $table->unsignedInteger('user_id')->nullable();
             $table->unsignedInteger('category_id');
             $table->unsignedInteger('conference_id');
             $table->unsignedInteger('profession_id');

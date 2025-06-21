@@ -1,22 +1,8 @@
-<header class="fixed z-50 w-full transition-all duration-300 bg-white/90 backdrop-blur-md shadow-sm">
+<header class="fixed z-50 w-full transition-all duration-300 bg-white/90 backdrop-blur-md shadow-sm" style="background-color:white !important;">
     <div class="container flex items-center justify-between px-4 py-4 mx-auto">
-        <div class="flex items-center">
-            <a href="#" class="flex items-center group">
-                <div class="flex items-center">
-                    <!-- Modern Event Title Design -->
-                    <div class="relative overflow-hidden">
-                        <span class="text-xl font-bold text-gray-900 transition-all duration-300 group-hover:text-primary-600">
-                            {{ $event->title }}
-                        </span>
-                        <div class="absolute bottom-0 left-0 w-0 h-0.5 bg-primary-600 transition-all duration-300 group-hover:w-full"></div>
-                    </div>
-                    <!-- Small decorative element -->
-                    <div class="ml-2 h-4 w-4 rounded-full bg-primary-600 hidden sm:block"></div>
-                </div>
-            </a>
-        </div>
+        
 
-        <nav class="items-center hidden space-x-8 md:flex rtl:space-x-reverse">
+       <!-- <nav class="items-center hidden space-x-8 md:flex rtl:space-x-reverse">
             <a href="#registration" class="font-medium text-gray-700 transition-colors hover:text-primary-600">
                 {{ __('messages.registration') }}
             </a>
@@ -27,6 +13,7 @@
                 {{ __('messages.about_us') }}
             </a>
         </nav>
+		-->
 
         <div class="flex items-center space-x-4 rtl:space-x-reverse">
             <!-- <div class="relative">
@@ -40,28 +27,15 @@
                     <a href="{{ route('language.switch', ['locale' => 'en']) }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">English</a>
                     <a href="{{ route('language.switch', ['locale' => 'ar']) }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">العربية</a>
                 </div>
-            </div> -->
+            </div> 
 
             <button id="mobile-menu-button" class="flex items-center md:hidden">
                 <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
                 </svg>
-            </button>
+            </button>-->
         </div>
     </div>
 
-    <!-- Mobile Menu -->
-    <div id="mobile-menu" class="hidden md:hidden">
-        <div class="px-2 pt-2 pb-3 space-y-1">
-            <a href="#registration" class="block px-3 py-2 text-base font-medium text-gray-700 rounded-md hover:bg-gray-100">
-                {{ __('messages.registration') }}
-            </a>
-            <a href="#sponsors" class="block px-3 py-2 text-base font-medium text-gray-700 rounded-md hover:bg-gray-100">
-                {{ __('messages.sponsors') }}
-            </a>
-            <a href="{{ route('events.about-us', ['event' => $event->id]) }}" class="block px-3 py-2 text-base font-medium text-gray-700 rounded-md hover:bg-gray-100">
-                {{ __('messages.about_us') }}
-            </a>
-        </div>
-    </div>
+    
 </header>

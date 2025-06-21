@@ -201,6 +201,87 @@
             100% { transform: rotate(360deg); }
         }
 
+        /* Manual positioning controls */
+        .position-controls {
+            margin-top: 10px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 4px;
+            border: 1px solid #dee2e6;
+        }
+
+        .position-input-group {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .position-input-group label {
+            width: 20px;
+            margin-right: 5px;
+            font-weight: bold;
+        }
+
+        .position-input {
+            width: 80px;
+            margin-right: 10px;
+            text-align: center;
+        }
+
+        .arrow-controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            grid-template-rows: 1fr 1fr 1fr;
+            gap: 2px;
+            width: 90px;
+            height: 90px;
+        }
+
+        .arrow-btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            font-size: 14px;
+            padding: 8px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .arrow-btn:hover {
+            background: #0056b3;
+        }
+
+        .arrow-btn:active {
+            background: #004085;
+        }
+
+        .arrow-up {
+            grid-column: 2;
+            grid-row: 1;
+        }
+
+        .arrow-down {
+            grid-column: 2;
+            grid-row: 3;
+        }
+
+        .arrow-left {
+            grid-column: 1;
+            grid-row: 2;
+        }
+
+        .arrow-right {
+            grid-column: 3;
+            grid-row: 2;
+        }
+
+        .position-controls h5 {
+            margin-top: 0;
+            margin-bottom: 10px;
+            color: #495057;
+        }
+
         /* Override any conflicting styles */
         .ticket-editor-container .form-control {
             display: block;
@@ -279,6 +360,33 @@
                         <div class="coordinate-display">
                             Position: <span id="nameCoords">x: {{ $template->name_position_x ?? 50 }}, y: {{ $template->name_position_y ?? 50 }}</span>
                         </div>
+
+                        <!-- Manual Position Controls for Name -->
+                        <div class="position-controls">
+                            <h5>Manual Position Control</h5>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="position-input-group">
+                                        <label>X:</label>
+                                        <input type="number" id="namePositionX" class="form-control position-input"
+                                               value="{{ $template->name_position_x ?? 50 }}" min="0">
+                                    </div>
+                                    <div class="position-input-group">
+                                        <label>Y:</label>
+                                        <input type="number" id="namePositionY" class="form-control position-input"
+                                               value="{{ $template->name_position_y ?? 50 }}" min="0">
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="arrow-controls">
+                                        <button type="button" class="arrow-btn arrow-up" data-element="name" data-direction="up">↑</button>
+                                        <button type="button" class="arrow-btn arrow-left" data-element="name" data-direction="left">←</button>
+                                        <button type="button" class="arrow-btn arrow-right" data-element="name" data-direction="right">→</button>
+                                        <button type="button" class="arrow-btn arrow-down" data-element="name" data-direction="down">↓</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -304,6 +412,33 @@
                         <div class="coordinate-display">
                             Position: <span id="codeCoords">x: {{ $template->code_position_x ?? 50 }}, y: {{ $template->code_position_y ?? 100 }}</span>
                         </div>
+
+                        <!-- Manual Position Controls for Code -->
+                        <div class="position-controls">
+                            <h5>Manual Position Control</h5>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="position-input-group">
+                                        <label>X:</label>
+                                        <input type="number" id="codePositionX" class="form-control position-input"
+                                               value="{{ $template->code_position_x ?? 50 }}" min="0">
+                                    </div>
+                                    <div class="position-input-group">
+                                        <label>Y:</label>
+                                        <input type="number" id="codePositionY" class="form-control position-input"
+                                               value="{{ $template->code_position_y ?? 100 }}" min="0">
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="arrow-controls">
+                                        <button type="button" class="arrow-btn arrow-up" data-element="code" data-direction="up">↑</button>
+                                        <button type="button" class="arrow-btn arrow-left" data-element="code" data-direction="left">←</button>
+                                        <button type="button" class="arrow-btn arrow-right" data-element="code" data-direction="right">→</button>
+                                        <button type="button" class="arrow-btn arrow-down" data-element="code" data-direction="down">↓</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -323,6 +458,33 @@
                         </div>
                         <div class="coordinate-display">
                             Position: <span id="qrCoords">x: {{ $template->qr_position_x ?? 50 }}, y: {{ $template->qr_position_y ?? 150 }}</span>
+                        </div>
+
+                        <!-- Manual Position Controls for QR -->
+                        <div class="position-controls">
+                            <h5>Manual Position Control</h5>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="position-input-group">
+                                        <label>X:</label>
+                                        <input type="number" id="qrPositionX" class="form-control position-input"
+                                               value="{{ $template->qr_position_x ?? 50 }}" min="0">
+                                    </div>
+                                    <div class="position-input-group">
+                                        <label>Y:</label>
+                                        <input type="number" id="qrPositionY" class="form-control position-input"
+                                               value="{{ $template->qr_position_y ?? 150 }}" min="0">
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="arrow-controls">
+                                        <button type="button" class="arrow-btn arrow-up" data-element="qr" data-direction="up">↑</button>
+                                        <button type="button" class="arrow-btn arrow-left" data-element="qr" data-direction="left">←</button>
+                                        <button type="button" class="arrow-btn arrow-right" data-element="qr" data-direction="right">→</button>
+                                        <button type="button" class="arrow-btn arrow-down" data-element="qr" data-direction="down">↓</button>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -383,6 +545,7 @@
                     <ul style="margin-bottom: 0;">
                         <li>Upload a background image template</li>
                         <li>Drag the colored elements to position them</li>
+                        <li>Use input fields and arrow buttons for precise positioning</li>
                         <li>Adjust font sizes and colors in the settings panel</li>
                         <li>Click "Save Template Settings" to store your design</li>
                     </ul>
@@ -485,11 +648,13 @@ function initializeDraggableElements() {
         },
         drag: function(event, ui) {
             updateCoordinateDisplays();
+            updatePositionInputs();
         },
         stop: function(event, ui) {
             console.log('Stopped dragging:', $(this).attr('id'), 'Position:', ui.position);
             $(this).removeClass('ui-draggable-dragging');
             updateCoordinateDisplays();
+            updatePositionInputs();
         }
     });
 
@@ -548,10 +713,128 @@ function setupEventHandlers() {
         updateElementStyles();
     });
 
+    // Manual position input handlers
+    $('#namePositionX, #namePositionY, #codePositionX, #codePositionY, #qrPositionX, #qrPositionY').off('input change').on('input change', function() {
+        updateElementPositionsFromInputs();
+    });
+
+    // Arrow button handlers
+    $('.arrow-btn').off('click').on('click', function() {
+        const element = $(this).data('element');
+        const direction = $(this).data('direction');
+        moveElement(element, direction);
+    });
+
     // Save template
     $('#saveTemplate').off('click').on('click', saveTemplate);
 
     console.log('Event handlers set up');
+}
+
+function updateElementPositionsFromInputs() {
+    // Update name element position
+    const nameX = parseInt($('#namePositionX').val()) || 0;
+    const nameY = parseInt($('#namePositionY').val()) || 0;
+    $('#nameElement').css({
+        left: nameX + 'px',
+        top: nameY + 'px'
+    });
+
+    // Update code element position
+    const codeX = parseInt($('#codePositionX').val()) || 0;
+    const codeY = parseInt($('#codePositionY').val()) || 0;
+    $('#codeElement').css({
+        left: codeX + 'px',
+        top: codeY + 'px'
+    });
+
+    // Update QR element position
+    const qrX = parseInt($('#qrPositionX').val()) || 0;
+    const qrY = parseInt($('#qrPositionY').val()) || 0;
+    $('#qrElement').css({
+        left: qrX + 'px',
+        top: qrY + 'px'
+    });
+
+    updateCoordinateDisplays();
+}
+
+function updatePositionInputs() {
+    // Update position inputs based on element positions
+    const namePos = $('#nameElement').position();
+    const codePos = $('#codeElement').position();
+    const qrPos = $('#qrElement').position();
+
+    if (namePos) {
+        $('#namePositionX').val(Math.round(namePos.left));
+        $('#namePositionY').val(Math.round(namePos.top));
+    }
+    if (codePos) {
+        $('#codePositionX').val(Math.round(codePos.left));
+        $('#codePositionY').val(Math.round(codePos.top));
+    }
+    if (qrPos) {
+        $('#qrPositionX').val(Math.round(qrPos.left));
+        $('#qrPositionY').val(Math.round(qrPos.top));
+    }
+}
+
+function moveElement(elementType, direction) {
+    const stepSize = 5; // pixels to move per click
+    let element, xInput, yInput;
+
+    // Determine which element and inputs to work with
+    switch(elementType) {
+        case 'name':
+            element = $('#nameElement');
+            xInput = $('#namePositionX');
+            yInput = $('#namePositionY');
+            break;
+        case 'code':
+            element = $('#codeElement');
+            xInput = $('#codePositionX');
+            yInput = $('#codePositionY');
+            break;
+        case 'qr':
+            element = $('#qrElement');
+            xInput = $('#qrPositionX');
+            yInput = $('#qrPositionY');
+            break;
+        default:
+            return;
+    }
+
+    // Get current position
+    let currentX = parseInt(xInput.val()) || 0;
+    let currentY = parseInt(yInput.val()) || 0;
+
+    // Calculate new position based on direction
+    switch(direction) {
+        case 'up':
+            currentY = Math.max(0, currentY - stepSize);
+            break;
+        case 'down':
+            currentY += stepSize;
+            break;
+        case 'left':
+            currentX = Math.max(0, currentX - stepSize);
+            break;
+        case 'right':
+            currentX += stepSize;
+            break;
+    }
+
+    // Update inputs
+    xInput.val(currentX);
+    yInput.val(currentY);
+
+    // Update element position
+    element.css({
+        left: currentX + 'px',
+        top: currentY + 'px'
+    });
+
+    updateCoordinateDisplays();
 }
 
 function handleFileUpload() {
@@ -736,20 +1019,24 @@ function saveTemplate() {
     // Store dimensions before saving
     storePreviewDimensions();
 
-    const namePos = $('#nameElement').position();
-    const codePos = $('#codeElement').position();
-    const qrPos = $('#qrElement').position();
+    // Get positions from inputs (more accurate than element positions)
+    const nameX = parseInt($('#namePositionX').val()) || 0;
+    const nameY = parseInt($('#namePositionY').val()) || 0;
+    const codeX = parseInt($('#codePositionX').val()) || 0;
+    const codeY = parseInt($('#codePositionY').val()) || 0;
+    const qrX = parseInt($('#qrPositionX').val()) || 0;
+    const qrY = parseInt($('#qrPositionY').val()) || 0;
 
     const previewWidth = $('#previewWidth').val() || $('#ticketPreview').width();
     const previewHeight = $('#previewHeight').val() || $('#ticketPreview').height();
 
     const data = {
-        name_position_x: Math.round(namePos.left),
-        name_position_y: Math.round(namePos.top),
-        code_position_x: Math.round(codePos.left),
-        code_position_y: Math.round(codePos.top),
-        qr_position_x: Math.round(qrPos.left),
-        qr_position_y: Math.round(qrPos.top),
+        name_position_x: nameX,
+        name_position_y: nameY,
+        code_position_x: codeX,
+        code_position_y: codeY,
+        qr_position_x: qrX,
+        qr_position_y: qrY,
         name_font_size: $('#nameFontSize').val(),
         name_font_color: $('#nameFontColor').val(),
         code_font_size: $('#codeFontSize').val(),
