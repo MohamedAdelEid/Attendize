@@ -515,6 +515,24 @@ Route::group(
                 Route::get('{event_id}/registration/users/template', [App\Http\Controllers\RegistrationUsersController::class, 'downloadTemplate'])
                     ->name('downloadTemplate');
 
+                // Bulk email actions
+                Route::post('{event_id}/users/bulk/send-approval-emails', [App\Http\Controllers\RegistrationUsersController::class, 'sendApprovalEmails'])
+                    ->name('sendApprovalEmails');
+                Route::post('{event_id}/users/bulk/send-rejection-emails', [App\Http\Controllers\RegistrationUsersController::class, 'sendRejectionEmails'])
+                    ->name('sendRejectionEmails');
+
+                // Single user email actions
+                Route::post('{event_id}/users/{user_id}/send-approval-email', [App\Http\Controllers\RegistrationUsersController::class, 'sendApprovalEmail'])
+                    ->name('sendApprovalEmail');
+                Route::post('{event_id}/users/{user_id}/send-rejection-email', [App\Http\Controllers\RegistrationUsersController::class, 'sendRejectionEmail'])
+                    ->name('sendRejectionEmail');
+
+                // Custom email
+                Route::get('{event_id}/users/{user_id}/custom-email', [App\Http\Controllers\RegistrationUsersController::class, 'showCustomEmail'])
+                    ->name('showCustomEmail');
+                Route::post('{event_id}/users/{user_id}/send-custom-email', [App\Http\Controllers\RegistrationUsersController::class, 'sendCustomEmail'])
+                    ->name('sendCustomEmail');
+
                 // AJAX Routes
                 Route::get('{event_id}/registrations/{registration_id}/fields', [App\Http\Controllers\RegistrationUsersController::class, 'getRegistrationFields'])
                     ->name('getRegistrationFields');

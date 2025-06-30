@@ -324,7 +324,25 @@ class RegistrationUsersController extends Controller
         $conferences = Conference::where('event_id', $event_id)->pluck('name', 'id')->toArray();
         $professions = Profession::all()->pluck('name', 'id')->toArray();
 
-        return view('ManageEvent.Modals.EditUser', compact('event', 'user', 'userTypes', 'countries', 'conferences', 'professions'));
+        // Check which fields are included in the registration form
+        $formFields = $user->registration->dynamicFormFields;
+        $hasCountryField = $formFields->where('type', 'country')->first();
+        $hasCityField = $formFields->where('type', 'city')->first();
+        $hasConferenceField = $formFields->where('type', 'conference')->first();
+        $hasProfessionField = $formFields->where('type', 'profession')->first();
+
+        return view('ManageEvent.Modals.EditUser', compact(
+            'event',
+            'user',
+            'userTypes',
+            'countries',
+            'conferences',
+            'professions',
+            'hasCountryField',
+            'hasCityField',
+            'hasConferenceField',
+            'hasProfessionField'
+        ));
     }
 
     /**
@@ -351,6 +369,8 @@ class RegistrationUsersController extends Controller
                 'email' => 'required|email|max:255|unique:registration_users,email,' . $user_id,
                 'phone' => 'nullable|string|max:20',
                 'user_type_id' => 'nullable|exists:user_types,id',
+                'country_id' => 'nullable|exists:countries,id',
+                'city' => 'nullable|string|max:255',
                 'conference_id' => 'nullable|exists:conferences,id',
                 'profession_id' => 'nullable|exists:professions,id',
                 'status' => 'required|in:pending,approved,rejected',
@@ -385,13 +405,15 @@ class RegistrationUsersController extends Controller
 
             $oldStatus = $user->status;
 
-            // Update user
+            // Update user basic fields
             $user->update([
                 'first_name' => $request->first_name,
                 'last_name' => $request->last_name,
                 'email' => $request->email,
                 'phone' => $request->phone,
                 'user_type_id' => $request->user_type_id,
+                'country_id' => $request->country_id,
+                'city' => $request->city,
                 'conference_id' => $request->conference_id,
                 'profession_id' => $request->profession_id,
                 'status' => $request->status,
@@ -402,14 +424,21 @@ class RegistrationUsersController extends Controller
                 foreach ($request->input('fields') as $fieldId => $value) {
                     $field = $registration->dynamicFormFields()->find($fieldId);
                     if ($field) {
-                        // Handle special field types
+                        // Handle special field types that map to user table columns
                         if ($field->type == 'conference' && $value) {
                             $user->conference_id = $value;
                             $user->save();
                         } elseif ($field->type == 'profession' && $value) {
                             $user->profession_id = $value;
                             $user->save();
+                        } elseif ($field->type == 'country' && $value) {
+                            $user->country_id = $value;
+                            $user->save();
+                        } elseif ($field->type == 'city' && $value) {
+                            $user->city = $value;
+                            $user->save();
                         } else {
+                            // Handle regular dynamic fields
                             DynamicFormFieldValue::updateOrCreate(
                                 [
                                     'registration_user_id' => $user->id,
@@ -713,5 +742,182 @@ class RegistrationUsersController extends Controller
         $event = Event::findOrFail($event_id);
 
         return view('ManageEvent.Modals.UserDetails', compact('user', 'event'));
+    }
+
+    /**
+     * Send approval email to selected users.
+     *
+     * @param Request $request
+     * @param int $event_id
+     * @return \Illuminate\Http\Response
+     */
+    public function sendApprovalEmails(Request $request, $event_id)
+    {
+        $this->validate($request, [
+            'user_ids' => 'required|array',
+            'user_ids.*' => 'integer',
+        ]);
+
+        $userIds = $request->input('user_ids');
+        $event = Event::findOrFail($event_id);
+        $users = RegistrationUser::whereIn('id', $userIds)->get();
+
+        $sentCount = 0;
+        foreach ($users as $user) {
+            try {
+                Mail::to($user->email)->send(new RegistrationApproved($user, $event));
+                $sentCount++;
+            } catch (\Exception $e) {
+                // Log error but continue with other users
+                \Log::error("Failed to send approval email to {$user->email}: " . $e->getMessage());
+            }
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'message' => "Approval emails sent to {$sentCount} users successfully.",
+        ]);
+    }
+
+    /**
+     * Send rejection email to selected users.
+     *
+     * @param Request $request
+     * @param int $event_id
+     * @return \Illuminate\Http\Response
+     */
+    public function sendRejectionEmails(Request $request, $event_id)
+    {
+        $this->validate($request, [
+            'user_ids' => 'required|array',
+            'user_ids.*' => 'integer',
+        ]);
+
+        $userIds = $request->input('user_ids');
+        $event = Event::findOrFail($event_id);
+        $users = RegistrationUser::whereIn('id', $userIds)->get();
+
+        $sentCount = 0;
+        foreach ($users as $user) {
+            try {
+                Mail::to($user->email)->send(new RegistrationRejected($user, $event));
+                $sentCount++;
+            } catch (\Exception $e) {
+                // Log error but continue with other users
+                \Log::error("Failed to send rejection email to {$user->email}: " . $e->getMessage());
+            }
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'message' => "Rejection emails sent to {$sentCount} users successfully.",
+        ]);
+    }
+
+    /**
+     * Send approval email to a single user.
+     *
+     * @param int $event_id
+     * @param int $user_id
+     * @return \Illuminate\Http\Response
+     */
+    public function sendApprovalEmail($event_id, $user_id)
+    {
+        $user = RegistrationUser::findOrFail($user_id);
+        $event = Event::findOrFail($event_id);
+
+        try {
+            Mail::to($user->email)->send(new RegistrationApproved($user, $event));
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Approval email sent successfully.',
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Failed to send approval email: ' . $e->getMessage(),
+        ]);
+    }
+    }
+
+    /**
+     * Send rejection email to a single user.
+     *
+     * @param int $event_id
+     * @param int $user_id
+     * @return \Illuminate\Http\Response
+     */
+    public function sendRejectionEmail($event_id, $user_id)
+    {
+        $user = RegistrationUser::findOrFail($user_id);
+        $event = Event::findOrFail($event_id);
+
+        try {
+            Mail::to($user->email)->send(new RegistrationRejected($user, $event));
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Rejection email sent successfully.',
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Failed to send rejection email: ' . $e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * Show custom email modal.
+     *
+     * @param int $event_id
+     * @param int $user_id
+     * @return \Illuminate\Http\Response
+     */
+    public function showCustomEmail($event_id, $user_id)
+    {
+        $user = RegistrationUser::findOrFail($user_id);
+        $event = Event::findOrFail($event_id);
+
+        return view('ManageEvent.Modals.CustomEmail', compact('user', 'event'));
+    }
+
+    /**
+     * Send custom email to a user.
+     *
+     * @param Request $request
+     * @param int $event_id
+     * @param int $user_id
+     * @return \Illuminate\Http\Response
+     */
+    public function sendCustomEmail(Request $request, $event_id, $user_id)
+    {
+        $this->validate($request, [
+            'subject' => 'required|string|max:255',
+            'body' => 'required|string',
+        ]);
+
+        $user = RegistrationUser::findOrFail($user_id);
+        $event = Event::findOrFail($event_id);
+
+        try {
+            Mail::to($user->email)->send(new \App\Mail\CustomUserEmail(
+                $user,
+                $event,
+                $request->subject,
+                $request->body
+            ));
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Custom email sent successfully.',
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Failed to send custom email: ' . $e->getMessage(),
+            ]);
+        }
     }
 }

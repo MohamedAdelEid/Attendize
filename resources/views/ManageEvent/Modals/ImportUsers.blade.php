@@ -98,6 +98,7 @@
                 </div>
 
                 <div id="import-results" class="alert" style="display: none;"></div>
+                <div id="errors-results" class="alert" style="display: none;"></div>
 
                 <div class="modal-footer">
                     {!! Form::button('Cancel', ['class' => 'btn btn-default', 'data-dismiss' => 'modal']) !!}
@@ -160,10 +161,20 @@ $(document).ready(function() {
                     $('#import-form')[0].reset();
                     $('#download-template-btn').prop('disabled', true);
 
+                    if(response.results && response.results.errors) {
+                        $('#errors-results')
+                            .removeClass('alert-success')
+                            .addClass('alert-danger')
+                            .html('<i class="ico-warning"></i> ' + response.results.error_details.join('<br>'))
+                            .show();
+                    }
+
                     // Reload page after 2 seconds
-                    setTimeout(function() {
-                        window.location.reload();
-                    }, 2000);
+                    if (!response.results.errors) {
+                        setTimeout(function() {
+                            window.location.reload();
+                        }, 2000);
+                    }
                 } else {
                     $('#import-results')
                         .removeClass('alert-success')

@@ -317,6 +317,9 @@
                                         <li role="separator" class="divider"></li>
                                         <li><a href="javascript:void(0);" class="bulk-action" data-action="delete"><i
                                                     class="ico-trash"></i> Delete Selected</a></li>
+                                        <li role="separator" class="divider"></li>
+                                        <li><a href="javascript:void(0);" class="bulk-action" data-action="send-approve-email"><i class="ico-mail"></i> Send Approve Email</a></li>
+                                        <li><a href="javascript:void(0);" class="bulk-action" data-action="send-reject-email"><i class="ico-mail"></i> Send Reject Email</a></li>
                                     </ul>
                                 </div>
                             </div>
@@ -432,6 +435,23 @@
                                                                 <a href="javascript:void(0);" class="delete-user"
                                                                     data-user-id="{{ $user->id }}">
                                                                     <i class="ico-trash"></i> Delete
+                                                                </a>
+                                                            </li>
+                                                            <li role="separator" class="divider"></li>
+                                                            <li>
+                                                                <a href="javascript:void(0);" class="send-single-email"
+                                                                    data-user-id="{{ $user->id }}"
+                                                                    data-action="approve"
+                                                                    data-url="{{ route('sendApprovalEmail', ['event_id' => $event->id, 'user_id' => $user->id]) }}">
+                                                                    <i class="ico-mail"></i> Send Approve Email
+                                                                </a>
+                                                            </li>
+                                                            <li>
+                                                                <a href="javascript:void(0);" class="send-single-email"
+                                                                    data-user-id="{{ $user->id }}"
+                                                                    data-action="reject"
+                                                                    data-url="{{ route('sendRejectionEmail', ['event_id' => $event->id, 'user_id' => $user->id]) }}">
+                                                                    <i class="ico-mail"></i> Send Reject Email
                                                                 </a>
                                                             </li>
                                                         </ul>
@@ -595,6 +615,96 @@
                         },
                         error: function(xhr) {
                             console.error(xhr);
+                            alert('An error occurred. Please try again.');
+                        }
+                    });
+                }
+            });
+
+            // Handle bulk email actions
+            $('.bulk-action[data-action="send-approve-email"], .bulk-action[data-action="send-reject-email"]').on('click', function(e) {
+                e.preventDefault();
+
+                const action = $(this).data('action');
+                const selectedUsers = $('.user-checkbox:checked');
+
+                if (selectedUsers.length === 0) {
+                    alert('Please select at least one user');
+                    return;
+                }
+
+                let confirmMessage = '';
+                let url = '';
+
+                switch (action) {
+                    case 'send-approve-email':
+                        confirmMessage = 'Are you sure you want to send approval emails to the selected users?';
+                        url = '{{ route('sendApprovalEmails', ['event_id' => $event->id]) }}';
+                        break;
+                    case 'send-reject-email':
+                        confirmMessage = 'Are you sure you want to send rejection emails to the selected users?';
+                        url = '{{ route('sendRejectionEmails', ['event_id' => $event->id]) }}';
+                        break;
+                }
+
+                if (confirm(confirmMessage)) {
+                    const userIds = [];
+                    selectedUsers.each(function() {
+                        userIds.push($(this).val());
+                    });
+
+                    $.ajax({
+                        url: url,
+                        type: 'POST',
+                        data: {
+                            _token: '{{ csrf_token() }}',
+                            user_ids: userIds
+                        },
+                        success: function(response) {
+                            if (response.status === 'success') {
+                                alert(response.message);
+                            }
+                        },
+                        error: function(xhr) {
+                            console.error(xhr);
+                            alert('An error occurred. Please try again.');
+                        }
+                    });
+                }
+            });
+
+            // Handle single email actions
+            $('.send-single-email').on('click', function(e) {
+                e.preventDefault();
+
+                const url = $(this).data('url');
+                const action = $(this).data('action');
+
+                let confirmMessage = '';
+
+                switch (action) {
+                    case 'approve':
+                        confirmMessage = 'Are you sure you want to send an approval email to this user?';
+                        break;
+                    case 'reject':
+                        confirmMessage = 'Are you sure you want to send a rejection email to this user?';
+                        break;
+                }
+
+                if (confirm(confirmMessage)) {
+                    $.ajax({
+                        url: url,
+                        type: 'POST',
+                        data: {
+                            _token: '{{ csrf_token() }}'
+                        },
+                        success: function(response) {
+                            if (response.status === 'success') {
+                                alert(response.message);
+                            }
+                        },
+                        error: function(xhr) {
+                            console.error(xhr.responseText);
                             alert('An error occurred. Please try again.');
                         }
                     });

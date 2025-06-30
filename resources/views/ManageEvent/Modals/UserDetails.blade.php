@@ -6,7 +6,7 @@
 
     /* Modal Styles */
     .modal-lg {
-        max-width: 800px;
+        max-width: 900px;
         margin: 30px auto;
     }
 
@@ -50,6 +50,7 @@
         display: flex;
         flex-direction: column;
         align-items: center;
+        position: relative;
     }
 
     @media (min-width: 768px) {
@@ -81,6 +82,7 @@
 
     .user-info {
         text-align: center;
+        flex: 1;
     }
 
     @media (min-width: 768px) {
@@ -100,6 +102,37 @@
         color: #6b7280;
         margin: 0 0 8px 0;
         font-size: 14px;
+    }
+
+    /* QR Code Section */
+    .qr-section {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        text-align: center;
+        background: white;
+        padding: 15px;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .qr-code {
+        width: 120px;
+        height: 120px;
+        border: 2px solid #e5e7eb;
+        border-radius: 4px;
+        margin-bottom: 8px;
+    }
+
+    .registration-code {
+        font-family: monospace;
+        font-weight: bold;
+        color: #007bff;
+        font-size: 14px;
+        background: #f8f9fa;
+        padding: 4px 8px;
+        border-radius: 4px;
+        border: 1px solid #dee2e6;
     }
 
     /* Status Badge Styles */
@@ -270,6 +303,19 @@
         margin-left: 12px;
     }
 
+    /* Email Management Section */
+    .email-management {
+        background-color: #f8f9fa;
+        padding: 24px;
+        border-top: 1px solid #e5e7eb;
+    }
+
+    .email-buttons {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+    }
+
     /* Button Container */
     .actions-container {
         display: flex;
@@ -291,6 +337,7 @@
         border: 1px solid transparent;
         cursor: pointer;
         transition: all 0.2s;
+        text-decoration: none;
     }
 
     .btn-custom i {
@@ -304,6 +351,7 @@
 
     .btn-green:hover {
         background-color: #059669;
+        color: white;
     }
 
     .btn-yellow {
@@ -313,6 +361,7 @@
 
     .btn-yellow:hover {
         background-color: #d97706;
+        color: white;
     }
 
     .btn-red {
@@ -322,6 +371,17 @@
 
     .btn-red:hover {
         background-color: #dc2626;
+        color: white;
+    }
+
+    .btn-blue {
+        background-color: #3b82f6;
+        color: white;
+    }
+
+    .btn-blue:hover {
+        background-color: #2563eb;
+        color: white;
     }
 
     .btn-gray {
@@ -332,6 +392,7 @@
 
     .btn-gray:hover {
         background-color: #f9fafb;
+        color: #4b5563;
     }
 
     /* Link Styles */
@@ -353,6 +414,19 @@
     /* Text Colors */
     .text-muted {
         color: #9ca3af;
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 767px) {
+        .qr-section {
+            position: static;
+            margin-top: 20px;
+            width: 100%;
+        }
+
+        .user-header {
+            padding-right: 24px;
+        }
     }
 </style>
 
@@ -396,6 +470,18 @@
                                 {{ ucfirst($user->status) }}
                             </span>
                         </div>
+
+                        <!-- QR Code Section (only for approved users) -->
+                        @if($user->status === 'approved' && $user->unique_code)
+                            <div class="qr-section">
+                                <div class="qr-code">
+                                    {!! QrCode::size(116)->generate($user->unique_code) !!}
+                                </div>
+                                <div class="registration-code">
+                                    {{ $user->unique_code }}
+                                </div>
+                            </div>
+                        @endif
                     </div>
 
                     <!-- Basic Information Section -->
@@ -415,8 +501,26 @@
                                 <p class="card-value">{{ $user->phone ?? 'Not provided' }}</p>
                             </div>
 
+                            @if($user->userType)
+                                <div class="info-card">
+                                    <p class="card-label">User Type</p>
+                                    <p class="card-value">
+                                        <span class="badge badge-info">{{ $user->userType->name }}</span>
+                                    </p>
+                                </div>
+                            @endif
+
+                            @if($user->status === 'approved' && $user->unique_code)
+                                <div class="info-card">
+                                    <p class="card-label">Registration Code</p>
+                                    <p class="card-value">
+                                        <span class="registration-code">{{ $user->unique_code }}</span>
+                                    </p>
+                                </div>
+                            @endif
+
                             <div class="info-card grid-span-2">
-                                <p class="card-label">Registration</p>
+                                <p class="card-label">Registration Form</p>
                                 <p class="card-value">{{ $user->registration->name }}</p>
                             </div>
                         </div>
@@ -472,6 +576,28 @@
                                 </div>
                             </div>
                         @endif
+                    </div>
+
+                    <!-- Email Management Section -->
+                    <div class="email-management">
+                        <h4 class="section-title">
+                            <i class="fa fa-envelope"></i> Email Management
+                        </h4>
+                        <div class="email-buttons">
+                            <button type="button" class="btn-custom btn-green send-email-action"
+                                data-user-id="{{ $user->id }}" data-action="approve">
+                                <i class="fa fa-check"></i> Send Approve Email
+                            </button>
+                            <button type="button" class="btn-custom btn-yellow send-email-action"
+                                data-user-id="{{ $user->id }}" data-action="reject">
+                                <i class="fa fa-times"></i> Send Reject Email
+                            </button>
+                            <button type="button" class="btn-custom btn-blue loadModal"
+                                data-modal-id="CustomEmail"
+                                data-href="{{ route('showCustomEmail', ['event_id' => $event->id, 'user_id' => $user->id]) }}">
+                                <i class="fa fa-envelope-o"></i> Send Custom Email
+                            </button>
+                        </div>
                     </div>
 
                     <!-- Action Buttons -->
@@ -593,4 +719,54 @@
             });
         }
     });
+
+    // Handle email actions from user details modal
+    $('.send-email-action').on('click', function(e) {
+        e.preventDefault();
+
+        const userId = $(this).data('user-id');
+        const action = $(this).data('action');
+
+        let confirmMessage = '';
+        let url = '';
+
+        switch (action) {
+            case 'approve':
+                confirmMessage = 'Are you sure you want to send an approval email to this user?';
+                url = '{{ route('sendApprovalEmail', ['event_id' => $event->id, 'user_id' => $user->id]) }}';
+                break;
+            case 'reject':
+                confirmMessage = 'Are you sure you want to send a rejection email to this user?';
+                url = '{{ route('sendRejectionEmail', ['event_id' => $event->id, 'user_id' => $user->id]) }}';
+                break;
+        }
+
+        if (confirm(confirmMessage)) {
+            $.ajax({
+                url: url,
+                type: 'POST',
+                data: {
+                    _token: '{{ csrf_token() }}'
+                },
+                success: function(response) {
+                    if (response.status === 'success') {
+                        if (typeof toastr !== 'undefined') {
+                            toastr.success(response.message);
+                        } else {
+                            alert(response.message);
+                        }
+                    }
+                },
+                error: function(xhr) {
+                    console.error(xhr.responseText);
+                    if (typeof toastr !== 'undefined') {
+                        toastr.error('An error occurred. Please try again.');
+                    } else {
+                        alert('An error occurred. Please try again.');
+                    }
+                }
+            });
+        }
+    });
 </script>
+    

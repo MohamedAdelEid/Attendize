@@ -44,7 +44,7 @@ class RegistrationUsersImport implements ToCollection, WithHeadingRow
                     'first_name' => 'required|string|max:255',
                     'last_name' => 'required|string|max:255',
                     'email' => 'required|email|max:255|unique:registration_users,email',
-                    'phone' => 'nullable|string|max:20',
+                    'phone' => 'nullable|max:20',
                 ]);
 
                 if ($validator->fails()) {
