@@ -495,7 +495,7 @@ Route::group(
                     [RegistrationUsersController::class, 'getUserDetails']
                 )->name('getUserDetails');
 
-                 // Add User
+                // Add User
                 Route::get('{event_id}/registration/users/add/{registration_id?}', [App\Http\Controllers\RegistrationUsersController::class, 'showAddUser'])
                     ->name('showAddUser');
                 Route::post('{event_id}/registration/users/store', [App\Http\Controllers\RegistrationUsersController::class, 'storeUser'])
@@ -542,8 +542,8 @@ Route::group(
                 Route::get('{event_id}/registrations/{registration_id}/fields', [App\Http\Controllers\RegistrationUsersController::class, 'getRegistrationFields'])
                     ->name('getRegistrationFields');
 
-                 Route::get('{event_id}/conferences/{conference_id}/professions', [App\Http\Controllers\RegistrationUsersController::class, 'getConferenceProfessions'])
-                        ->name('getConferenceProfessions');
+                Route::get('{event_id}/conferences/{conference_id}/professions', [App\Http\Controllers\RegistrationUsersController::class, 'getConferenceProfessions'])
+                    ->name('getConferenceProfessions');
 
                 Route::get('{event_id}/registration/user-types', [EventUserTypeController::class, 'showUserTypes'])
                     ->name('showEventUserTypes');
@@ -930,7 +930,7 @@ Route::group(
                 )->name('saveTicketPositions');
 
                 Route::get('{event_id}/download-ticket/{user_id}', [App\Http\Controllers\TicketController::class, 'downloadUserTicket'])
-                ->name('downloadUserTicket');
+                    ->name('downloadUserTicket');
 
                 Route::post(
                     '{event_id}/customize/design',
@@ -1048,7 +1048,7 @@ Route::group(
                  * -------
                  */
                 Route::get(
-                    '{event_id}/check_in',
+                    '{event_id}/scan-ticket',
                     [EventCheckInController::class, 'showCheckIn']
                 )->name('showCheckIn');
 
@@ -1125,5 +1125,6 @@ Route::get('/ticket/download/{token}', [App\Http\Controllers\TicketController::c
 Route::get('/ticket/view/{token}', [App\Http\Controllers\TicketController::class, 'viewTicket'])
     ->name('viewTicket');
 
-Route::get('/events/{event_id}/registration-confirmation', [EventViewController::class , 'showRegistrationConfirmation'])->name('showRegistrationConfirmation');
-
+Route::get('/events/{event_id}/registration-confirmation', [EventViewController::class, 'showRegistrationConfirmation'])->name('showRegistrationConfirmation');
+Route::post('/events/{event_id}/post-scan-ticket', [EventCheckInController::class, 'PostScanTicket'])->name('PostScanTicket');
+Route::get('/events/{event_id}/fetch-registration-users', [EventCheckInController::class, 'fetchRegistrationUsers'])->name('fetchRegistrationUsers');

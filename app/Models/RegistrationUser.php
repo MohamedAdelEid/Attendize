@@ -6,7 +6,6 @@ use Illuminate\Database\Eloquent\Model;
 
 class RegistrationUser extends Model
 {
-
     protected $table = 'registration_users';
 
     protected $fillable = [
@@ -24,14 +23,14 @@ class RegistrationUser extends Model
         'qr_code_path',
         'is_new',
         'ticket_token',
+        'check_in',
+        'check_out',
         'user_type_id',
-        // 'state_id',
     ];
 
     protected $casts = [
         'is_new' => 'boolean',
     ];
-
 
     /**
      * Get the registration that owns the registration user.

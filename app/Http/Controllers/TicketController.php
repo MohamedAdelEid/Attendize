@@ -134,4 +134,5 @@ class TicketController extends Controller
             ['Content-Type' => 'application/pdf']
         );
     }
+   
 }

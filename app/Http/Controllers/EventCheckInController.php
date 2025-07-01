@@ -1,14 +1,87 @@
-<?php namespace App\Http\Controllers;
+<?php
+namespace App\Http\Controllers;
 
 use App\Models\Attendee;
 use App\Models\Event;
+use App\Models\Registration;
+use App\Models\RegistrationUser;
 use Carbon\Carbon;
-use DB;
 use Illuminate\Http\Request;
+use DB;
 use JavaScript;
 
 class EventCheckInController extends MyBaseController
 {
+    public function PostScanTicket(Request $request)
+    {
+        $event = Event::find($request->event_id);
+        $qrCode = $request->unique_code;
+
+        $uniqueCodeFromDb = RegistrationUser::where('unique_code', $qrCode)->first();
+
+        if (is_null($uniqueCodeFromDb)) {
+            // Handle AJAX request
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Invalid ticket code. Please check the code and try again.'
+                ]);
+            }
+            return redirect()->back()->with('error', 'Invalid QR Code');
+        }
+
+        // Check if already checked in
+        if (!is_null($uniqueCodeFromDb->check_in)) {
+            $checkInTime = new \DateTime($uniqueCodeFromDb->check_in);
+            $message = 'Attendee already checked in at ' . $checkInTime->format('Y-m-d H:i:s');
+
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => $message
+                ]);
+            }
+            return redirect()->back()->with('error', 'User Already Checked In');
+        }
+
+        if ($uniqueCodeFromDb->unique_code == $qrCode) {
+            $uniqueCodeFromDb->update([
+                'check_in' => Carbon::now()
+            ]);
+
+            // Handle AJAX request
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'status' => 'success',
+                    'message' => 'Successfully checked in!',
+                    'user' => [
+                        'id' => $uniqueCodeFromDb->id,
+                        'first_name' => $uniqueCodeFromDb->first_name,
+                        'last_name' => $uniqueCodeFromDb->last_name,
+                        'email' => $uniqueCodeFromDb->email,
+                        'unique_code' => $uniqueCodeFromDb->unique_code,
+                        'check_in' => $uniqueCodeFromDb->check_in,
+                    ]
+                ]);
+            }
+
+            return redirect()->back()->with([
+                'success' => 'User Checked In Successfully',
+                'user' => $uniqueCodeFromDb
+            ]);
+        }
+
+        // Handle AJAX request
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Invalid ticket code. Please check the code and try again.'
+            ]);
+        }
+
+        return redirect()->back()->with('error', 'Invalid QR Code');
+    }
+
     /**
      * Show the check-in page
      *
@@ -18,10 +91,11 @@ class EventCheckInController extends MyBaseController
     public function showCheckIn($event_id)
     {
         $event = Event::scope()->findOrFail($event_id);
-
+        $registrations = Registration::where('event_id', $event->id)->get();
         $data = [
             'event' => $event,
-            'attendees' => $event->attendees
+            'attendees' => $event->attendees,
+            'registrations' => $registrations
         ];
 
         JavaScript::put([
@@ -30,7 +104,7 @@ class EventCheckInController extends MyBaseController
             'checkInSearchRoute' => route('postCheckInSearch', ['event_id' => $event->id]),
         ]);
 
-        return view('ManageEvent.CheckIn', $data);
+        return view('tickets.scan-ticket', $data);
     }
 
     public function showQRCodeModal(Request $request, $event_id)
@@ -49,22 +123,25 @@ class EventCheckInController extends MyBaseController
     {
         $searchQuery = $request->get('q');
 
-        $attendees = Attendee::scope()->withoutCancelled()
+        $attendees = Attendee::scope()
+            ->withoutCancelled()
             ->join('tickets', 'tickets.id', '=', 'attendees.ticket_id')
             ->join('orders', 'orders.id', '=', 'attendees.order_id')
             ->where(function ($query) use ($event_id) {
                 $query->where('attendees.event_id', '=', $event_id);
-            })->where(function ($query) use ($searchQuery) {
-                $query->orWhere('attendees.first_name', 'like', $searchQuery.'%')
+            })
+            ->where(function ($query) use ($searchQuery) {
+                $query
+                    ->orWhere('attendees.first_name', 'like', $searchQuery . '%')
                     ->orWhere(
                         DB::raw("CONCAT_WS(' ', attendees.first_name, attendees.last_name)"),
                         'like',
-                        $searchQuery.'%'
+                        $searchQuery . '%'
                     )
-                    //->orWhere('attendees.email', 'like', $searchQuery . '%')
-                    ->orWhere('orders.order_reference', 'like', $searchQuery.'%')
-                    ->orWhere('attendees.private_reference_number', 'like', $searchQuery.'%')
-                    ->orWhere('attendees.last_name', 'like', $searchQuery.'%');
+                    // ->orWhere('attendees.email', 'like', $searchQuery . '%')
+                    ->orWhere('orders.order_reference', 'like', $searchQuery . '%')
+                    ->orWhere('attendees.private_reference_number', 'like', $searchQuery . '%')
+                    ->orWhere('attendees.last_name', 'like', $searchQuery . '%');
             })
             ->select([
                 'attendees.id',
@@ -103,7 +180,7 @@ class EventCheckInController extends MyBaseController
         if ((($checking == 'in') && ($attendee->has_arrived == 1)) || (($checking == 'out') && ($attendee->has_arrived == 0))) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'Attendee Already Checked '.(($checking == 'in') ? 'In (at '.$attendee->arrival_time->format('H:i A, F j').')' : 'Out').'!',
+                'message' => 'Attendee Already Checked ' . (($checking == 'in') ? 'In (at ' . $attendee->arrival_time->format('H:i A, F j') . ')' : 'Out') . '!',
                 'checked' => $checking,
                 'id' => $attendee->id,
             ]);
@@ -116,11 +193,10 @@ class EventCheckInController extends MyBaseController
         return response()->json([
             'status' => 'success',
             'checked' => $checking,
-            'message' => (($checking == 'in') ? trans("Controllers.attendee_successfully_checked_in") : trans("Controllers.attendee_successfully_checked_out")),
+            'message' => (($checking == 'in') ? trans('Controllers.attendee_successfully_checked_in') : trans('Controllers.attendee_successfully_checked_out')),
             'id' => $attendee->id,
         ]);
     }
-
 
     /**
      * Check in an attendee
@@ -134,12 +210,15 @@ class EventCheckInController extends MyBaseController
         $event = Event::scope()->findOrFail($event_id);
 
         $qrcodeToken = $request->get('attendee_reference');
-        $attendee = Attendee::scope()->withoutCancelled()
+        $attendee = Attendee::scope()
+            ->withoutCancelled()
             ->join('tickets', 'tickets.id', '=', 'attendees.ticket_id')
             ->where(function ($query) use ($event, $qrcodeToken) {
-                $query->where('attendees.event_id', $event->id)
+                $query
+                    ->where('attendees.event_id', $event->id)
                     ->where('attendees.private_reference_number', $qrcodeToken);
-            })->select([
+            })
+            ->select([
                 'attendees.id',
                 'attendees.order_id',
                 'attendees.first_name',
@@ -149,12 +228,13 @@ class EventCheckInController extends MyBaseController
                 'attendees.arrival_time',
                 'attendees.has_arrived',
                 'tickets.title as ticket',
-            ])->first();
+            ])
+            ->first();
 
         if (is_null($attendee)) {
             return response()->json([
                 'status' => 'error',
-                'message' => trans("Controllers.invalid_ticket_error")
+                'message' => trans('Controllers.invalid_ticket_error')
             ]);
         }
 
@@ -162,13 +242,14 @@ class EventCheckInController extends MyBaseController
             ->where([
                 'order_id' => $attendee->order_id,
                 'has_arrived' => false
-            ])->count();
+            ])
+            ->count();
 
         if ($attendee->has_arrived) {
             return response()->json([
                 'status' => 'error',
-                'message' => trans("Controllers.attendee_already_checked_in",
-                    ["time" => $attendee->arrival_time->format(config("attendize.default_datetime_format"))])
+                'message' => trans('Controllers.attendee_already_checked_in',
+                    ['time' => $attendee->arrival_time->format(config('attendize.default_datetime_format'))])
             ]);
         }
 
@@ -176,9 +257,20 @@ class EventCheckInController extends MyBaseController
 
         return response()->json([
             'status' => 'success',
-            'name' => $attendee->first_name." ".$attendee->last_name,
+            'name' => $attendee->first_name . ' ' . $attendee->last_name,
             'reference' => $attendee->reference,
             'ticket' => $attendee->ticket
+        ]);
+    }
+
+    public function fetchRegistrationUsers($event_id)
+    {
+        $event = Event::find($event_id);
+        $registrations = Registration::where('event_id', $event->id)->get();
+        $registrationUsers = $registrations->registrationUsers()->get();
+        return response()->json([
+            'registrations' => $registrations,
+            'registrationUsers' => $registrationUsers
         ]);
     }
 }
