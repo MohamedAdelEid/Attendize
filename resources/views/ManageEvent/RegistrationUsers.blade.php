@@ -1,4 +1,5 @@
 {{-- resources/views/ManageEvent/RegistrationUsers.blade.php --}}
+
 @extends('Shared.Layouts.Master')
 
 @section('title')
@@ -177,6 +178,46 @@
             font-weight: bold;
             color: #007bff;
         }
+
+        .pagination-controls {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .pagination-controls label {
+            margin: 0;
+            font-weight: 500;
+        }
+
+        .pagination-controls select {
+            width: 80px;
+        }
+
+        .results-info {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .bulk-actions-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .export-selected-btn {
+            background-color: #17a2b8;
+            border-color: #17a2b8;
+        }
+
+        .export-selected-btn:hover {
+            background-color: #138496;
+            border-color: #117a8b;
+        }
     </style>
 @stop
 
@@ -303,24 +344,34 @@
                 <div class="panel-body">
                     @if ($users->count() > 0)
                         <form id="bulk-action-form">
-                            <div class="bulk-actions">
-                                <div class="btn-group">
-                                    <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown"
-                                        aria-haspopup="true" aria-expanded="false">
-                                        Bulk Actions <span class="caret"></span>
+                            <div class="bulk-actions-container">
+                                <div class="bulk-actions">
+                                    <div class="btn-group">
+                                        <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown"
+                                            aria-haspopup="true" aria-expanded="false">
+                                            Bulk Actions <span class="caret"></span>
+                                        </button>
+                                        <ul class="dropdown-menu">
+                                            <li><a href="javascript:void(0);" class="bulk-action" data-action="approve"><i
+                                                        class="ico-checkmark"></i> Approve Selected</a></li>
+                                            <li><a href="javascript:void(0);" class="bulk-action" data-action="reject"><i
+                                                        class="ico-close"></i> Reject Selected</a></li>
+                                            <li role="separator" class="divider"></li>
+                                            <li><a href="javascript:void(0);" class="bulk-action" data-action="delete"><i
+                                                        class="ico-trash"></i> Delete Selected</a></li>
+                                            <li role="separator" class="divider"></li>
+                                            <li><a href="javascript:void(0);" class="bulk-action" data-action="send-approve-email"><i class="ico-mail"></i> Send Approve Email</a></li>
+                                            <li><a href="javascript:void(0);" class="bulk-action" data-action="send-reject-email"><i class="ico-mail"></i> Send Reject Email</a></li>
+                                            <li role="separator" class="divider"></li>
+                                            <li><a href="javascript:void(0);" class="bulk-action" data-action="export-selected"><i class="ico-download"></i> Export Selected</a></li>
+                                        </ul>
+                                    </div>
+                                </div>
+
+                                <div class="export-actions">
+                                    <button type="button" class="btn btn-info export-selected-btn" id="export-selected-btn" disabled>
+                                        <i class="ico-download"></i> Export Selected (<span id="selected-count">0</span>)
                                     </button>
-                                    <ul class="dropdown-menu">
-                                        <li><a href="javascript:void(0);" class="bulk-action" data-action="approve"><i
-                                                    class="ico-checkmark"></i> Approve Selected</a></li>
-                                        <li><a href="javascript:void(0);" class="bulk-action" data-action="reject"><i
-                                                    class="ico-close"></i> Reject Selected</a></li>
-                                        <li role="separator" class="divider"></li>
-                                        <li><a href="javascript:void(0);" class="bulk-action" data-action="delete"><i
-                                                    class="ico-trash"></i> Delete Selected</a></li>
-                                        <li role="separator" class="divider"></li>
-                                        <li><a href="javascript:void(0);" class="bulk-action" data-action="send-approve-email"><i class="ico-mail"></i> Send Approve Email</a></li>
-                                        <li><a href="javascript:void(0);" class="bulk-action" data-action="send-reject-email"><i class="ico-mail"></i> Send Reject Email</a></li>
-                                    </ul>
                                 </div>
                             </div>
 
@@ -464,9 +515,26 @@
                             </div>
                         </form>
 
+                        <!-- Pagination -->
                         <div class="row">
-                            <div class="col-md-12">
-                                {{ $users->appends(request()->except('page'))->links() }}
+                            <div class="col-md-10">
+                                {{ $users->links() }}
+                            </div>
+                            <div class="col-md-2">
+                                <!-- Pagination Controls -->
+                                <div class="pagination-controls">
+                                    <select id="per-page-select" class="form-control" onchange="changePerPage(this.value)">
+                                        <option value="10" {{ $perPage == 10 ? 'selected' : '' }}>10</option>
+                                        <option value="15" {{ $perPage == 15 ? 'selected' : '' }}>15</option>
+                                        <option value="25" {{ $perPage == 25 ? 'selected' : '' }}>25</option>
+                                        <option value="50" {{ $perPage == 50 ? 'selected' : '' }}>50</option>
+                                        <option value="100" {{ $perPage == 100 ? 'selected' : '' }}>100</option>
+                                        <option value="300" {{ $perPage == 300 ? 'selected' : '' }}>300</option>
+                                    </select>
+                                    <span class="results-info">
+                                        Showing {{ $users->firstItem() }} to {{ $users->lastItem() }} of {{ $users->total() }} results
+                                    </span>
+                                </div>
                             </div>
                         </div>
                     @else
@@ -491,10 +559,30 @@
 @section('foot')
     <script>
         $(document).ready(function() {
-            // Select all checkbox
-            $('#select-all-checkbox').on('change', function() {
-                $('.user-checkbox').prop('checked', $(this).prop('checked'));
+            // Select all checkbox functionality
+            $('#select-all-checkbox').change(function() {
+                $('.user-checkbox').prop('checked', this.checked);
+                updateSelectedCount();
             });
+
+            // Individual checkbox change
+            $('.user-checkbox').change(function() {
+                updateSelectedCount();
+
+                // Update select all checkbox state
+                const totalCheckboxes = $('.user-checkbox').length;
+                const checkedCheckboxes = $('.user-checkbox:checked').length;
+
+                $('#select-all-checkbox').prop('indeterminate', checkedCheckboxes > 0 && checkedCheckboxes < totalCheckboxes);
+                $('#select-all-checkbox').prop('checked', checkedCheckboxes === totalCheckboxes);
+            });
+
+            // Update selected count display
+            function updateSelectedCount() {
+                const selectedCount = $('.user-checkbox:checked').length;
+                $('#selected-count').text(selectedCount);
+                $('#export-selected-btn').prop('disabled', selectedCount === 0);
+            }
 
             // Bulk actions
             $('.bulk-action').on('click', function(e) {
@@ -521,6 +609,15 @@
                         confirmMessage =
                             'Are you sure you want to delete the selected users? This action cannot be undone.';
                         break;
+                        case 'send-approve-email':
+                            confirmMessage = 'Are you sure you want to send approval emails to the selected users?';
+                            break;
+                        case 'send-reject-email':
+                            confirmMessage = 'Are you sure you want to send rejection emails to the selected users?';
+                            break;
+                        case 'export-selected':
+                            exportSelectedUsers();
+                            return;
                 }
 
                 if (confirm(confirmMessage)) {
@@ -529,18 +626,37 @@
                         userIds.push($(this).val());
                     });
 
+                    let url = '';
+                    let data = {
+                        _token: '{{ csrf_token() }}',
+                        user_ids: userIds
+                    };
+
+                    switch (action) {
+                        case 'approve':
+                        case 'reject':
+                        case 'delete':
+                            url = '{{ route('bulkUpdateUsers', ['event_id' => $event->id]) }}';
+                            data.action = action;
+                            break;
+                        case 'send-approve-email':
+                            url = '{{ route('sendApprovalEmails', ['event_id' => $event->id]) }}';
+                            break;
+                        case 'send-reject-email':
+                            url = '{{ route('sendRejectionEmails', ['event_id' => $event->id]) }}';
+                            break;
+                    }
+
                     $.ajax({
-                        url: '{{ route('bulkUpdateUsers', ['event_id' => $event->id]) }}',
+                        url: url,
                         type: 'POST',
-                        data: {
-                            _token: '{{ csrf_token() }}',
-                            user_ids: userIds,
-                            action: action
-                        },
+                        data: data,
                         success: function(response) {
                             if (response.status === 'success') {
                                 alert(response.message);
-                                window.location.reload();
+                                if (action === 'approve' || action === 'reject' || action === 'delete') {
+                                    window.location.reload();
+                                }
                             }
                         },
                         error: function(xhr) {
@@ -549,6 +665,52 @@
                         }
                     });
                 }
+            });
+
+            // Export selected users function
+            function exportSelectedUsers() {
+                const selectedUsers = $('.user-checkbox:checked');
+
+                if (selectedUsers.length === 0) {
+                    alert('Please select at least one user to export.');
+                    return;
+                }
+
+                const userIds = [];
+                selectedUsers.each(function() {
+                    userIds.push($(this).val());
+                });
+
+                // Create a form and submit it to trigger download
+                const form = $('<form>', {
+                    method: 'POST',
+                    action: '{{ route('exportSelectedUsers', ['event_id' => $event->id]) }}'
+                });
+
+                form.append($('<input>', {
+                    type: 'hidden',
+                    name: '_token',
+                    value: '{{ csrf_token() }}'
+                }));
+
+                userIds.forEach(function(id) {
+                    form.append($('<input>', {
+                        type: 'hidden',
+                        name: 'user_ids[]',
+                        value: id
+                    }));
+                });
+
+                $('body').append(form);
+                form.submit();
+                form.remove();
+
+                alert(`Exporting ${userIds.length} selected users...`);
+            }
+
+            // Export selected button click
+            $('#export-selected-btn').on('click', function() {
+                exportSelectedUsers();
             });
 
             // Update user status
@@ -621,58 +783,6 @@
                 }
             });
 
-            // Handle bulk email actions
-            $('.bulk-action[data-action="send-approve-email"], .bulk-action[data-action="send-reject-email"]').on('click', function(e) {
-                e.preventDefault();
-
-                const action = $(this).data('action');
-                const selectedUsers = $('.user-checkbox:checked');
-
-                if (selectedUsers.length === 0) {
-                    alert('Please select at least one user');
-                    return;
-                }
-
-                let confirmMessage = '';
-                let url = '';
-
-                switch (action) {
-                    case 'send-approve-email':
-                        confirmMessage = 'Are you sure you want to send approval emails to the selected users?';
-                        url = '{{ route('sendApprovalEmails', ['event_id' => $event->id]) }}';
-                        break;
-                    case 'send-reject-email':
-                        confirmMessage = 'Are you sure you want to send rejection emails to the selected users?';
-                        url = '{{ route('sendRejectionEmails', ['event_id' => $event->id]) }}';
-                        break;
-                }
-
-                if (confirm(confirmMessage)) {
-                    const userIds = [];
-                    selectedUsers.each(function() {
-                        userIds.push($(this).val());
-                    });
-
-                    $.ajax({
-                        url: url,
-                        type: 'POST',
-                        data: {
-                            _token: '{{ csrf_token() }}',
-                            user_ids: userIds
-                        },
-                        success: function(response) {
-                            if (response.status === 'success') {
-                                alert(response.message);
-                            }
-                        },
-                        error: function(xhr) {
-                            console.error(xhr);
-                            alert('An error occurred. Please try again.');
-                        }
-                    });
-                }
-            });
-
             // Handle single email actions
             $('.send-single-email').on('click', function(e) {
                 e.preventDefault();
@@ -710,6 +820,17 @@
                     });
                 }
             });
+
+            // Initialize selected count
+            updateSelectedCount();
         });
+
+        // Change per page function
+        function changePerPage(perPage) {
+            const url = new URL(window.location.href);
+            url.searchParams.set('per_page', perPage);
+            url.searchParams.delete('page'); // Reset to first page
+            window.location.href = url.toString();
+        }
     </script>
 @stop

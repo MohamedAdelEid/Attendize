@@ -515,6 +515,11 @@ Route::group(
                 Route::get('{event_id}/registration/users/template', [App\Http\Controllers\RegistrationUsersController::class, 'downloadTemplate'])
                     ->name('downloadTemplate');
 
+                Route::post('/manage/event/{event_id}/registrations/users/export-selected', [
+                    'as' => 'exportSelectedUsers',
+                    'uses' => 'RegistrationUsersController@exportSelectedUsers'
+                ]);
+
                 // Bulk email actions
                 Route::post('{event_id}/users/bulk/send-approval-emails', [App\Http\Controllers\RegistrationUsersController::class, 'sendApprovalEmails'])
                     ->name('sendApprovalEmails');

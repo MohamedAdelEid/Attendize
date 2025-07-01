@@ -17,9 +17,11 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Storage;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Imports\RegistrationUsersImport;
 use App\Exports\RegistrationUsersTemplateExport;
+use App\Exports\SelectedUsersExport;
 use Mail;
 
 class RegistrationUsersController extends Controller
@@ -46,6 +48,12 @@ class RegistrationUsersController extends Controller
 
         // Get filters from request
         $filters = $request->only(['search', 'status', 'registration_id']);
+
+        // Get per page setting from request, default to 15
+        $perPage = $request->get('per_page', 15);
+        if (!in_array($perPage, [10, 15, 25, 50, 100, 300])) {
+            $perPage = 15;
+        }
 
         // Query registration users with filters
         $query = RegistrationUser::whereIn('registration_id', $registrationIds)
@@ -74,7 +82,8 @@ class RegistrationUsersController extends Controller
         }
 
         // Get paginated results
-        $users = $query->orderBy('created_at', 'desc')->paginate(15);
+        $users = $query->orderBy('created_at', 'desc')->paginate($perPage);
+        $users->appends($request->except('page'));
 
         // Get all registrations for the filter dropdown
         $registrations = Registration::where('event_id', $event_id)
@@ -91,7 +100,7 @@ class RegistrationUsersController extends Controller
             return redirect()->route('showEventRegistrationUsers', ['event_id' => $event_id]);
         }
 
-        return view('ManageEvent.RegistrationUsers', compact('event', 'users', 'filters', 'registrations'));
+        return view('ManageEvent.RegistrationUsers', compact('event', 'users', 'filters', 'registrations', 'perPage'));
     }
 
     /**
@@ -108,6 +117,12 @@ class RegistrationUsersController extends Controller
 
         // Get filters from request
         $filters = $request->only(['search', 'status']);
+
+        // Get per page setting from request, default to 15
+        $perPage = $request->get('per_page', 15);
+        if (!in_array($perPage, [10, 15, 25, 50, 100, 300])) {
+            $perPage = 15;
+        }
 
         // Query registration users with filters
         $query = RegistrationUser::where('registration_id', $registration_id)
@@ -131,7 +146,8 @@ class RegistrationUsersController extends Controller
         }
 
         // Get paginated results
-        $users = $query->orderBy('created_at', 'desc')->paginate(15);
+        $users = $query->orderBy('created_at', 'desc')->paginate($perPage);
+        $users->appends($request->except('page'));
 
         // Get all registrations for the filter dropdown (for potential switching)
         $registrations = Registration::where('event_id', $event_id)
@@ -148,7 +164,34 @@ class RegistrationUsersController extends Controller
             return redirect()->route('showRegistrationUsers', ['event_id' => $event_id, 'registration_id' => $registration_id]);
         }
 
-        return view('ManageEvent.RegistrationUsers', compact('event', 'registration', 'users', 'filters', 'registrations'));
+        return view('ManageEvent.RegistrationUsers', compact('event', 'registration', 'users', 'filters', 'registrations', 'perPage'));
+    }
+
+    /**
+     * Clean up ticket data when user is rejected after being approved.
+     *
+     * @param RegistrationUser $user
+     * @return void
+     */
+    private function cleanupTicketData(RegistrationUser $user)
+    {
+        // Delete QR code file if exists
+        if ($user->qr_code_path && Storage::exists($user->qr_code_path)) {
+            Storage::delete($user->qr_code_path);
+
+        }
+
+        // Clear all ticket-related data
+        $user->update([
+            'ticket_generated_at' => null,
+            'ticket_pdf_path' => null,
+            'unique_code' => null,
+            'qr_code_path' => null,
+            'ticket_token' => null,
+        ]);
+
+        // Log the cleanup action
+        \Log::info("Cleaned up ticket data for user {$user->id} ({$user->email}) - status changed from approved to rejected");
     }
 
     /**
@@ -453,11 +496,17 @@ class RegistrationUsersController extends Controller
                 }
             }
 
-            // Process approval if status changed to approved
+            // Handle status changes
             if ($request->status === 'approved' && $oldStatus !== 'approved') {
+                // User is being approved - generate fresh credentials
                 $this->ticketService->processApproval($user);
                 Mail::to($user->email)->send(new RegistrationApproved($user, $event));
+            } elseif ($request->status === 'rejected' && $oldStatus === 'approved') {
+                // User was approved but now rejected - clean up ticket data
+                $this->cleanupTicketData($user);
+                Mail::to($user->email)->send(new RegistrationRejected($user, $event));
             } elseif ($request->status === 'rejected' && $oldStatus !== 'rejected') {
+                // User is being rejected (but wasn't previously approved)
                 Mail::to($user->email)->send(new RegistrationRejected($user, $event));
             }
 
@@ -571,6 +620,50 @@ class RegistrationUsersController extends Controller
     }
 
     /**
+     * Export selected users to Excel.
+     *
+     * @param Request $request
+     * @param int $event_id
+     * @return \Illuminate\Http\Response
+     */
+    public function exportSelectedUsers(Request $request, $event_id)
+    {
+        $this->validate($request, [
+            'user_ids' => 'required|array',
+            'user_ids.*' => 'integer',
+        ]);
+
+        $userIds = $request->input('user_ids');
+        $event = Event::findOrFail($event_id);
+
+        // Get selected users with their relationships
+        $users = RegistrationUser::whereIn('id', $userIds)
+            ->with(['registration', 'userType', 'formFieldValues.field'])
+            ->get();
+
+        if ($users->isEmpty()) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'No users found for export.',
+            ]);
+        }
+
+        try {
+            $fileName = 'selected_users_' . $event->slug . '_' . date('Y-m-d_H-i-s') . '.xlsx';
+
+            return Excel::download(
+                new SelectedUsersExport($users, $event),
+                $fileName
+            );
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Export failed: ' . $e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
      * Get registration form fields for AJAX.
      *
      * @param int $event_id
@@ -624,24 +717,34 @@ class RegistrationUsersController extends Controller
         ]);
 
         $oldStatus = $user->status;
-        $user->status = $request->input('status');
+        $newStatus = $request->input('status');
 
-        // Process approval if status changed to approved
-        if ($request->input('status') === 'approved' && $oldStatus !== 'approved') {
-            // Process approval and generate ticket
+        // Handle status changes with ticket cleanup logic
+        if ($newStatus === 'approved' && $oldStatus !== 'approved') {
+            // User is being approved - generate fresh credentials
+            $user->status = $newStatus;
+            $user->save();
+
             $this->ticketService->processApproval($user);
+            Mail::to($user->email)->send(new RegistrationApproved($user, $event));
+        } elseif ($newStatus === 'rejected' && $oldStatus === 'approved') {
+            // User was approved but now rejected - clean up ticket data
+            $user->status = $newStatus;
+            $user->save();
 
-            // Send approval email with ticket download link
-            Mail::to($user->email)->send(new RegistrationApproved($user, $event));
-        } elseif ($request->input('status') === 'approved') {
-            // Just send approval email if already approved but status was resubmitted
-            Mail::to($user->email)->send(new RegistrationApproved($user, $event));
-        } elseif ($request->input('status') === 'rejected') {
-            // Send rejection email
+            $this->cleanupTicketData($user);
             Mail::to($user->email)->send(new RegistrationRejected($user, $event));
-        }
+        } elseif ($newStatus === 'rejected' && $oldStatus !== 'rejected') {
+            // User is being rejected (but wasn't previously approved)
+            $user->status = $newStatus;
+            $user->save();
 
-        $user->save();
+            Mail::to($user->email)->send(new RegistrationRejected($user, $event));
+        } else {
+            // Just update status for other cases
+            $user->status = $newStatus;
+            $user->save();
+        }
 
         return response()->json([
             'status' => 'success',
@@ -659,6 +762,12 @@ class RegistrationUsersController extends Controller
     public function deleteUser($event_id, $user_id)
     {
         $user = RegistrationUser::findOrFail($user_id);
+
+        // Clean up ticket data before deletion
+        if ($user->status === 'approved') {
+            $this->cleanupTicketData($user);
+        }
+
         $user->delete();
 
         return response()->json([
@@ -687,6 +796,14 @@ class RegistrationUsersController extends Controller
         $event = Event::findOrFail($event_id);
 
         if ($action === 'delete') {
+            // Get users before deletion to clean up ticket data
+            $users = RegistrationUser::whereIn('id', $userIds)->get();
+            foreach ($users as $user) {
+                if ($user->status === 'approved') {
+                    $this->cleanupTicketData($user);
+                }
+            }
+
             RegistrationUser::whereIn('id', $userIds)->delete();
             $message = 'Selected users have been deleted';
         } else {
@@ -695,28 +812,34 @@ class RegistrationUsersController extends Controller
             // Get users before updating status
             $users = RegistrationUser::whereIn('id', $userIds)->get();
 
-            // Update status
-            RegistrationUser::whereIn('id', $userIds)->update(['status' => $status]);
+            // Process each user individually for proper ticket handling
+            foreach ($users as $user) {
+                $oldStatus = $user->status;
 
-            // Process each user individually for approvals
-            if ($status === 'approved') {
-                foreach ($users as $user) {
-                    // Only process if not already approved
-                    if ($user->status !== 'approved') {
-                        // Refresh user data after status update
-                        $user->refresh();
+                if ($status === 'approved' && $oldStatus !== 'approved') {
+                    // User is being approved - generate fresh credentials
+                    $user->status = $status;
+                    $user->save();
 
-                        // Process approval and generate ticket
-                        $this->ticketService->processApproval($user);
+                    $this->ticketService->processApproval($user);
+                    Mail::to($user->email)->send(new RegistrationApproved($user, $event));
+                } elseif ($status === 'rejected' && $oldStatus === 'approved') {
+                    // User was approved but now rejected - clean up ticket data
+                    $user->status = $status;
+                    $user->save();
 
-                        // Send approval email with ticket download link
-                        Mail::to($user->email)->send(new RegistrationApproved($user, $event));
-                    }
-                }
-            } else {
-                // Send rejection emails
-                foreach ($users as $user) {
+                    $this->cleanupTicketData($user);
                     Mail::to($user->email)->send(new RegistrationRejected($user, $event));
+                } elseif ($status === 'rejected' && $oldStatus !== 'rejected') {
+                    // User is being rejected (but wasn't previously approved)
+                    $user->status = $status;
+                    $user->save();
+
+                    Mail::to($user->email)->send(new RegistrationRejected($user, $event));
+                } else {
+                    // Just update status for other cases
+                    $user->status = $status;
+                    $user->save();
                 }
             }
 
@@ -837,8 +960,8 @@ class RegistrationUsersController extends Controller
             return response()->json([
                 'status' => 'error',
                 'message' => 'Failed to send approval email: ' . $e->getMessage(),
-        ]);
-    }
+            ]);
+        }
     }
 
     /**
