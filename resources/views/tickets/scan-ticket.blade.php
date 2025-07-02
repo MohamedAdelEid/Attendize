@@ -63,7 +63,7 @@
                     </div>
                     <div>
                         <h1 class="text-xl font-bold text-gray-900">{{ $event->title }}</h1>
-                        <p class="text-sm text-gray-500">Streamlined event check-in</p>
+                        <p class="text-sm text-gray-500">Streamlined event check-in/check-out</p>
                     </div>
                 </div>
                 
@@ -108,7 +108,7 @@
 
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <!-- Statistics Cards -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
             <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow duration-200">
                 <div class="flex items-center">
                     <div class="flex-shrink-0">
@@ -127,12 +127,12 @@
                 <div class="flex items-center">
                     <div class="flex-shrink-0">
                         <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                            <i class="fas fa-user-check text-green-600 text-xl"></i>
+                            <i class="fas fa-sign-in-alt text-green-600 text-xl"></i>
                         </div>
                     </div>
                     <div class="ml-4">
                         <p class="text-sm font-medium text-gray-600">Checked In</p>
-                        <p class="text-2xl font-bold text-gray-900">{{ $event->registrations->sum(function($registration) { return $registration->registrationUsers()->where('check_in','!=',null)->count(); }) }}</p>
+                        <p class="text-2xl font-bold text-gray-900" >{{ $event->registrations->sum(function($registration) { return $registration->registrationUsers()->where('check_in','!=',null)->where('check_out', null)->count(); }) }}</p>
                     </div>
                 </div>
             </div>
@@ -141,12 +141,26 @@
                 <div class="flex items-center">
                     <div class="flex-shrink-0">
                         <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                            <i class="fas fa-qrcode text-blue-600 text-xl"></i>
+                            <i class="fas fa-sign-out-alt text-blue-600 text-xl"></i>
+                        </div>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-600">Checked Out</p>
+                        <p class="text-2xl font-bold text-gray-900" >{{ $event->registrations->sum(function($registration) { return $registration->registrationUsers()->where('check_out','!=',null)->count(); }) }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow duration-200">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-qrcode text-purple-600 text-xl"></i>
                         </div>
                     </div>
                     <div class="ml-4">
                         <p class="text-sm font-medium text-gray-600">QR Codes Generated</p>
-                        <p class="text-2xl font-bold text-gray-900">{{ $event->registrations->sum(function($registration) { return $registration->registrationUsers()->where('unique_code','!=',null)->count(); }) }}</p>
+                        <p class="text-2xl font-bold text-gray-900" >{{ $event->registrations->sum(function($registration) { return $registration->registrationUsers()->where('unique_code','!=',null)->count(); }) }}</p>
                     </div>
                 </div>
             </div>
@@ -160,7 +174,7 @@
                     </div>
                     <div class="ml-4">
                         <p class="text-sm font-medium text-gray-600">Pending Approval</p>
-                        <p class="text-2xl font-bold text-gray-900">{{ $event->registrations->sum(function($registration) { return $registration->registrationUsers()->where('status','!=','approved')->count(); }) }}</p>
+                        <p class="text-2xl font-bold text-gray-900" >{{ $event->registrations->sum(function($registration) { return $registration->registrationUsers()->where('status','!=','approved')->count(); }) }}</p>
                     </div>
                 </div>
             </div>
@@ -213,13 +227,14 @@
                     </div>
                 </div>
 
-                <!-- Manual Check-in -->
+                <!-- Manual Check-in/Check-out -->
                 <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                     <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
                         <h3 class="text-lg font-semibold text-gray-900 flex items-center">
                             <i class="fas fa-keyboard mr-3 text-gray-700"></i>
-                            Manual Check-in
+                            Manual Check-in/Check-out
                         </h3>
+                        <p class="text-sm text-gray-600 mt-1">First scan: Check-in • Second scan: Check-out</p>
                     </div>
                     <div class="p-6">
                         <form method="POST" action="{{ route('PostScanTicket', ['event_id' => $event->id]) }}" class="space-y-4">
@@ -238,26 +253,26 @@
                             <button type="submit" 
                                     id="manualCheckInBtn"
                                     class="w-full bg-green-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-green-700 transition-colors duration-200 flex items-center justify-center space-x-2">
-                                <i class="fas fa-check"></i>
-                                <span>Check In</span>
+                                <i class="fas fa-exchange-alt"></i>
+                                <span>Check In/Out</span>
                             </button>
 
                             @if(session('success'))
-                            <div class="mt-6 p-4 rounded-lg border-l-4 bg-green-50 border-green-400">
+                            <div class="mt-6 p-4 rounded-lg border-l-4 {{ session('action') === 'check_out' ? 'bg-blue-50 border-blue-400' : 'bg-green-50 border-green-400' }}">
                                 <div class="flex items-start">
                                     <div class="flex-shrink-0">
-                                        <i class="fas fa-check-circle text-green-400 text-xl"></i>
+                                        <i class="fas {{ session('action') === 'check_out' ? 'fa-sign-out-alt text-blue-400' : 'fa-sign-in-alt text-green-400' }} text-xl"></i>
                                     </div>
                                     <div class="ml-3 flex-1">
-                                        <p class="text-sm font-medium text-green-800">
+                                        <p class="text-sm font-medium {{ session('action') === 'check_out' ? 'text-blue-800' : 'text-green-800' }}">
                                             {{ session('success') }}
                                         </p>
                                         @if(session('user'))
                                             <div class="mt-3 p-3 bg-white rounded-lg border border-gray-200">
                                                 <div class="flex items-center space-x-3">
                                                     <div class="flex-shrink-0">
-                                                        <div class="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
-                                                            <i class="fas fa-user text-gray-600"></i>
+                                                        <div class="w-10 h-10 {{ session('action') === 'check_out' ? 'bg-blue-100' : 'bg-green-100' }} rounded-full flex items-center justify-center">
+                                                            <i class="fas {{ session('action') === 'check_out' ? 'fa-sign-out-alt text-blue-600' : 'fa-sign-in-alt text-green-600' }}"></i>
                                                         </div>
                                                     </div>
                                                     <div class="flex-1">
@@ -265,10 +280,16 @@
                                                             {{ session('user')->first_name }} {{ session('user')->last_name }}
                                                         </p>
                                                         <p class="text-sm text-gray-500">{{ session('user')->email }}</p>
-                                                        <p class="text-xs text-green-600 mt-1">
+                                                        <p class="text-xs {{ session('action') === 'check_out' ? 'text-blue-600' : 'text-green-600' }} mt-1">
                                                             <i class="fas fa-clock mr-1"></i>
-                                                            Checked in successfully
+                                                            {{ session('action') === 'check_out' ? 'Checked out' : 'Checked in' }} successfully
                                                         </p>
+                                                        @if(session('user')->check_in && session('user')->check_out)
+                                                            <div class="mt-2 text-xs text-gray-600">
+                                                                <div>Check-in: {{ \Carbon\Carbon::parse(session('user')->check_in)->format('M d, Y H:i:s') }}</div>
+                                                                <div>Check-out: {{ \Carbon\Carbon::parse(session('user')->check_out)->format('M d, Y H:i:s') }}</div>
+                                                            </div>
+                                                        @endif
                                                     </div>
                                                 </div>
                                             </div>
@@ -345,7 +366,7 @@
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Unique Code</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Check-in Status</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Attendance Status</th>
                                 </tr>
                             </thead>
                             <tbody class="bg-white divide-y divide-gray-200">
@@ -377,14 +398,29 @@
                                                 @endif
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap">
-                                                @if ($registrationUser->check_in)
+                                                @if ($registrationUser->check_out)
+                                                    <div class="flex items-center text-blue-600">
+                                                        <i class="fas fa-sign-out-alt mr-2"></i>
+                                                        <div>
+                                                            <span class="text-sm font-medium">Checked Out</span>
+                                                            <div class="text-xs text-gray-500">
+                                                                {{ \Carbon\Carbon::parse($registrationUser->check_out)->format('M d, H:i') }}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                @elseif ($registrationUser->check_in)
                                                     <div class="flex items-center text-green-600">
-                                                        <i class="fas fa-check-circle mr-2"></i>
-                                                        <span class="text-sm font-medium">Checked In</span>
+                                                        <i class="fas fa-sign-in-alt mr-2"></i>
+                                                        <div>
+                                                            <span class="text-sm font-medium">Checked In</span>
+                                                            <div class="text-xs text-gray-500">
+                                                                {{ \Carbon\Carbon::parse($registrationUser->check_in)->format('M d, H:i') }}
+                                                            </div>
+                                                        </div>
                                                     </div>
                                                 @else
-                                                    <div class="flex items-center text-red-600">
-                                                        <i class="fas fa-times-circle mr-2"></i>
+                                                    <div class="flex items-center text-gray-400">
+                                                        <i class="fas fa-minus-circle mr-2"></i>
                                                         <span class="text-sm font-medium">Not Checked In</span>
                                                     </div>
                                                 @endif

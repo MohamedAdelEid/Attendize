@@ -80,6 +80,7 @@ async function startCamera() {
     // Start scanning
     isScanning = true
     scanQRCode()
+
     showToast("Camera started successfully", "success")
   } catch (error) {
     console.error("Error accessing camera:", error)
@@ -151,7 +152,7 @@ function handleManualCheckIn(event) {
   performCheckIn(uniqueCode)
 }
 
-// Check-in Logic - Modified to use actual Laravel backend
+// Check-in/Check-out Logic - Modified to handle both actions
 async function performCheckIn(uniqueCode) {
   const btn = document.getElementById("manualCheckInBtn")
   const originalHTML = btn.innerHTML
@@ -203,22 +204,28 @@ async function callCheckInAPI(uniqueCode) {
 
   // Handle both JSON and redirect responses
   const contentType = response.headers.get("content-type")
-
   if (contentType && contentType.includes("application/json")) {
     return await response.json()
   } else {
     // Handle redirect response (Laravel's back() with session data)
     const text = await response.text()
 
-    // Parse the response to extract session data
-    // This is a simplified approach - you might need to adjust based on your needs
     if (text.includes("User Checked In Successfully")) {
       return {
         status: "success",
+        action: "check_in",
         message: "Successfully checked in!",
         user: {
           // You might need to extract user data from the response
-          // or make another API call to get user details
+        },
+      }
+    } else if (text.includes("User Checked Out Successfully")) {
+      return {
+        status: "success",
+        action: "check_out",
+        message: "Successfully checked out!",
+        user: {
+          // You might need to extract user data from the response
         },
       }
     } else if (text.includes("Invalid QR Code")) {
@@ -226,10 +233,10 @@ async function callCheckInAPI(uniqueCode) {
         status: "error",
         message: "Invalid ticket code. Please check the code and try again.",
       }
-    } else if (text.includes("User Already Checked In")) {
+    } else if (text.includes("User Already Completed")) {
       return {
         status: "error",
-        message: "Attendee already checked in",
+        message: "Attendee already completed both check-in and check-out",
       }
     } else {
       return {
@@ -240,29 +247,53 @@ async function callCheckInAPI(uniqueCode) {
   }
 }
 
-// Display Check-in Result
+// Display Check-in/Check-out Result - Enhanced to show different actions
 function displayCheckInResult(result) {
   const resultDiv = document.getElementById("checkInResult")
   const isSuccess = result.status === "success"
+  const action = result.action || "check_in"
+
+  // Different colors and icons for check-in vs check-out
+  const actionConfig = {
+    check_in: {
+      bgColor: "bg-green-50 border-green-400",
+      textColor: "text-green-800",
+      iconColor: "text-green-400",
+      icon: "fa-sign-in-alt",
+      actionText: "Checked In",
+    },
+    check_out: {
+      bgColor: "bg-blue-50 border-blue-400",
+      textColor: "text-blue-800",
+      iconColor: "text-blue-400",
+      icon: "fa-sign-out-alt",
+      actionText: "Checked Out",
+    },
+  }
+
+  const config = actionConfig[action] || actionConfig.check_in
+  const errorConfig = "bg-red-50 border-red-400"
+  const errorTextColor = "text-red-800"
+  const errorIconColor = "text-red-400"
 
   const html = `
-    <div class="p-4 rounded-lg border-l-4 ${isSuccess ? "bg-green-50 border-green-400" : "bg-red-50 border-red-400"} animate-fade-in">
+    <div class="p-4 rounded-lg border-l-4 ${isSuccess ? config.bgColor : errorConfig} animate-fade-in">
       <div class="flex items-start">
         <div class="flex-shrink-0">
-          <i class="fas ${isSuccess ? "fa-check-circle text-green-400" : "fa-times-circle text-red-400"} text-xl"></i>
+          <i class="fas ${isSuccess ? config.icon : "fa-times-circle"} ${isSuccess ? config.iconColor : errorIconColor} text-xl"></i>
         </div>
         <div class="ml-3 flex-1">
-          <p class="text-sm font-medium ${isSuccess ? "text-green-800" : "text-red-800"}">
+          <p class="text-sm font-medium ${isSuccess ? config.textColor : errorTextColor}">
             ${result.message}
           </p>
           ${
-            result.user
+            result.user && isSuccess
               ? `
             <div class="mt-3 p-3 bg-white rounded-lg border border-gray-200">
               <div class="flex items-center space-x-3">
                 <div class="flex-shrink-0">
-                  <div class="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
-                    <i class="fas fa-user text-gray-600"></i>
+                  <div class="w-10 h-10 ${isSuccess ? config.bgColor.split(" ")[0] : "bg-gray-100"} rounded-full flex items-center justify-center">
+                    <i class="fas ${config.icon} ${config.iconColor}"></i>
                   </div>
                 </div>
                 <div class="flex-1">
@@ -270,10 +301,20 @@ function displayCheckInResult(result) {
                     ${result.user.first_name || ""} ${result.user.last_name || ""}
                   </p>
                   <p class="text-sm text-gray-500">${result.user.email || ""}</p>
-                  <p class="text-xs text-green-600 mt-1">
+                  <p class="text-xs ${config.textColor} mt-1">
                     <i class="fas fa-clock mr-1"></i>
-                    Checked in at ${new Date().toLocaleTimeString()}
+                    ${config.actionText} at ${new Date().toLocaleTimeString()}
                   </p>
+                  ${
+                    result.user.check_in && result.user.check_out
+                      ? `
+                    <div class="mt-2 text-xs text-gray-600">
+                      <div>Check-in: ${new Date(result.user.check_in).toLocaleString()}</div>
+                      <div>Check-out: ${new Date(result.user.check_out).toLocaleString()}</div>
+                    </div>
+                  `
+                      : ""
+                  }
                 </div>
               </div>
             </div>
@@ -287,7 +328,15 @@ function displayCheckInResult(result) {
 
   resultDiv.innerHTML = html
   resultDiv.classList.remove("hidden")
-  showToast(result.message, result.status)
+
+  // Show different toast messages for different actions
+  const toastMessage = isSuccess
+    ? action === "check_out"
+      ? "Successfully checked out!"
+      : "Successfully checked in!"
+    : result.message
+
+  showToast(toastMessage, result.status)
 
   setTimeout(() => {
     resultDiv.classList.add("hidden")
@@ -296,7 +345,6 @@ function displayCheckInResult(result) {
 
 // Registration Management
 function loadRegistrations() {
-  // Use vanilla JavaScript instead of jQuery
   const xhr = new XMLHttpRequest()
   xhr.open("GET", `/events/${eventId}/fetch-registration-users`, true)
   xhr.onreadystatechange = () => {
@@ -316,7 +364,6 @@ function loadRegistrations() {
 
 function getActionButtons(registration) {
   const buttons = []
-
   if (registration.status === "pending") {
     buttons.push(`
       <button onclick="approveRegistration(${registration.id})" 
@@ -429,14 +476,11 @@ function refreshRegistrations() {
 
 function updateStats() {
   const total = registrations.length
-  const checkedIn = registrations.filter((reg) => reg.check_in).length
+  const checkedIn = registrations.filter((reg) => reg.check_in && !reg.check_out).length
+  const checkedOut = registrations.filter((reg) => reg.check_out).length
   const qrGenerated = registrations.filter((reg) => reg.ticket_generated_at).length
   const pending = registrations.filter((reg) => reg.status === "pending").length
 
-  document.getElementById("totalRegistrations").textContent = total
-  document.getElementById("checkedIn").textContent = checkedIn
-  document.getElementById("qrGenerated").textContent = qrGenerated
-  document.getElementById("pendingApproval").textContent = pending
 }
 
 // UI Helper Functions
@@ -484,9 +528,6 @@ function hideLoadingModal() {
   document.getElementById("loadingModal").classList.add("hidden")
 }
 
-// Add this function if renderRegistrationsTable is missing
 function renderRegistrationsTable() {
-  // Implementation depends on your table structure
-  // This is a placeholder - you'll need to implement based on your needs
   console.log("Rendering registrations table with", filteredRegistrations.length, "items")
 }

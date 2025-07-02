@@ -16,11 +16,9 @@ class EventCheckInController extends MyBaseController
     {
         $event = Event::find($request->event_id);
         $qrCode = $request->unique_code;
-
         $uniqueCodeFromDb = RegistrationUser::where('unique_code', $qrCode)->first();
 
         if (is_null($uniqueCodeFromDb)) {
-            // Handle AJAX request
             if ($request->ajax() || $request->wantsJson()) {
                 return response()->json([
                     'status' => 'error',
@@ -30,10 +28,29 @@ class EventCheckInController extends MyBaseController
             return redirect()->back()->with('error', 'Invalid QR Code');
         }
 
-        // Check if already checked in
-        if (!is_null($uniqueCodeFromDb->check_in)) {
+        $isCheckedIn = !is_null($uniqueCodeFromDb->check_in);
+        $isCheckedOut = !is_null($uniqueCodeFromDb->check_out);
+
+        if (!$isCheckedIn) {
+            $uniqueCodeFromDb->update([
+                'check_in' => Carbon::now()
+            ]);
+
+            $action = 'check_in';
+            $message = 'Successfully checked in!';
+            $successMessage = 'User Checked In Successfully';
+        } elseif ($isCheckedIn && !$isCheckedOut) {
+            $uniqueCodeFromDb->update([
+                'check_out' => Carbon::now()
+            ]);
+
+            $action = 'check_out';
+            $message = 'Successfully checked out!';
+            $successMessage = 'User Checked Out Successfully';
+        } else {
             $checkInTime = new \DateTime($uniqueCodeFromDb->check_in);
-            $message = 'Attendee already checked in at ' . $checkInTime->format('Y-m-d H:i:s');
+            $checkOutTime = new \DateTime($uniqueCodeFromDb->check_out);
+            $message = 'Attendee already completed check-in (' . $checkInTime->format('Y-m-d H:i:s') . ') and check-out (' . $checkOutTime->format('Y-m-d H:i:s') . ')';
 
             if ($request->ajax() || $request->wantsJson()) {
                 return response()->json([
@@ -41,45 +58,31 @@ class EventCheckInController extends MyBaseController
                     'message' => $message
                 ]);
             }
-            return redirect()->back()->with('error', 'User Already Checked In');
+            return redirect()->back()->with('error', 'User Already Completed Check-in and Check-out');
         }
 
-        if ($uniqueCodeFromDb->unique_code == $qrCode) {
-            $uniqueCodeFromDb->update([
-                'check_in' => Carbon::now()
-            ]);
-
-            // Handle AJAX request
-            if ($request->ajax() || $request->wantsJson()) {
-                return response()->json([
-                    'status' => 'success',
-                    'message' => 'Successfully checked in!',
-                    'user' => [
-                        'id' => $uniqueCodeFromDb->id,
-                        'first_name' => $uniqueCodeFromDb->first_name,
-                        'last_name' => $uniqueCodeFromDb->last_name,
-                        'email' => $uniqueCodeFromDb->email,
-                        'unique_code' => $uniqueCodeFromDb->unique_code,
-                        'check_in' => $uniqueCodeFromDb->check_in,
-                    ]
-                ]);
-            }
-
-            return redirect()->back()->with([
-                'success' => 'User Checked In Successfully',
-                'user' => $uniqueCodeFromDb
-            ]);
-        }
-
-        // Handle AJAX request
         if ($request->ajax() || $request->wantsJson()) {
             return response()->json([
-                'status' => 'error',
-                'message' => 'Invalid ticket code. Please check the code and try again.'
+                'status' => 'success',
+                'action' => $action,
+                'message' => $message,
+                'user' => [
+                    'id' => $uniqueCodeFromDb->id,
+                    'first_name' => $uniqueCodeFromDb->first_name,
+                    'last_name' => $uniqueCodeFromDb->last_name,
+                    'email' => $uniqueCodeFromDb->email,
+                    'unique_code' => $uniqueCodeFromDb->unique_code,
+                    'check_in' => $uniqueCodeFromDb->check_in,
+                    'check_out' => $uniqueCodeFromDb->check_out,
+                ]
             ]);
         }
 
-        return redirect()->back()->with('error', 'Invalid QR Code');
+        return redirect()->back()->with([
+            'success' => $successMessage,
+            'action' => $action,
+            'user' => $uniqueCodeFromDb
+        ]);
     }
 
     /**
