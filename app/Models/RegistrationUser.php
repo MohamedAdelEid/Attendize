@@ -32,6 +32,10 @@ class RegistrationUser extends Model
         'is_new' => 'boolean',
     ];
 
+    public function attendances()
+    {
+        return $this->hasMany(Attendances::class);
+    }
     /**
      * Get the registration that owns the registration user.
      */

@@ -10,44 +10,6 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        primary: {
-                            50: '#f8f9fa',
-                            100: '#f1f3f4',
-                            200: '#e8eaed',
-                            300: '#dadce0',
-                            400: '#bdc1c6',
-                            500: '#9aa0a6',
-                            600: '#80868b',
-                            700: '#5f6368',
-                            800: '#3c4043',
-                            900: '#202124',
-                            950: '#171717'
-                        }
-                    },
-                    animation: {
-                        'fade-in': 'fadeIn 0.3s ease-in-out',
-                        'slide-up': 'slideUp 0.3s ease-out',
-                        'pulse-slow': 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-                    },
-                    keyframes: {
-                        fadeIn: {
-                            '0%': { opacity: '0', transform: 'translateY(10px)' },
-                            '100%': { opacity: '1', transform: 'translateY(0)' }
-                        },
-                        slideUp: {
-                            '0%': { opacity: '0', transform: 'translateY(20px)' },
-                            '100%': { opacity: '1', transform: 'translateY(0)' }
-                        }
-                    }
-                }
-            }
-        }
-    </script>
 </head>
 
 <body class="h-full bg-gray-50 font-sans antialiased">
@@ -63,7 +25,7 @@
                     </div>
                     <div>
                         <h1 class="text-xl font-bold text-gray-900">{{ $event->title }}</h1>
-                        <p class="text-sm text-gray-500">Streamlined event check-in/check-out</p>
+                        <p class="text-sm text-gray-500">Multiple check-in/check-out system</p>
                     </div>
                 </div>
                 
@@ -81,27 +43,6 @@
                         </button>
                     </div>
                 </div>
-
-                <!-- Mobile menu button -->
-                <div class="md:hidden">
-                    <button onclick="toggleMobileMenu()" class="text-gray-700 hover:text-black p-2">
-                        <i class="fas fa-bars text-lg"></i>
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Mobile menu -->
-        <div id="mobileMenu" class="hidden md:hidden bg-white border-t border-gray-200">
-            <div class="px-2 pt-2 pb-3 space-y-1">
-                <button onclick="showTab('scanner')" 
-                        class="mobile-nav-btn active block w-full text-left px-3 py-2 rounded-md text-base font-medium bg-black text-white">
-                    <i class="fas fa-camera mr-2"></i>Scanner
-                </button>
-                <button onclick="showTab('dashboard')" 
-                        class="mobile-nav-btn block w-full text-left px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-black hover:bg-gray-100">
-                    <i class="fas fa-users mr-2"></i>Dashboard
-                </button>
             </div>
         </div>
     </nav>
@@ -118,7 +59,7 @@
                     </div>
                     <div class="ml-4">
                         <p class="text-sm font-medium text-gray-600">Total Registrations</p>
-                        <p class="text-2xl font-bold text-gray-900" >{{ $event->registrations->sum(function($registration) { return $registration->registrationUsers()->count(); }) }}</p>
+                        <p class="text-2xl font-bold text-gray-900">{{ $event->registrations->sum(function($registration) { return $registration->registrationUsers()->count(); }) }}</p>
                     </div>
                 </div>
             </div>
@@ -131,8 +72,8 @@
                         </div>
                     </div>
                     <div class="ml-4">
-                        <p class="text-sm font-medium text-gray-600">Checked In</p>
-                        <p class="text-2xl font-bold text-gray-900" >{{ $event->registrations->sum(function($registration) { return $registration->registrationUsers()->where('check_in','!=',null)->where('check_out', null)->count(); }) }}</p>
+                        <p class="text-sm font-medium text-gray-600">Currently Checked In</p>
+                        <p class="text-2xl font-bold text-gray-900">{{ \App\Models\Attendances::where('event_id', $event->id)->where('status', 'checked_in')->whereNull('check_out')->distinct('registration_user_id')->count() }}</p>
                     </div>
                 </div>
             </div>
@@ -145,8 +86,8 @@
                         </div>
                     </div>
                     <div class="ml-4">
-                        <p class="text-sm font-medium text-gray-600">Checked Out</p>
-                        <p class="text-2xl font-bold text-gray-900" >{{ $event->registrations->sum(function($registration) { return $registration->registrationUsers()->where('check_out','!=',null)->count(); }) }}</p>
+                        <p class="text-sm font-medium text-gray-600">Total Check-outs</p>
+                        <p class="text-2xl font-bold text-gray-900">{{ \App\Models\Attendances::where('event_id', $event->id)->whereNotNull('check_out')->count() }}</p>
                     </div>
                 </div>
             </div>
@@ -155,12 +96,12 @@
                 <div class="flex items-center">
                     <div class="flex-shrink-0">
                         <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-                            <i class="fas fa-qrcode text-purple-600 text-xl"></i>
+                            <i class="fas fa-history text-purple-600 text-xl"></i>
                         </div>
                     </div>
                     <div class="ml-4">
-                        <p class="text-sm font-medium text-gray-600">QR Codes Generated</p>
-                        <p class="text-2xl font-bold text-gray-900" >{{ $event->registrations->sum(function($registration) { return $registration->registrationUsers()->where('unique_code','!=',null)->count(); }) }}</p>
+                        <p class="text-sm font-medium text-gray-600">Total Check-ins</p>
+                        <p class="text-2xl font-bold text-gray-900">{{ \App\Models\Attendances::where('event_id', $event->id)->count() }}</p>
                     </div>
                 </div>
             </div>
@@ -173,8 +114,8 @@
                         </div>
                     </div>
                     <div class="ml-4">
-                        <p class="text-sm font-medium text-gray-600">Pending Approval</p>
-                        <p class="text-2xl font-bold text-gray-900" >{{ $event->registrations->sum(function($registration) { return $registration->registrationUsers()->where('status','!=','approved')->count(); }) }}</p>
+                        <p class="text-sm font-medium text-gray-600">Unique Attendees</p>
+                        <p class="text-2xl font-bold text-gray-900">{{ \App\Models\Attendances::where('event_id', $event->id)->distinct('registration_user_id')->count() }}</p>
                     </div>
                 </div>
             </div>
@@ -234,7 +175,7 @@
                             <i class="fas fa-keyboard mr-3 text-gray-700"></i>
                             Manual Check-in/Check-out
                         </h3>
-                        <p class="text-sm text-gray-600 mt-1">First scan: Check-in • Second scan: Check-out</p>
+                        <p class="text-sm text-gray-600 mt-1">Scan 1: Check-in • Scan 2: Check-out • Scan 3: Check-in again...</p>
                     </div>
                     <div class="p-6">
                         <form method="POST" action="{{ route('PostScanTicket', ['event_id' => $event->id]) }}" class="space-y-4">
@@ -254,7 +195,7 @@
                                     id="manualCheckInBtn"
                                     class="w-full bg-green-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-green-700 transition-colors duration-200 flex items-center justify-center space-x-2">
                                 <i class="fas fa-exchange-alt"></i>
-                                <span>Check In/Out</span>
+                                <span>Process Attendance</span>
                             </button>
 
                             @if(session('success'))
@@ -284,10 +225,14 @@
                                                             <i class="fas fa-clock mr-1"></i>
                                                             {{ session('action') === 'check_out' ? 'Checked out' : 'Checked in' }} successfully
                                                         </p>
-                                                        @if(session('user')->check_in && session('user')->check_out)
+                                                        @if(session('attendance'))
                                                             <div class="mt-2 text-xs text-gray-600">
-                                                                <div>Check-in: {{ \Carbon\Carbon::parse(session('user')->check_in)->format('M d, Y H:i:s') }}</div>
-                                                                <div>Check-out: {{ \Carbon\Carbon::parse(session('user')->check_out)->format('M d, Y H:i:s') }}</div>
+                                                                @if(session('attendance')->check_in)
+                                                                    <div>Check-in: {{ Carbon\Carbon::parse(session('attendance')->check_in)->format('M d, Y H:i:s') }}</div>
+                                                                @endif
+                                                                @if(session('attendance')->check_out)
+                                                                    <div>Check-out: {{ Carbon\Carbon::parse(session('attendance')->check_out)->format('M d, Y H:i:s') }}</div>
+                                                                @endif
                                                             </div>
                                                         @endif
                                                     </div>
@@ -329,7 +274,7 @@
                     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-3 sm:space-y-0">
                         <h3 class="text-lg font-semibold text-gray-900 flex items-center">
                             <i class="fas fa-users mr-3 text-gray-700"></i>
-                            Registration Management
+                            Attendance Management
                         </h3>
                     </div>
                 </div>
@@ -351,9 +296,9 @@
                                 onchange="filterRegistrations()"
                                 class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent transition-colors duration-200">
                             <option value="">All Status</option>
-                            <option value="pending">Pending</option>
-                            <option value="approved">Approved</option>
-                            <option value="rejected">Rejected</option>
+                            <option value="checked_in">Currently Checked In</option>
+                            <option value="checked_out">Checked Out</option>
+                            <option value="never_attended">Never Attended</option>
                         </select>
                     </div>
 
@@ -364,29 +309,31 @@
                                 <tr>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Unique Code</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Attendance Status</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Current Status</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Attendance History</th>
                                 </tr>
                             </thead>
                             <tbody class="bg-white divide-y divide-gray-200">
                                 @foreach ($event->registrations as $registration)
                                     @foreach ($registration->registrationUsers as $registrationUser)
+                                        @php
+                                            $latestAttendance = \App\Models\Attendances::where('registration_user_id', $registrationUser->id)
+                                                ->where('event_id', $event->id)
+                                                ->orderBy('created_at', 'desc')
+                                                ->first();
+                                            
+                                            $attendanceHistory = \App\Models\Attendances::where('registration_user_id', $registrationUser->id)
+                                                ->where('event_id', $event->id)
+                                                ->orderBy('created_at', 'desc')
+                                                ->get();
+                                        @endphp
                                         <tr class="hover:bg-gray-50 transition-colors duration-150">
                                             <td class="px-6 py-4 whitespace-nowrap">
                                                 <div class="text-sm font-medium text-gray-900">{{ $registrationUser->first_name }} {{ $registrationUser->last_name }}</div>
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap">
                                                 <div class="text-sm text-gray-500">{{ $registrationUser->email }}</div>
-                                            </td>
-                                            <td class="px-6 py-4 whitespace-nowrap">
-                                                @if ($registrationUser->status == 'pending')
-                                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">Pending</span>
-                                                @elseif ($registrationUser->status == 'approved')
-                                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Approved</span>
-                                                @elseif ($registrationUser->status == 'rejected')
-                                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">Rejected</span>
-                                                @endif
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap">
                                                 @if ($registrationUser->unique_code)
@@ -398,31 +345,52 @@
                                                 @endif
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap">
-                                                @if ($registrationUser->check_out)
-                                                    <div class="flex items-center text-blue-600">
-                                                        <i class="fas fa-sign-out-alt mr-2"></i>
-                                                        <div>
-                                                            <span class="text-sm font-medium">Checked Out</span>
-                                                            <div class="text-xs text-gray-500">
-                                                                {{ \Carbon\Carbon::parse($registrationUser->check_out)->format('M d, H:i') }}
+                                                @if ($latestAttendance)
+                                                    @if ($latestAttendance->status === 'checked_in' && is_null($latestAttendance->check_out))
+                                                        <div class="flex items-center text-green-600">
+                                                            <i class="fas fa-sign-in-alt mr-2"></i>
+                                                            <div>
+                                                                <span class="text-sm font-medium">Checked In</span>
+                                                                <div class="text-xs text-gray-500">
+                                                                    {{ Carbon\Carbon::parse($latestAttendance->check_in)->format('M d, H:i') }}
+                                                                </div>
                                                             </div>
                                                         </div>
-                                                    </div>
-                                                @elseif ($registrationUser->check_in)
-                                                    <div class="flex items-center text-green-600">
-                                                        <i class="fas fa-sign-in-alt mr-2"></i>
-                                                        <div>
-                                                            <span class="text-sm font-medium">Checked In</span>
-                                                            <div class="text-xs text-gray-500">
-                                                                {{ \Carbon\Carbon::parse($registrationUser->check_in)->format('M d, H:i') }}
+                                                    @else
+                                                        <div class="flex items-center text-blue-600">
+                                                            <i class="fas fa-sign-out-alt mr-2"></i>
+                                                            <div>
+                                                                <span class="text-sm font-medium">Checked Out</span>
+                                                                <div class="text-xs text-gray-500">
+                                                                    {{ Carbon\Carbon::parse($latestAttendance->check_out)->format('M d, H:i') }}
+                                                                </div>
                                                             </div>
                                                         </div>
-                                                    </div>
+                                                    @endif
                                                 @else
                                                     <div class="flex items-center text-gray-400">
                                                         <i class="fas fa-minus-circle mr-2"></i>
-                                                        <span class="text-sm font-medium">Not Checked In</span>
+                                                        <span class="text-sm font-medium">Never Attended</span>
                                                     </div>
+                                                @endif
+                                            </td>
+                                            <td class="px-6 py-4">
+                                                @if ($attendanceHistory->count() > 0)
+                                                    <div class="space-y-1">
+                                                        @foreach ($attendanceHistory->take(3) as $attendance)
+                                                            <div class="text-xs text-gray-600 flex items-center space-x-2">
+                                                                <i class="fas {{ $attendance->status === 'checked_in' ? 'fa-sign-in-alt text-green-500' : 'fa-sign-out-alt text-blue-500' }}"></i>
+                                                                <span>{{ $attendance->status === 'checked_in' ? 'In' : 'Out' }}: {{ Carbon\Carbon::parse($attendance->check_in)->format('M d H:i') }} : {{ Carbon\Carbon::parse($attendance->check_out)->format('M d H:i') }}</span>
+                                                            </div>
+                                                        @endforeach
+                                                        @if ($attendanceHistory->count() > 3)
+                                                            <div class="text-xs text-gray-400">
+                                                                +{{ $attendanceHistory->count() - 3 }} more entries
+                                                            </div>
+                                                        @endif
+                                                    </div>
+                                                @else
+                                                    <span class="text-gray-400 text-sm">No attendance records</span>
                                                 @endif
                                             </td>
                                         </tr>
@@ -430,12 +398,6 @@
                                 @endforeach
                             </tbody>
                         </table>
-                    </div>
-
-                    <div id="noRegistrations" class="text-center py-12 hidden">
-                        <i class="fas fa-users text-gray-300 text-6xl mb-4"></i>
-                        <p class="text-gray-500 text-lg font-medium">No registrations found</p>
-                        <p class="text-gray-400 text-sm">Try adjusting your search criteria</p>
                     </div>
                 </div>
             </div>
@@ -454,15 +416,5 @@
     <div id="toastContainer" class="fixed top-4 right-4 z-50 space-y-2"></div>
 
     <script src="{{ asset('js/script.js') }}"></script>
-    <script>
-        function getStatusBadge(status) {
-            const badges = {
-                pending: '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">Pending</span>',
-                approved: '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Approved</span>',
-                rejected: '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">Rejected</span>',
-            }
-            return badges[status] || status
-        }
-    </script>
 </body>
 </html>

@@ -2,11 +2,11 @@
 
 namespace App\Models;
 
+use App\Models\TicketTemplate;  // Added for TicketTemplate relationship
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use App\Models\TicketTemplate; // Added for TicketTemplate relationship
 use Superbalist\Money\Money;
 use Str;
 use URL;
@@ -19,6 +19,11 @@ class Event extends MyBaseModel
     use SoftDeletes;
 
     protected $dates = ['start_date', 'end_date', 'on_sale_date'];
+
+    public function attendances()
+    {
+        return $this->hasMany(Attendances::class);
+    }
 
     /**
      * The validation error messages.

@@ -1,6 +1,7 @@
 <?php
 namespace App\Http\Controllers;
 
+use App\Models\Attendances;
 use App\Models\Attendee;
 use App\Models\Event;
 use App\Models\Registration;
@@ -16,9 +17,11 @@ class EventCheckInController extends MyBaseController
     {
         $event = Event::find($request->event_id);
         $qrCode = $request->unique_code;
-        $uniqueCodeFromDb = RegistrationUser::where('unique_code', $qrCode)->first();
 
-        if (is_null($uniqueCodeFromDb)) {
+        // Find the registration user
+        $registrationUser = RegistrationUser::where('unique_code', $qrCode)->first();
+
+        if (is_null($registrationUser)) {
             if ($request->ajax() || $request->wantsJson()) {
                 return response()->json([
                     'status' => 'error',
@@ -28,38 +31,59 @@ class EventCheckInController extends MyBaseController
             return redirect()->back()->with('error', 'Invalid QR Code');
         }
 
-        $isCheckedIn = !is_null($uniqueCodeFromDb->check_in);
-        $isCheckedOut = !is_null($uniqueCodeFromDb->check_out);
+        // Get the latest attendance record for this user and event
+        $latestAttendance = Attendances::where('registration_user_id', $registrationUser->id)
+            ->where('event_id', $event->id)
+            ->orderBy('created_at', 'desc')
+            ->first();
 
-        if (!$isCheckedIn) {
-            $uniqueCodeFromDb->update([
-                'check_in' => Carbon::now()
+        $action = '';
+        $message = '';
+        $successMessage = '';
+
+        // Determine the action based on the latest attendance record
+        if (!$latestAttendance) {
+            // First scan - Check In
+            $attendance = Attendances::create([
+                'registration_user_id' => $registrationUser->id,
+                'event_id' => $event->id,
+                'check_in' => Carbon::now(),
+                'status' => 'checked_in'
             ]);
 
             $action = 'check_in';
             $message = 'Successfully checked in!';
             $successMessage = 'User Checked In Successfully';
-        } elseif ($isCheckedIn && !$isCheckedOut) {
-            $uniqueCodeFromDb->update([
-                'check_out' => Carbon::now()
+        } elseif ($latestAttendance->status === 'checked_in' && is_null($latestAttendance->check_out)) {
+            // Second scan - Check Out (update the same record)
+            $latestAttendance->update([
+                'check_out' => Carbon::now(),
+                'status' => 'checked_out'
             ]);
 
+            $attendance = $latestAttendance;
             $action = 'check_out';
             $message = 'Successfully checked out!';
             $successMessage = 'User Checked Out Successfully';
         } else {
-            $checkInTime = new \DateTime($uniqueCodeFromDb->check_in);
-            $checkOutTime = new \DateTime($uniqueCodeFromDb->check_out);
-            $message = 'Attendee already completed check-in (' . $checkInTime->format('Y-m-d H:i:s') . ') and check-out (' . $checkOutTime->format('Y-m-d H:i:s') . ')';
+            // Third scan and beyond - New Check In
+            $attendance = Attendances::create([
+                'registration_user_id' => $registrationUser->id,
+                'event_id' => $event->id,
+                'check_in' => Carbon::now(),
+                'status' => 'checked_in'
+            ]);
 
-            if ($request->ajax() || $request->wantsJson()) {
-                return response()->json([
-                    'status' => 'error',
-                    'message' => $message
-                ]);
-            }
-            return redirect()->back()->with('error', 'User Already Completed Check-in and Check-out');
+            $action = 'check_in';
+            $message = 'Successfully checked in again!';
+            $successMessage = 'User Checked In Successfully';
         }
+
+        // Get attendance history for response
+        $attendanceHistory = Attendances::where('registration_user_id', $registrationUser->id)
+            ->where('event_id', $event->id)
+            ->orderBy('created_at', 'desc')
+            ->get();
 
         if ($request->ajax() || $request->wantsJson()) {
             return response()->json([
@@ -67,13 +91,15 @@ class EventCheckInController extends MyBaseController
                 'action' => $action,
                 'message' => $message,
                 'user' => [
-                    'id' => $uniqueCodeFromDb->id,
-                    'first_name' => $uniqueCodeFromDb->first_name,
-                    'last_name' => $uniqueCodeFromDb->last_name,
-                    'email' => $uniqueCodeFromDb->email,
-                    'unique_code' => $uniqueCodeFromDb->unique_code,
-                    'check_in' => $uniqueCodeFromDb->check_in,
-                    'check_out' => $uniqueCodeFromDb->check_out,
+                    'id' => $registrationUser->id,
+                    'first_name' => $registrationUser->first_name,
+                    'last_name' => $registrationUser->last_name,
+                    'email' => $registrationUser->email,
+                    'unique_code' => $registrationUser->unique_code,
+                    'current_status' => $attendance->status,
+                    'last_check_in' => $attendance->check_in,
+                    'last_check_out' => $attendance->check_out,
+                    'attendance_history' => $attendanceHistory
                 ]
             ]);
         }
@@ -81,8 +107,39 @@ class EventCheckInController extends MyBaseController
         return redirect()->back()->with([
             'success' => $successMessage,
             'action' => $action,
-            'user' => $uniqueCodeFromDb
+            'user' => $registrationUser,
+            'attendance' => $attendance
         ]);
+    }
+
+    public function getAttendanceStats(Event $event)
+    {
+        $totalRegistrations = $event->registrations->sum(function ($registration) {
+            return $registration->registrationUsers()->count();
+        });
+
+        // Currently checked in (latest attendance is check_in without check_out)
+        $currentlyCheckedIn = Attendances::where('event_id', $event->id)
+            ->where('status', 'checked_in')
+            ->whereNull('check_out')
+            ->distinct('registration_user_id')
+            ->count();
+
+        // Total unique users who have checked out at least once
+        $totalCheckedOut = Attendances::where('event_id', $event->id)
+            ->whereNotNull('check_out')
+            ->distinct('registration_user_id')
+            ->count();
+
+        // Total attendance records (all check-ins)
+        $totalCheckIns = Attendances::where('event_id', $event->id)->count();
+
+        return [
+            'total_registrations' => $totalRegistrations,
+            'currently_checked_in' => $currentlyCheckedIn,
+            'total_checked_out' => $totalCheckedOut,
+            'total_check_ins' => $totalCheckIns
+        ];
     }
 
     /**
