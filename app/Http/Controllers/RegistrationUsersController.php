@@ -13,6 +13,7 @@ use App\Models\Country;
 use App\Models\Conference;
 use App\Models\Profession;
 use App\Services\TicketService;
+use App\Services\WhatsAppService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
@@ -861,7 +862,7 @@ class RegistrationUsersController extends Controller
      */
     public function getUserDetails($event_id, $user_id)
     {
-        $user = RegistrationUser::with(['registration', 'formFieldValues.field', 'userType'])->findOrFail($user_id);
+        $user = RegistrationUser::with(['registration', 'formFieldValues.field', 'userType', 'payments'])->findOrFail($user_id);
         $event = Event::findOrFail($event_id);
 
         return view('ManageEvent.Modals.UserDetails', compact('user', 'event'));
@@ -1042,5 +1043,73 @@ class RegistrationUsersController extends Controller
                 'message' => 'Failed to send custom email: ' . $e->getMessage(),
             ]);
         }
+    }
+
+    /**
+     * Send WhatsApp message to selected registration users (bulk).
+     * Message can contain placeholders: @first_name, @last_name, @email, @phone, @unique_code, @event_title, @registration_name, @user_type
+     *
+     * @param Request $request
+     * @param int $event_id
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function sendBulkWhatsApp(Request $request, $event_id)
+    {
+        $this->validate($request, [
+            'user_ids' => 'required|array',
+            'user_ids.*' => 'integer',
+            'message' => 'required|string|max:4000',
+        ]);
+
+        $event = Event::scope()->findOrFail($event_id);
+        $registrationIds = Registration::where('event_id', $event_id)->pluck('id')->toArray();
+
+        $users = RegistrationUser::whereIn('id', $request->user_ids)
+            ->whereIn('registration_id', $registrationIds)
+            ->with(['registration.event', 'userType'])
+            ->get();
+
+        $whatsApp = new WhatsAppService();
+        if (!$whatsApp->isConfigured()) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'WhatsApp is not configured. Please set TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, and TWILIO_WHATSAPP_FROM in .env',
+            ], 400);
+        }
+
+        $sent = 0;
+        $skipped = 0;
+        $failed = 0;
+
+        foreach ($users as $user) {
+            $phone = WhatsAppService::normalizePhone($user->phone);
+            if (empty($phone)) {
+                $skipped++;
+                continue;
+            }
+            $body = WhatsAppService::replacePlaceholders($request->message, $user, $event);
+            $result = $whatsApp->send($user->phone, $body);
+            if ($result['success']) {
+                $sent++;
+            } else {
+                $failed++;
+            }
+        }
+
+        $message = "WhatsApp: {$sent} sent.";
+        if ($skipped > 0) {
+            $message .= " {$skipped} skipped (no valid phone).";
+        }
+        if ($failed > 0) {
+            $message .= " {$failed} failed.";
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'message' => $message,
+            'sent' => $sent,
+            'skipped' => $skipped,
+            'failed' => $failed,
+        ]);
     }
 }

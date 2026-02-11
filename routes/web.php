@@ -16,11 +16,13 @@ use App\Http\Controllers\EventAccessCodesController;
 use App\Http\Controllers\EventAttendeesController;
 use App\Http\Controllers\EventCheckInController;
 use App\Http\Controllers\EventCheckoutController;
+use App\Http\Controllers\EventPaymentReportsController;
 use App\Http\Controllers\EventController;
 use App\Http\Controllers\EventCustomizeController;
 use App\Http\Controllers\EventDashboardController;
 use App\Http\Controllers\EventOrdersController;
 use App\Http\Controllers\EventPromoteController;
+use App\Http\Controllers\EventMemberController;
 use App\Http\Controllers\EventRegistrationCategoryController;
 use App\Http\Controllers\EventRegistrationConferenceController;
 use App\Http\Controllers\EventRegistrationController;
@@ -178,7 +180,7 @@ Route::group(
             )->name('downloadCalendarIcs');
 
             Route::get(
-                '/{event_id}/{event_slug?}',
+                '/{event_id}/{event_slug?}/ss',
                 [EventViewController::class, 'showEventHome']
             )->name('showEventPage');
 
@@ -193,6 +195,26 @@ Route::group(
                 [EventViewController::class, 'postEventRegistration']
             )->name('postEventRegistration');
 
+            Route::get(
+                '/{event_id}/registration/payment',
+                [EventViewController::class, 'showRegistrationPayment']
+            )->name('showRegistrationPayment');
+
+            Route::get(
+                '/{event_id}/registration/payment/return',
+                [EventViewController::class, 'showRegistrationPaymentReturn']
+            )->name('showRegistrationPaymentReturn');
+
+            Route::post(
+                '/{event_id}/registration/complete',
+                [EventViewController::class, 'completeRegistration']
+            )->name('completeRegistration');
+
+            Route::post(
+                '/{event_id}/registration/payment/status',
+                [EventViewController::class, 'checkRegistrationPaymentStatus']
+            )->name('checkRegistrationPaymentStatus');
+
             // API Route for Professions
             Route::get(
                 '/api/conferences/{conference_id}/professions',
@@ -202,6 +224,11 @@ Route::group(
             Route::get(
                 '/api/categories/{category_id}/conferences',
                 [EventRegistrationProfessionController::class, 'getCategoryConferences']
+            );
+
+            Route::get(
+                '/api/registration/price',
+                [EventRegistrationProfessionController::class, 'getRegistrationPrice']
             );
 
             Route::post(
@@ -226,6 +253,21 @@ Route::group(
                 '/{event_id}/preview',
                 [EventViewController::class, 'showEventHomePreview']
             )->name('showEventPagePreview');
+
+            Route::get(
+                '/{event_id}/symposium',
+                [EventViewController::class, 'showSymposium']
+            )->name('showEventSymposium');
+
+            Route::post(
+                '/{event_id}/api/member-lookup',
+                [EventViewController::class, 'memberLookup']
+            )->name('eventMemberLookup');
+
+            Route::post(
+                '/{event_id}/api/register-as-member',
+                [EventViewController::class, 'registerAsMember']
+            )->name('eventRegisterAsMember');
 
             Route::post(
                 '{event_id}/checkout/',
@@ -532,6 +574,9 @@ Route::group(
                 Route::post('{event_id}/users/{user_id}/send-rejection-email', [App\Http\Controllers\RegistrationUsersController::class, 'sendRejectionEmail'])
                     ->name('sendRejectionEmail');
 
+                Route::post('{event_id}/users/bulk/send-whatsapp', [App\Http\Controllers\RegistrationUsersController::class, 'sendBulkWhatsApp'])
+                    ->name('sendBulkWhatsApp');
+
                 // Custom email
                 Route::get('{event_id}/users/{user_id}/custom-email', [App\Http\Controllers\RegistrationUsersController::class, 'showCustomEmail'])
                     ->name('showCustomEmail');
@@ -544,6 +589,16 @@ Route::group(
 
                 Route::get('{event_id}/conferences/{conference_id}/professions', [App\Http\Controllers\RegistrationUsersController::class, 'getConferenceProfessions'])
                     ->name('getConferenceProfessions');
+
+                // Payment reports
+                Route::get('{event_id}/payment-reports', [EventPaymentReportsController::class, 'showEventPayments'])
+                    ->name('showEventPayments');
+                Route::get('{event_id}/payment-reports/export', [EventPaymentReportsController::class, 'exportEventPayments'])
+                    ->name('exportEventPayments');
+                Route::get('{event_id}/registrations/{registration_id}/payment-reports', [EventPaymentReportsController::class, 'showRegistrationPayments'])
+                    ->name('showRegistrationPayments');
+                Route::get('{event_id}/registrations/{registration_id}/payment-reports/export', [EventPaymentReportsController::class, 'exportRegistrationPayments'])
+                    ->name('exportRegistrationPayments');
 
                 Route::get('{event_id}/registration/user-types', [EventUserTypeController::class, 'showUserTypes'])
                     ->name('showEventUserTypes');
@@ -613,6 +668,40 @@ Route::group(
                     '{event_id}/registration/categories/bulk-delete',
                     [EventRegistrationCategoryController::class, 'postBulkDeleteCategories']
                 )->name('postBulkDeleteCategories');
+
+                /*
+                 * ----------
+                 * Members (dynamic member fields + Excel import)
+                 * ----------
+                 */
+                Route::get(
+                    '{event_id}/registration/members',
+                    [EventMemberController::class, 'index']
+                )->name('showEventMembers');
+                Route::post(
+                    '{event_id}/registration/members/fields',
+                    [EventMemberController::class, 'storeField']
+                )->name('storeEventMemberField');
+                Route::put(
+                    '{event_id}/registration/members/fields/{field_id}',
+                    [EventMemberController::class, 'updateField']
+                )->name('updateEventMemberField');
+                Route::delete(
+                    '{event_id}/registration/members/fields/{field_id}',
+                    [EventMemberController::class, 'destroyField']
+                )->name('destroyEventMemberField');
+                Route::post(
+                    '{event_id}/registration/members/upload-excel',
+                    [EventMemberController::class, 'uploadExcel']
+                )->name('uploadMembersExcel');
+                Route::post(
+                    '{event_id}/registration/members/process-import',
+                    [EventMemberController::class, 'processImport']
+                )->name('processMembersImport');
+                Route::post(
+                    '{event_id}/registration/members/field-mappings',
+                    [EventMemberController::class, 'saveFieldMappings']
+                )->name('saveEventMemberFieldMappings');
 
                 /*
                  * ----------
@@ -1052,6 +1141,11 @@ Route::group(
                     [EventCheckInController::class, 'showCheckIn']
                 )->name('showCheckIn');
 
+                Route::get(
+                    '{event_id}/check-in-dashboard',
+                    [EventCheckInController::class, 'showCheckInDashboard']
+                )->name('showCheckInDashboard');
+
                 Route::post(
                     '{event_id}/check_in/search',
                     [EventCheckInController::class, 'postCheckInSearch']
@@ -1124,7 +1218,17 @@ Route::get('/ticket/download/{token}', [App\Http\Controllers\TicketController::c
     ->name('downloadTicket');
 Route::get('/ticket/view/{token}', [App\Http\Controllers\TicketController::class, 'viewTicket'])
     ->name('viewTicket');
+Route::get('/ticket/print-view/{token}', [App\Http\Controllers\TicketController::class, 'viewTicketTemplate'])
+    ->name('viewTicketTemplate');
 
 Route::get('/events/{event_id}/registration-confirmation', [EventViewController::class, 'showRegistrationConfirmation'])->name('showRegistrationConfirmation');
+Route::get('/events/{event_id}/kiosk', [EventCheckInController::class, 'showGuestKiosk'])->name('showGuestKiosk');
 Route::post('/events/{event_id}/post-scan-ticket', [EventCheckInController::class, 'PostScanTicket'])->name('PostScanTicket');
+Route::post('/events/{event_id}/bulk-check-in', [EventCheckInController::class, 'bulkCheckIn'])->name('bulkCheckIn');
+Route::post('/events/{event_id}/bulk-check-out', [EventCheckInController::class, 'bulkCheckOut'])->name('bulkCheckOut');
 Route::get('/events/{event_id}/fetch-registration-users', [EventCheckInController::class, 'fetchRegistrationUsers'])->name('fetchRegistrationUsers');
+Route::get('/events/{event_id}/registration-user/{user_id}/logs', [EventCheckInController::class, 'getUserLogs'])->name('getUserLogs');
+
+Route::get('/symposium-preview', function () {
+    return view('ViewEvent.show-symposium');
+});

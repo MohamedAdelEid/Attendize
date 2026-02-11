@@ -22,6 +22,29 @@ class TicketTemplate extends Model
         'qr_position_x',
         'qr_position_y',
         'qr_size',
+        'show_user_type',
+        'user_type_position_x',
+        'user_type_position_y',
+        'user_type_font_size',
+        'user_type_font_color',
+        'show_profession',
+        'profession_position_x',
+        'profession_position_y',
+        'profession_font_size',
+        'profession_font_color',
+        'show_category',
+        'category_position_x',
+        'category_position_y',
+        'category_font_size',
+        'category_font_color',
+        'preview_width',
+        'preview_height',
+    ];
+
+    protected $casts = [
+        'show_user_type' => 'boolean',
+        'show_profession' => 'boolean',
+        'show_category' => 'boolean',
     ];
 
     /**

@@ -13,8 +13,11 @@ class Registration extends MyBaseModel
         'start_date',
         'end_date',
         'approval_status',
-        'max_participants'
+        'max_participants',
+        'show_on_landing',
+        'is_members_form',
     ];
+
 
     public function rules()
     {
@@ -77,6 +80,8 @@ class Registration extends MyBaseModel
     protected $casts = [
         'start_date' => 'datetime',
         'end_date' => 'datetime',
+        'show_on_landing' => 'boolean',
+        'is_members_form' => 'boolean',
     ];
 
         /**

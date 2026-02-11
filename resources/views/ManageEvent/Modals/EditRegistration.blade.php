@@ -156,6 +156,28 @@
                                         </div>
                                     </div>
                                 </div>
+                                <div class="row">
+                                    <div class="col-md-12">
+                                        <div class="form-group">
+                                            <div class="checkbox">
+                                                <label>
+                                                    {!! Form::checkbox('show_on_landing', 1, $registration->show_on_landing) !!}
+                                                    <strong>Display this form on the event landing page</strong>
+                                                </label>
+                                            </div>
+                                            <p class="help-block text-muted">Only one registration form per event can be the landing page form.</p>
+                                        </div>
+                                        <div class="form-group">
+                                            <div class="checkbox">
+                                                <label>
+                                                    {!! Form::checkbox('is_members_form', 1, $registration->is_members_form) !!}
+                                                    <strong>This is the Members registration form</strong>
+                                                </label>
+                                            </div>
+                                            <p class="help-block text-muted">Show this form in the Members tab on the landing page. Only one per event.</p>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -240,6 +262,7 @@
                                                                     <option value="user_types" {{ $field->type == 'user_types' ? 'selected' : '' }}>User Types</option>
                                                                     <option value="conference" {{ $field->type == 'conference' ? 'selected' : '' }}>Conference</option>
                                                                     <option value="profession" {{ $field->type == 'profession' ? 'selected' : '' }}>Profession</option>
+                                                                    <option value="external_payment" {{ $field->type == 'external_payment' ? 'selected' : '' }}>External Payment (Bank Transfer)</option>
                                                                 </select>
                                                             </div>
                                                         </div>
@@ -253,9 +276,30 @@
                                                             <div class="form-group field-options" style="{{ in_array($field->type, ['select', 'checkbox', 'radio']) ? 'display: block;' : 'display: none;' }}">
                                                                 <label class="control-label required">Options</label>
                                                                 <textarea name="dynamic_fields[{{ $index }}][options]" class="form-control" rows="3"
-                                                                    placeholder="Enter one option per line">{{ is_array($field->options) ? implode("\n", $field->options) : $field->options }}</textarea>
+                                                                    placeholder="Enter one option per line">{{ is_array($field->options) && !isset($field->options['bank_account_name']) ? implode("\n", $field->options) : '' }}</textarea>
                                                                 <p class="help-block"><small>Enter one option per line. These will be used for select,
                                                                         checkbox, and radio fields.</small></p>
+                                                            </div>
+                                                            @php $bankOpts = $field->type === 'external_payment' ? $field->getBankOptions() : []; @endphp
+                                                            <div class="form-group field-bank-options" style="{{ $field->type === 'external_payment' ? 'display: block;' : 'display: none;' }}">
+                                                                <label class="control-label">Bank details (shown when user selects a paid profession)</label>
+                                                                <div class="row">
+                                                                    <div class="col-md-6">
+                                                                        <input type="text" name="dynamic_fields[{{ $index }}][bank_account_name]" class="form-control" placeholder="Account Name" value="{{ $bankOpts['bank_account_name'] ?? '' }}">
+                                                                    </div>
+                                                                    <div class="col-md-6">
+                                                                        <input type="text" name="dynamic_fields[{{ $index }}][bank_name]" class="form-control" placeholder="Bank Name" value="{{ $bankOpts['bank_name'] ?? '' }}">
+                                                                    </div>
+                                                                </div>
+                                                                <div class="row" style="margin-top: 8px;">
+                                                                    <div class="col-md-6">
+                                                                        <input type="text" name="dynamic_fields[{{ $index }}][bank_iban]" class="form-control" placeholder="IBAN" value="{{ $bankOpts['bank_iban'] ?? '' }}">
+                                                                    </div>
+                                                                    <div class="col-md-6">
+                                                                        <input type="text" name="dynamic_fields[{{ $index }}][bank_account_number]" class="form-control" placeholder="Account Number" value="{{ $bankOpts['bank_account_number'] ?? '' }}">
+                                                                    </div>
+                                                                </div>
+                                                                <p class="help-block"><small>Required when External Payment is used. User will see these and upload transfer receipt.</small></p>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -347,6 +391,7 @@
                             <option value="user_types">User Types</option>
                             <option value="conference">Conference</option>
                             <option value="profession">Profession</option>
+                            <option value="external_payment">External Payment (Bank Transfer)</option>
                         </select>
                     </div>
                 </div>
@@ -363,6 +408,26 @@
                             placeholder="Enter one option per line"></textarea>
                         <p class="help-block"><small>Enter one option per line. These will be used for select,
                                 checkbox, and radio fields.</small></p>
+                    </div>
+                    <div class="form-group field-bank-options" style="display: none;">
+                        <label class="control-label">Bank details (shown when user selects a paid profession)</label>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <input type="text" name="dynamic_fields[{INDEX}][bank_account_name]" class="form-control" placeholder="Account Name">
+                            </div>
+                            <div class="col-md-6">
+                                <input type="text" name="dynamic_fields[{INDEX}][bank_name]" class="form-control" placeholder="Bank Name">
+                            </div>
+                        </div>
+                        <div class="row" style="margin-top: 8px;">
+                            <div class="col-md-6">
+                                <input type="text" name="dynamic_fields[{INDEX}][bank_iban]" class="form-control" placeholder="IBAN">
+                            </div>
+                            <div class="col-md-6">
+                                <input type="text" name="dynamic_fields[{INDEX}][bank_account_number]" class="form-control" placeholder="Account Number">
+                            </div>
+                        </div>
+                        <p class="help-block"><small>Required when External Payment is used. User will see these and upload transfer receipt.</small></p>
                     </div>
                 </div>
             </div>
@@ -435,16 +500,23 @@ $(document).ready(function() {
         updatePositionNumbers();
     }
 
-    // Function to toggle options field based on field type
+    // Function to toggle options field and bank options based on field type
     function toggleOptionsField($selectElement) {
         const $fieldContainer = $selectElement.closest('.dynamic-field');
         const $optionsField = $fieldContainer.find('.field-options');
+        const $bankOptionsField = $fieldContainer.find('.field-bank-options');
         const optionsTypes = ['select', 'checkbox', 'radio'];
+        const type = $selectElement.val();
 
-        if (optionsTypes.includes($selectElement.val())) {
+        if (optionsTypes.includes(type)) {
             $optionsField.show();
+            $bankOptionsField.hide();
+        } else if (type === 'external_payment') {
+            $optionsField.hide();
+            $bankOptionsField.show();
         } else {
             $optionsField.hide();
+            $bankOptionsField.hide();
         }
     }
 

@@ -137,6 +137,23 @@ class EventRegistrationController extends Controller
             $registration->max_participants = $request->get('max_participants');
             $registration->category_id = $request->get('category_id');
 
+            if ($request->boolean('show_on_landing')) {
+                if (Registration::where('event_id', $event_id)->where('show_on_landing', true)->exists()) {
+                    return response()->json(['status' => 'error', 'message' => 'Another registration form is already set as the landing page form. Only one per event is allowed.']);
+                }
+                $registration->show_on_landing = true;
+            } else {
+                $registration->show_on_landing = false;
+            }
+            if ($request->boolean('is_members_form')) {
+                if (Registration::where('event_id', $event_id)->where('is_members_form', true)->exists()) {
+                    return response()->json(['status' => 'error', 'message' => 'Another registration form is already set as the Members form. Only one per event is allowed.']);
+                }
+                $registration->is_members_form = true;
+            } else {
+                $registration->is_members_form = false;
+            }
+
             // Handle image upload
             if ($request->hasFile('image')) {
                 $imagePath = $request->file('image')->store('registrations', 'public');
@@ -170,6 +187,15 @@ class EventRegistrationController extends Controller
                     if (in_array($formField->type, ['select', 'checkbox', 'radio']) && !empty($field['options'])) {
                         $options = array_filter(explode("\n", $field['options']));
                         $formField->options = $options;
+                    }
+                    // Handle bank details for external_payment
+                    if ($formField->type === 'external_payment') {
+                        $formField->options = [
+                            'bank_account_name' => $field['bank_account_name'] ?? '',
+                            'bank_name' => $field['bank_name'] ?? '',
+                            'bank_iban' => $field['bank_iban'] ?? '',
+                            'bank_account_number' => $field['bank_account_number'] ?? '',
+                        ];
                     }
 
                     $formField->save();
@@ -315,6 +341,23 @@ class EventRegistrationController extends Controller
             $registration->approval_status = $request->input('approval_status');
             $registration->status = $request->input('status');
 
+            if ($request->boolean('show_on_landing')) {
+                if (Registration::where('event_id', $event_id)->where('show_on_landing', true)->where('id', '!=', $registration->id)->exists()) {
+                    return response()->json(['status' => 'error', 'message' => 'Another registration form is already set as the landing page form. Only one per event is allowed.']);
+                }
+                $registration->show_on_landing = true;
+            } else {
+                $registration->show_on_landing = false;
+            }
+            if ($request->boolean('is_members_form')) {
+                if (Registration::where('event_id', $event_id)->where('is_members_form', true)->where('id', '!=', $registration->id)->exists()) {
+                    return response()->json(['status' => 'error', 'message' => 'Another registration form is already set as the Members form. Only one per event is allowed.']);
+                }
+                $registration->is_members_form = true;
+            } else {
+                $registration->is_members_form = false;
+            }
+
             // Handle image upload
             if ($request->hasFile('image')) {
                 // Delete old image if exists
@@ -338,7 +381,7 @@ class EventRegistrationController extends Controller
                             $field->label = $fieldData['label'];
                             $field->name = Str::slug($fieldData['label'], '_');
                             $field->type = $fieldData['type'];
-                            $field->options = isset($fieldData['options']) ? $fieldData['options'] : null;
+                            $field->options = $this->normalizeFieldOptions($fieldData);
                             $field->is_required = isset($fieldData['is_required']) ? true : false;
 
                             // Use the position value from the form
@@ -353,7 +396,7 @@ class EventRegistrationController extends Controller
                             'label' => $fieldData['label'],
                             'name' => Str::slug($fieldData['label'], '_'),
                             'type' => $fieldData['type'],
-                            'options' => isset($fieldData['options']) ? $fieldData['options'] : null,
+                            'options' => $this->normalizeFieldOptions($fieldData),
                             'is_required' => isset($fieldData['is_required']) ? true : false,
                             'is_active' => true,
                             'sort_order' => isset($fieldData['position']) ? (int)$fieldData['position'] : $index,
@@ -385,6 +428,26 @@ class EventRegistrationController extends Controller
                 'error' => $e->getMessage(),
             ]);
         }
+    }
+
+    /**
+     * Normalize options for a dynamic field (select/checkbox/radio = lines array; external_payment = bank details array).
+     */
+    private function normalizeFieldOptions(array $fieldData)
+    {
+        $type = $fieldData['type'] ?? '';
+        if ($type === 'external_payment') {
+            return [
+                'bank_account_name' => $fieldData['bank_account_name'] ?? '',
+                'bank_name' => $fieldData['bank_name'] ?? '',
+                'bank_iban' => $fieldData['bank_iban'] ?? '',
+                'bank_account_number' => $fieldData['bank_account_number'] ?? '',
+            ];
+        }
+        if (in_array($type, ['select', 'checkbox', 'radio']) && !empty($fieldData['options'])) {
+            return array_filter(explode("\n", $fieldData['options']));
+        }
+        return isset($fieldData['options']) ? $fieldData['options'] : null;
     }
 
     /**

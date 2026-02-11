@@ -35,7 +35,7 @@
 <body>
   <div id="main">
     <header id="header">
-      <h2 class="text-center"><img style="width: 40px;" class="logo" alt="Attendize" src="{{ asset('/assets/images/logo-dark.png') }}"/><br><span style="font-size: 0.7em;">@lang("ManageEvent.check-in"): <strong>{{ $event->title }}</strong></span></h2>
+      <h2 class="text-center"><span style="font-size: 1.2em; font-weight: 600;">Four Links</span><br><span style="font-size: 0.7em;">@lang("ManageEvent.check-in"): <strong>{{ $event->title }}</strong></span></h2>
     </header>
 
     <hr>

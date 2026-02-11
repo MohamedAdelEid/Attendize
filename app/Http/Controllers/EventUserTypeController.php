@@ -32,15 +32,14 @@ class EventUserTypeController extends MyBaseController
             abort(404);
         }
 
-        // Get user types for event
+        // Get user types for event with search
+        $query = $event->userTypes();
+        
         if ($searchQuery) {
-            $userTypes = $event->userTypes()
-                ->where('name', 'like', $searchQuery . '%')
-                ->orderBy($sort_by, $sort_order)
-                ->paginate();
-        } else {
-            $userTypes = $event->userTypes()->orderBy($sort_by, $sort_order)->paginate();
+            $query->where('name', 'like', '%' . $searchQuery . '%');
         }
+        
+        $userTypes = $query->orderBy($sort_by, $sort_order)->paginate(15);
 
         $data = [
             'userTypes' => $userTypes,

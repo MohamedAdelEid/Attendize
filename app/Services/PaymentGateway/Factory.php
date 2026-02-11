@@ -3,6 +3,7 @@
 namespace Services\PaymentGateway;
 
 use Omnipay\Omnipay;
+use Services\PaymentGateway\HyperPay;
 
 /**
  * The intention of this factory is to create a service that is a wrapper around the relative Omnipay implementation
@@ -18,7 +19,7 @@ class Factory
     /**
      * @param $name
      * @param $paymentGatewayConfig
-     * @return Dummy|Stripe|StripeSCA
+     * @return Dummy|Stripe|StripeSCA|HyperPay
      * @throws \Exception
      */
     public function create($name, $paymentGatewayConfig)
@@ -26,38 +27,39 @@ class Factory
 
         switch ($name) {
 
-            case Dummy::GATEWAY_NAME :
-                {
+            case Dummy::GATEWAY_NAME: {
 
-                    $gateway = Omnipay::create($name);
-                    $gateway->initialize();
+                $gateway = Omnipay::create($name);
+                $gateway->initialize();
 
-                    return new Dummy($gateway, $paymentGatewayConfig);
-                }
+                return new Dummy($gateway, $paymentGatewayConfig);
+            }
 
-            case Stripe::GATEWAY_NAME :
-                {
+            case Stripe::GATEWAY_NAME: {
 
-                    $gateway = Omnipay::create($name);
-                    $gateway->initialize($paymentGatewayConfig);
+                $gateway = Omnipay::create($name);
+                $gateway->initialize($paymentGatewayConfig);
 
-                    return new Stripe($gateway, $paymentGatewayConfig);
-                }
+                return new Stripe($gateway, $paymentGatewayConfig);
+            }
 
-            case StripeSCA::GATEWAY_NAME :
-                {
+            case StripeSCA::GATEWAY_NAME: {
 
-                    $gateway = Omnipay::create($name);
-                    $gateway->initialize($paymentGatewayConfig);
+                $gateway = Omnipay::create($name);
+                $gateway->initialize($paymentGatewayConfig);
 
-                    return new StripeSCA($gateway, $paymentGatewayConfig);
+                return new StripeSCA($gateway, $paymentGatewayConfig);
 
-                }
+            }
 
-            default :
-                {
-                    throw New \Exception('Invalid gateway specified');
-                }
+            case HyperPay::GATEWAY_NAME: {
+                // HyperPay doesn't use Omnipay, so we pass null as gateway
+                return new HyperPay(null, $paymentGatewayConfig);
+            }
+
+            default: {
+                throw new \Exception('Invalid gateway specified');
+            }
         }
     }
 }

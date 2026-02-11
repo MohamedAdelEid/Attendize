@@ -135,6 +135,30 @@ class Event extends MyBaseModel
     }
 
     /**
+     * Member field definitions for this event (dynamic member data structure).
+     */
+    public function eventMemberFields()
+    {
+        return $this->hasMany(EventMemberField::class)->orderBy('sort_order');
+    }
+
+    /**
+     * Imported members (separate from registration_users).
+     */
+    public function eventMembers()
+    {
+        return $this->hasMany(EventMember::class)->orderBy('created_at', 'desc');
+    }
+
+    /**
+     * Field mappings: member field -> registration field (for members form).
+     */
+    public function eventMemberFieldMappings()
+    {
+        return $this->hasMany(EventMemberFieldMapping::class)->orderBy('id');
+    }
+
+    /**
      * The tickets associated with the event.
      *
      * @return HasMany

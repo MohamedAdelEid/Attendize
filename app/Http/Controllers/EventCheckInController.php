@@ -2,6 +2,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Attendee;
+use App\Models\CheckInCheckOutLog;
 use App\Models\Event;
 use App\Models\Registration;
 use App\Models\RegistrationUser;
@@ -12,77 +13,194 @@ use JavaScript;
 
 class EventCheckInController extends MyBaseController
 {
-    public function PostScanTicket(Request $request)
+    public function __construct()
     {
-        $event = Event::find($request->event_id);
-        $qrCode = $request->unique_code;
-        $uniqueCodeFromDb = RegistrationUser::where('unique_code', $qrCode)->first();
+        $this->middleware('auth')->except(['showGuestKiosk']);
+    }
+
+    public function PostScanTicket(Request $request, $event_id)
+    {
+        $eventId = $event_id;
+        $event = Event::find($eventId);
+        if (!$event) {
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json(['status' => 'error', 'message' => 'Event not found.'], 404);
+            }
+            return redirect()->back()->with('error', 'Event not found.');
+        }
+
+        $input = trim($request->unique_code ?? $request->input('unique_code_or_email', ''));
+        if ($input === '') {
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Please enter a unique code or email.'
+                ]);
+            }
+            return redirect()->back()->with('error', 'Please enter a unique code or email.');
+        }
+
+        // Look up by email or unique code (scoped to this event)
+        if (strpos($input, '@') !== false) {
+            $uniqueCodeFromDb = RegistrationUser::whereHas('registration', function ($q) use ($eventId) {
+                $q->where('event_id', $eventId);
+            })->where('email', $input)->first();
+        } else {
+            $uniqueCodeFromDb = RegistrationUser::whereHas('registration', function ($q) use ($eventId) {
+                $q->where('event_id', $eventId);
+            })->where('unique_code', $input)->first();
+        }
 
         if (is_null($uniqueCodeFromDb)) {
             if ($request->ajax() || $request->wantsJson()) {
                 return response()->json([
                     'status' => 'error',
-                    'message' => 'Invalid ticket code. Please check the code and try again.'
+                    'message' => 'Invalid ticket code or email. Please check and try again.'
                 ]);
             }
-            return redirect()->back()->with('error', 'Invalid QR Code');
+            return redirect()->back()->with('error', 'Invalid QR Code or email');
         }
 
-        $isCheckedIn = !is_null($uniqueCodeFromDb->check_in);
-        $isCheckedOut = !is_null($uniqueCodeFromDb->check_out);
+        // Get the latest log entry to determine current status
+        $latestLog = CheckInCheckOutLog::where('registration_user_id', $uniqueCodeFromDb->id)
+            ->where('event_id', $event->id)
+            ->orderBy('action_time', 'desc')
+            ->first();
 
-        if (!$isCheckedIn) {
+        $actionTime = Carbon::now();
+        $action = null;
+        $message = '';
+        $successMessage = '';
+
+        // Determine action based on latest log entry
+        // If no log exists or last action was check_out, then check_in
+        // If last action was check_in, then check_out
+        if (is_null($latestLog) || $latestLog->action === 'check_out') {
+            // Perform Check-in
             $uniqueCodeFromDb->update([
-                'check_in' => Carbon::now()
+                'check_in' => $actionTime,
+                'check_out' => null // Reset check_out when checking in again
             ]);
 
             $action = 'check_in';
             $message = 'Successfully checked in!';
             $successMessage = 'User Checked In Successfully';
-        } elseif ($isCheckedIn && !$isCheckedOut) {
+        } else {
+            // Perform Check-out
             $uniqueCodeFromDb->update([
-                'check_out' => Carbon::now()
+                'check_out' => $actionTime
             ]);
 
             $action = 'check_out';
             $message = 'Successfully checked out!';
             $successMessage = 'User Checked Out Successfully';
-        } else {
-            $checkInTime = new \DateTime($uniqueCodeFromDb->check_in);
-            $checkOutTime = new \DateTime($uniqueCodeFromDb->check_out);
-            $message = 'Attendee already completed check-in (' . $checkInTime->format('Y-m-d H:i:s') . ') and check-out (' . $checkOutTime->format('Y-m-d H:i:s') . ')';
-
-            if ($request->ajax() || $request->wantsJson()) {
-                return response()->json([
-                    'status' => 'error',
-                    'message' => $message
-                ]);
-            }
-            return redirect()->back()->with('error', 'User Already Completed Check-in and Check-out');
         }
 
+        // Log the action
+        CheckInCheckOutLog::create([
+            'registration_user_id' => $uniqueCodeFromDb->id,
+            'event_id' => $event->id,
+            'action' => $action,
+            'action_time' => $actionTime,
+        ]);
+
+        // Refresh to get updated data
+        $uniqueCodeFromDb->refresh();
+
         if ($request->ajax() || $request->wantsJson()) {
+            $userPayload = [
+                'id' => $uniqueCodeFromDb->id,
+                'first_name' => $uniqueCodeFromDb->first_name,
+                'last_name' => $uniqueCodeFromDb->last_name,
+                'email' => $uniqueCodeFromDb->email,
+                'unique_code' => $uniqueCodeFromDb->unique_code,
+                'check_in' => $uniqueCodeFromDb->check_in,
+                'check_out' => $uniqueCodeFromDb->check_out,
+            ];
+            if ($uniqueCodeFromDb->ticket_token) {
+                $userPayload['ticket_token'] = $uniqueCodeFromDb->ticket_token;
+            }
             return response()->json([
                 'status' => 'success',
                 'action' => $action,
                 'message' => $message,
-                'user' => [
-                    'id' => $uniqueCodeFromDb->id,
-                    'first_name' => $uniqueCodeFromDb->first_name,
-                    'last_name' => $uniqueCodeFromDb->last_name,
-                    'email' => $uniqueCodeFromDb->email,
-                    'unique_code' => $uniqueCodeFromDb->unique_code,
-                    'check_in' => $uniqueCodeFromDb->check_in,
-                    'check_out' => $uniqueCodeFromDb->check_out,
-                ]
+                'user' => $userPayload,
             ]);
         }
 
         return redirect()->back()->with([
             'success' => $successMessage,
             'action' => $action,
-            'user' => $uniqueCodeFromDb
+            'user' => $uniqueCodeFromDb,
+            'unique_code_input' => $input,
         ]);
+    }
+
+    /**
+     * Bulk check-in: all approved users who are not currently in (no check_in or already checked out).
+     */
+    public function bulkCheckIn(Request $request, $event_id)
+    {
+        $event = Event::findOrFail($event_id);
+        $users = RegistrationUser::whereHas('registration', function ($q) use ($event_id) {
+            $q->where('event_id', $event_id);
+        })
+            ->where('status', 'approved')
+            ->where(function ($q) {
+                $q->whereNull('check_in')->orWhereNotNull('check_out');
+            })
+            ->get();
+
+        $actionTime = Carbon::now();
+        $count = 0;
+        foreach ($users as $user) {
+            $user->update(['check_in' => $actionTime, 'check_out' => null]);
+            CheckInCheckOutLog::create([
+                'registration_user_id' => $user->id,
+                'event_id' => $event->id,
+                'action' => 'check_in',
+                'action_time' => $actionTime,
+            ]);
+            $count++;
+        }
+
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json(['status' => 'success', 'message' => $count . ' attendee(s) checked in.', 'count' => $count]);
+        }
+        return redirect()->back()->with('success', $count . ' attendee(s) checked in.');
+    }
+
+    /**
+     * Bulk check-out: all approved users who are currently checked in (have check_in, no check_out).
+     */
+    public function bulkCheckOut(Request $request, $event_id)
+    {
+        $event = Event::findOrFail($event_id);
+        $users = RegistrationUser::whereHas('registration', function ($q) use ($event_id) {
+            $q->where('event_id', $event_id);
+        })
+            ->where('status', 'approved')
+            ->whereNotNull('check_in')
+            ->whereNull('check_out')
+            ->get();
+
+        $actionTime = Carbon::now();
+        $count = 0;
+        foreach ($users as $user) {
+            $user->update(['check_out' => $actionTime]);
+            CheckInCheckOutLog::create([
+                'registration_user_id' => $user->id,
+                'event_id' => $event->id,
+                'action' => 'check_out',
+                'action_time' => $actionTime,
+            ]);
+            $count++;
+        }
+
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json(['status' => 'success', 'message' => $count . ' attendee(s) checked out.', 'count' => $count]);
+        }
+        return redirect()->back()->with('success', $count . ' attendee(s) checked out.');
     }
 
     /**
@@ -94,20 +212,68 @@ class EventCheckInController extends MyBaseController
     public function showCheckIn($event_id)
     {
         $event = Event::scope()->findOrFail($event_id);
-        $registrations = Registration::where('event_id', $event->id)->get();
         $data = [
             'event' => $event,
-            'attendees' => $event->attendees,
-            'registrations' => $registrations
         ];
 
-        JavaScript::put([
-            'qrcodeCheckInRoute' => route('postQRCodeCheckInAttendee', ['event_id' => $event->id]),
-            'checkInRoute' => route('postCheckInAttendee', ['event_id' => $event->id]),
-            'checkInSearchRoute' => route('postCheckInSearch', ['event_id' => $event->id]),
-        ]);
+        return view('tickets.scanner', $data);
+    }
 
-        return view('tickets.scan-ticket', $data);
+    /**
+     * Show the Guest / Self-Service Kiosk page (no auth required).
+     * QR Scanner + Manual Check-in/Check-out only; no bulk actions or dashboard.
+     *
+     * @param int $event_id
+     * @return \Illuminate\View\View
+     */
+    public function showGuestKiosk($event_id)
+    {
+        $event = Event::findOrFail($event_id);
+        return view('tickets.guest-kiosk', ['event' => $event]);
+    }
+
+    public function showCheckInDashboard($event_id)
+    {
+        $event = Event::scope()->findOrFail($event_id);
+        
+        // Get only approved registration users with pagination
+        $query = RegistrationUser::whereHas('registration', function ($q) use ($event_id) {
+            $q->where('event_id', $event_id);
+        })
+        ->where('status', 'approved')
+        ->with(['registration', 'checkInCheckOutLogs']);
+
+        // Apply search filter if provided
+        $search = request()->get('search');
+        if ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('first_name', 'like', '%' . $search . '%')
+                  ->orWhere('last_name', 'like', '%' . $search . '%')
+                  ->orWhere('email', 'like', '%' . $search . '%')
+                  ->orWhere('unique_code', 'like', '%' . $search . '%');
+            });
+        }
+
+        // Apply attendance filter if provided
+        $attendanceFilter = request()->get('attendance');
+        if ($attendanceFilter === 'checked_in') {
+            $query->whereNotNull('check_in')->whereNull('check_out');
+        } elseif ($attendanceFilter === 'checked_out') {
+            $query->whereNotNull('check_out');
+        } elseif ($attendanceFilter === 'not_checked_in') {
+            $query->whereNull('check_in');
+        }
+
+        // Get paginated results
+        $perPage = request()->get('per_page', 15);
+        $registrationUsers = $query->orderBy('created_at', 'desc')->paginate($perPage);
+
+        $data = [
+            'event' => $event,
+            'registrationUsers' => $registrationUsers
+        ];
+
+        return view('tickets.dashboard', $data);
     }
 
     public function showQRCodeModal(Request $request, $event_id)
@@ -269,11 +435,78 @@ class EventCheckInController extends MyBaseController
     public function fetchRegistrationUsers($event_id)
     {
         $event = Event::find($event_id);
-        $registrations = Registration::where('event_id', $event->id)->get();
-        $registrationUsers = $registrations->registrationUsers()->get();
+        
+        // Build query
+        $query = RegistrationUser::whereHas('registration', function ($q) use ($event_id) {
+            $q->where('event_id', $event_id);
+        })
+        ->with(['registration']);
+
+        // Apply search filter if provided
+        $search = request()->get('search');
+        if ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('first_name', 'like', '%' . $search . '%')
+                  ->orWhere('last_name', 'like', '%' . $search . '%')
+                  ->orWhere('email', 'like', '%' . $search . '%')
+                  ->orWhere('unique_code', 'like', '%' . $search . '%');
+            });
+        }
+
+        // Apply status filter if provided
+        $statusFilter = request()->get('status');
+        if ($statusFilter) {
+            $query->where('status', $statusFilter);
+        }
+
+        // Apply attendance filter if provided
+        $attendanceFilter = request()->get('attendance');
+        if ($attendanceFilter === 'checked_in') {
+            $query->whereNotNull('check_in')->whereNull('check_out');
+        } elseif ($attendanceFilter === 'checked_out') {
+            $query->whereNotNull('check_out');
+        } elseif ($attendanceFilter === 'not_checked_in') {
+            $query->whereNull('check_in');
+        }
+
+        // Get paginated results
+        $perPage = request()->get('per_page', 15);
+        $registrationUsers = $query->orderBy('created_at', 'desc')->paginate($perPage);
+
         return response()->json([
-            'registrations' => $registrations,
-            'registrationUsers' => $registrationUsers
+            'registrationUsers' => $registrationUsers->items(),
+            'current_page' => $registrationUsers->currentPage(),
+            'last_page' => $registrationUsers->lastPage(),
+            'per_page' => $registrationUsers->perPage(),
+            'total' => $registrationUsers->total(),
+            'from' => $registrationUsers->firstItem(),
+            'to' => $registrationUsers->lastItem(),
+        ]);
+    }
+
+    /**
+     * Get check-in/check-out logs for a specific user
+     *
+     * @param $event_id
+     * @param $user_id
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getUserLogs($event_id, $user_id)
+    {
+        $logs = CheckInCheckOutLog::where('registration_user_id', $user_id)
+            ->where('event_id', $event_id)
+            ->orderBy('action_time', 'desc')
+            ->get();
+
+        return response()->json([
+            'logs' => $logs->map(function ($log) {
+                return [
+                    'id' => $log->id,
+                    'action' => $log->action,
+                    'action_time' => $log->action_time->format('Y-m-d H:i:s'),
+                    'created_at' => $log->created_at->format('Y-m-d H:i:s'),
+                ];
+            })
         ]);
     }
 }

@@ -578,6 +578,58 @@
                         @endif
                     </div>
 
+                    <!-- Payment History Section -->
+                    <div class="section">
+                        <h4 class="section-title">
+                            <i class="fa fa-credit-card"></i> المدفوعات
+                        </h4>
+                        @if ($user->payments && $user->payments->count() > 0)
+                            <div class="table-container">
+                                <table class="custom-table">
+                                    <thead>
+                                        <tr>
+                                            <th>التاريخ</th>
+                                            <th>المبلغ</th>
+                                            <th>الحالة</th>
+                                            <th>بوابة الدفع</th>
+                                            <th>رقم المعاملة</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach ($user->payments as $p)
+                                            <tr>
+                                                <td>{{ $p->created_at->format('Y-m-d H:i') }}</td>
+                                                <td>{{ number_format($p->amount, 2) }} {{ $p->currency }}</td>
+                                                <td>
+                                                    @if ($p->status === 'captured')
+                                                        <span class="label label-success">تم التحصيل</span>
+                                                    @elseif ($p->status === 'pending')
+                                                        <span class="label label-warning">قيد الانتظار</span>
+                                                    @elseif ($p->status === 'failed')
+                                                        <span class="label label-danger">فاشل</span>
+                                                    @else
+                                                        <span class="label label-default">{{ $p->status }}</span>
+                                                    @endif
+                                                </td>
+                                                <td>{{ $p->payment_gateway ?? '-' }}</td>
+                                                <td><small>{{ $p->transaction_id ?? '-' }}</small></td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+                        @else
+                            <div class="alert alert-info alert-flex">
+                                <div class="alert-icon">
+                                    <i class="fa fa-info-circle"></i>
+                                </div>
+                                <div class="alert-content">
+                                    <p>لا توجد مدفوعات مسجلة لهذا المستخدم.</p>
+                                </div>
+                            </div>
+                        @endif
+                    </div>
+
                     <!-- Email Management Section -->
                     <div class="email-management">
                         <h4 class="section-title">

@@ -151,6 +151,28 @@
                                         </div>
                                     </div>
                                 </div>
+                                <div class="row">
+                                    <div class="col-md-12">
+                                        <div class="form-group">
+                                            <div class="checkbox">
+                                                <label>
+                                                    {!! Form::checkbox('show_on_landing', 1, false) !!}
+                                                    <strong>Display this form on the event landing page</strong>
+                                                </label>
+                                            </div>
+                                            <p class="help-block text-muted">Only one registration form per event can be the landing page form. Non-members will see this form.</p>
+                                        </div>
+                                        <div class="form-group">
+                                            <div class="checkbox">
+                                                <label>
+                                                    {!! Form::checkbox('is_members_form', 1, false) !!}
+                                                    <strong>This is the Members registration form</strong>
+                                                </label>
+                                            </div>
+                                            <p class="help-block text-muted">Show this form in the Members tab on the landing page. Only one form per event can be the members form.</p>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -255,6 +277,7 @@
                             <option value="user_types">User Types</option>
                             <option value="conference">Conference</option>
                             <option value="profession">Profession</option>
+                            <option value="external_payment">External Payment (Bank Transfer)</option>
                         </select>
                     </div>
                 </div>
@@ -271,6 +294,26 @@
                             placeholder="Enter one option per line"></textarea>
                         <p class="help-block"><small>Enter one option per line. These will be used for select,
                                 checkbox, and radio fields.</small></p>
+                    </div>
+                    <div class="form-group field-bank-options" style="display: none;">
+                        <label class="control-label">Bank details (shown when user selects a paid profession)</label>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <input type="text" name="dynamic_fields[{INDEX}][bank_account_name]" class="form-control" placeholder="Account Name">
+                            </div>
+                            <div class="col-md-6">
+                                <input type="text" name="dynamic_fields[{INDEX}][bank_name]" class="form-control" placeholder="Bank Name">
+                            </div>
+                        </div>
+                        <div class="row" style="margin-top: 8px;">
+                            <div class="col-md-6">
+                                <input type="text" name="dynamic_fields[{INDEX}][bank_iban]" class="form-control" placeholder="IBAN">
+                            </div>
+                            <div class="col-md-6">
+                                <input type="text" name="dynamic_fields[{INDEX}][bank_account_number]" class="form-control" placeholder="Account Number">
+                            </div>
+                        </div>
+                        <p class="help-block"><small>Required when External Payment is used. User will see these and upload transfer receipt.</small></p>
                     </div>
                 </div>
             </div>
@@ -335,6 +378,9 @@ $(document).ready(function() {
             } else if (fieldType === 'profession') {
                 $newField.find('.field-label').val('Profession');
                 $newField.find('.field-title').text('Profession');
+            } else if (fieldType === 'external_payment') {
+                $newField.find('.field-label').val('Bank Transfer (External Payment)');
+                $newField.find('.field-title').text('Bank Transfer (External Payment)');
             }
         });
 
@@ -362,16 +408,23 @@ $(document).ready(function() {
         updatePositionNumbers();
     }
 
-    // Function to toggle options field based on field type
+    // Function to toggle options field and bank options based on field type
     function toggleOptionsField($selectElement) {
         const $fieldContainer = $selectElement.closest('.dynamic-field');
         const $optionsField = $fieldContainer.find('.field-options');
+        const $bankOptionsField = $fieldContainer.find('.field-bank-options');
         const optionsTypes = ['select', 'checkbox', 'radio'];
+        const type = $selectElement.val();
 
-        if (optionsTypes.includes($selectElement.val())) {
+        if (optionsTypes.includes(type)) {
             $optionsField.show();
+            $bankOptionsField.hide();
+        } else if (type === 'external_payment') {
+            $optionsField.hide();
+            $bankOptionsField.show();
         } else {
             $optionsField.hide();
+            $bankOptionsField.hide();
         }
     }
 

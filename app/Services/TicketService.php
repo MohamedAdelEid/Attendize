@@ -51,7 +51,7 @@ class TicketService
             'event_id' => $user->registration->event_id,
             'timestamp' => now()->timestamp
         ]);
-        
+
         $qrData = $uniqueCode;
 
         // Generate QR code
@@ -65,7 +65,7 @@ class TicketService
         // Generate and save QR code with minimal margin
         QrCode::format('png')
             ->size(220)
-            ->margin(2) // Reduced from 10 to 1 for minimal white space
+            ->margin(0) // Reduced from 10 to 1 for minimal white space
             ->generate($qrData, storage_path('app/public/' . $qrCodeFileName));
 
         return $qrCodeFileName;
@@ -88,13 +88,16 @@ class TicketService
         }
 
         // Generate PDF
-        $pdf = PDF::loadView('tickets.pdf-template', [
+        $pdf_page_name = $user->lang == 'en' ? 'tickets.pdf-template-en' : 'tickets.pdf-template';
+
+
+        $pdf = PDF::loadView($pdf_page_name, [
             'user' => $user,
             'event' => $event,
             'ticket_image' => $ticketImagePath ?? null,
             'template' => $template ?? null
-        ])->setPaper('a4', 'landscape'); 
-        
+        ])->setPaper('a4', 'landscape');
+
 
         // Save PDF
         $pdfFileName = 'tickets/ticket_' . $user->unique_code . '.pdf';
@@ -107,6 +110,27 @@ class TicketService
         Storage::disk('public')->put($pdfFileName, $pdf->output());
 
         return $pdfFileName;
+    }
+
+    /**
+     * Get or create the template-based ticket image path for a user.
+     * Returns the storage path (e.g. ticket_images/ticket_XXX.png) or null if no template.
+     *
+     * @param RegistrationUser $user
+     * @return string|null
+     */
+    public function getOrCreateTicketImagePath(RegistrationUser $user): ?string
+    {
+        $event = $user->registration->event;
+        $template = TicketTemplate::where('event_id', $event->id)->first();
+        if (!$template || !$template->background_image_path) {
+            return null;
+        }
+        $path = 'ticket_images/ticket_' . $user->unique_code . '.png';
+        if (Storage::disk('public')->exists($path)) {
+            return $path;
+        }
+        return $this->createTicketImage($user, $template);
     }
 
     /**
@@ -129,7 +153,20 @@ class TicketService
      */
     private function createTicketImage(RegistrationUser $user, TicketTemplate $template)
     {
+        // Load relationships if needed
+        if (!$user->relationLoaded('userType')) {
+            $user->load('userType');
+        }
+        if (!$user->relationLoaded('profession')) {
+            $user->load('profession');
+        }
+        if (!$user->relationLoaded('category')) {
+            $user->load('category');
+        }
+
         // Load background template
+
+        $template->background_image_path = $user->lang == 'en' ? 'en_' . $template->background_image_path : $template->background_image_path;
         $backgroundPath = storage_path('app/public/' . $template->background_image_path);
 
         if (!file_exists($backgroundPath)) {
@@ -146,8 +183,10 @@ class TicketService
         $scaleX = 1;
         $scaleY = 1;
 
-        if (isset($template->preview_width) && $template->preview_width > 0 &&
-            isset($template->preview_height) && $template->preview_height > 0) {
+        if (
+            isset($template->preview_width) && $template->preview_width > 0 &&
+            isset($template->preview_height) && $template->preview_height > 0
+        ) {
             $scaleX = $imageWidth / $template->preview_width;
             $scaleY = $imageHeight / $template->preview_height;
         }
@@ -177,7 +216,7 @@ class TicketService
                     $fullName,
                     $nameX,
                     $nameY,
-                    function($font) use ($fontSize, $template) {
+                    function ($font) use ($fontSize, $template) {
                         $defaultFontPath = public_path('fonts/ARIAL.ttf');
                         if (file_exists($defaultFontPath)) {
                             $font->file($defaultFontPath);
@@ -216,7 +255,7 @@ class TicketService
                     $codeText,
                     $codeX,
                     $codeY,
-                    function($font) use ($fontSize, $template) {
+                    function ($font) use ($fontSize, $template) {
                         $defaultFontPath = public_path('fonts/ARIAL.ttf');
                         if (file_exists($defaultFontPath)) {
                             $font->file($defaultFontPath);
@@ -231,12 +270,12 @@ class TicketService
         }
 
         // Add QR code with scaling and rounded corners
-        if(!isset($user->qr_code_path)){
+        if (!isset($user->qr_code_path)) {
             $qrCodePath = $this->generateQRCode($user, $user->unique_code);
             $user->qr_code_path = $qrCodePath;
             $user->save();
         }
-        
+
         if (isset($template->qr_position_x) && isset($template->qr_position_y) && $user->qr_code_path) {
             $qrX = (int) ($template->qr_position_x * $scaleX);
             $qrY = (int) ($template->qr_position_y * $scaleY);
@@ -256,6 +295,117 @@ class TicketService
                     'top-left',
                     $qrX,
                     $qrY
+                );
+            }
+        }
+
+        // Add UserType with scaling and Arabic support
+        if ($template->show_user_type && isset($template->user_type_position_x) && isset($template->user_type_position_y) && $user->userType) {
+            $userTypeX = (int) ($template->user_type_position_x * $scaleX);
+            $userTypeY = (int) ($template->user_type_position_y * $scaleY);
+            $fontSize = (int) (($template->user_type_font_size ?? 20) * $scaleX);
+
+            $userTypeText = $user->userType->name;
+            $isArabic = $this->hasArabicText($userTypeText);
+
+            if ($isArabic) {
+                $this->renderArabicText(
+                    $image,
+                    $userTypeText,
+                    $userTypeX,
+                    $userTypeY,
+                    $fontSize,
+                    $template->user_type_font_color ?? '#000000'
+                );
+            } else {
+                $image->text(
+                    $userTypeText,
+                    $userTypeX,
+                    $userTypeY,
+                    function ($font) use ($fontSize, $template) {
+                        $defaultFontPath = public_path('fonts/ARIAL.ttf');
+                        if (file_exists($defaultFontPath)) {
+                            $font->file($defaultFontPath);
+                        }
+                        $font->size($fontSize);
+                        $font->color($template->user_type_font_color ?? '#000000');
+                        $font->align('left');
+                        $font->valign('top');
+                    }
+                );
+            }
+        }
+
+        // Add Profession with scaling and Arabic support
+        if ($template->show_profession && isset($template->profession_position_x) && isset($template->profession_position_y) && $user->profession) {
+            $professionX = (int) ($template->profession_position_x * $scaleX);
+            $professionY = (int) ($template->profession_position_y * $scaleY);
+            $fontSize = (int) (($template->profession_font_size ?? 20) * $scaleX);
+
+            $professionText = $user->profession->name;
+            $isArabic = $this->hasArabicText($professionText);
+
+            if ($isArabic) {
+                $this->renderArabicText(
+                    $image,
+                    $professionText,
+                    $professionX,
+                    $professionY,
+                    $fontSize,
+                    $template->profession_font_color ?? '#000000'
+                );
+            } else {
+                $image->text(
+                    $professionText,
+                    $professionX,
+                    $professionY,
+                    function ($font) use ($fontSize, $template) {
+                        $defaultFontPath = public_path('fonts/ARIAL.ttf');
+                        if (file_exists($defaultFontPath)) {
+                            $font->file($defaultFontPath);
+                        }
+                        $font->size($fontSize);
+                        $font->color($template->profession_font_color ?? '#000000');
+                        $font->align('left');
+                        $font->valign('top');
+                    }
+                );
+            }
+        }
+
+        // Add Category with scaling and Arabic support
+        if ($template->show_category && isset($template->category_position_x) && isset($template->category_position_y) && $user->category) {
+            $categoryX = (int) ($template->category_position_x * $scaleX);
+            $categoryY = (int) ($template->category_position_y * $scaleY);
+            $fontSize = (int) (($template->category_font_size ?? 20) * $scaleX);
+
+            $categoryText = $user->category->name;
+            $isArabic = $this->hasArabicText($categoryText);
+
+            if ($isArabic) {
+                $this->renderArabicText(
+                    $image,
+                    $categoryText,
+                    $categoryX,
+                    $categoryY,
+                    $fontSize,
+                    $template->category_font_color ?? '#000000'
+                );
+            } else {
+                $image->text(
+                    $categoryText,
+                    $categoryX,
+                    $categoryY,
+                    function ($font) use ($fontSize, $template) {
+                        $defaultFontPath = public_path('fonts/ARIAL.ttf');
+                        if (file_exists($defaultFontPath)) {
+                            $font->file($defaultFontPath);
+                        }
+                        $font->size($fontSize);
+                        $font->color($template->category_font_color ?? '#000000');
+                        $font->align('left');
+                        $font->valign('top');
+                    }
                 );
             }
         }
@@ -295,7 +445,7 @@ class TicketService
                 $text,
                 $x,
                 $y,
-                function($font) use ($fontSize, $color) {
+                function ($font) use ($fontSize, $color) {
                     $arabicFontPath = public_path('fonts/NotoNaskhArabic-Regular.ttf');
                     if (file_exists($arabicFontPath)) {
                         $font->file($arabicFontPath);
@@ -322,7 +472,7 @@ class TicketService
         $hexColor = ltrim($color, '#');
         $r = hexdec(substr($hexColor, 0, 2));
         $g = hexdec(substr($hexColor, 2, 2));
-        $b = hexdec(substr($hexColor, 6, 2));
+        $b = hexdec(substr($hexColor, 4, 2));
 
         // Get image resource
         $imageResource = $image->getCore();
@@ -339,7 +489,10 @@ class TicketService
 
         // Adjust X position for RTL text
         $adjustedX = $x;
+        $BoxLength = 755;
+        $ShiftSpace = $BoxLength - $textWidth;
 
+        $adjustedX = $x + $ShiftSpace;
         // Render text
         imagettftext(
             $imageResource,
@@ -347,7 +500,7 @@ class TicketService
             0,
             $adjustedX,
             $y + $fontSize,
-            $colorResource,
+            16777215,
             $fontPath,
             $text
         );

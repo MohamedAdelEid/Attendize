@@ -93,6 +93,40 @@ class TicketController extends Controller
     }
 
     /**
+     * View the template-based ticket (from ticket_template) for print/display.
+     * Falls back to standard ticket view if no template image exists.
+     *
+     * @param Request $request
+     * @param string $token
+     * @return mixed
+     */
+    public function viewTicketTemplate(Request $request, $token)
+    {
+        $user = RegistrationUser::where('ticket_token', $token)->first();
+
+        if (!$user) {
+            return redirect()->route('home')->with('error', 'Invalid or expired ticket link.');
+        }
+
+        if ($user->status !== 'approved') {
+            return redirect()->route('home')->with('error', 'Your registration has not been approved yet.');
+        }
+
+        $ticketImagePath = $this->ticketService->getOrCreateTicketImagePath($user);
+
+        if ($ticketImagePath) {
+            return view('tickets.view-template', [
+                'user' => $user,
+                'event' => $user->registration->event,
+                'ticket_image_path' => $ticketImagePath,
+            ]);
+        }
+
+        // No template ticket: fall back to standard ticket view
+        return redirect()->route('viewTicket', ['token' => $token]);
+    }
+
+    /**
      * Admin function to download a user's ticket
      *
      * @param Request $request
@@ -134,5 +168,5 @@ class TicketController extends Controller
             ['Content-Type' => 'application/pdf']
         );
     }
-   
+
 }

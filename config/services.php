@@ -30,4 +30,18 @@ return [
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | WhatsApp (Twilio)
+    |--------------------------------------------------------------------------
+    | Used for sending WhatsApp messages to registration users.
+    | Get credentials from https://www.twilio.com/console and enable WhatsApp Sandbox or WhatsApp Business API.
+    | TWILIO_WHATSAPP_FROM format: whatsapp:+14155238886 (your Twilio WhatsApp number)
+    */
+    'twilio' => [
+        'account_sid' => env('TWILIO_ACCOUNT_SID'),
+        'auth_token' => env('TWILIO_AUTH_TOKEN'),
+        'whatsapp_from' => env('TWILIO_WHATSAPP_FROM', ''),
+    ],
+
 ];

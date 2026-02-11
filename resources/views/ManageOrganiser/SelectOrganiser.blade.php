@@ -19,8 +19,8 @@
         <div class="col-md-4 col-md-offset-4">
             <div class="panel">
                 <div class="panel-body">
-                    <div class="logo">
-                        {!!Html::image('assets/images/logo-dark.png')!!}
+                    <div class="logo" style="font-size: 1.75rem; font-weight: 600; color: #333;">
+                        Four Links
                     </div>
 
                     <h5>@lang("Organiser.continue_to"):</h5>

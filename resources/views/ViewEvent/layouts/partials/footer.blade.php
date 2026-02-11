@@ -2,7 +2,7 @@
     <div class="container mx-auto px-4 py-8">
         <div class="flex flex-col md:flex-row justify-between items-center">
             <div class="mb-4 md:mb-0">
-                <img src="{{ asset('images/logo.svg') }}" alt="{{ __('messages.event_logo_alt') }}" class="h-8">
+                <span class="text-xl font-semibold text-gray-900">Four Links</span>
             </div>
 
             <!--<div class="flex space-x-6 rtl:space-x-reverse">-->

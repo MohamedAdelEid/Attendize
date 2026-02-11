@@ -62,16 +62,34 @@
                     <span class="text">Ticket Template</span>
                 </a>
             </li>
-            <li class="{{ Request::is('*registration*') ? 'active' : '' }}">
+            <li class="{{ Request::is('*registration*') && !Request::is('*user-types*') ? 'active' : '' }}">
                 <a href="{{ route('showEventRegistration', ['event_id' => $event->id]) }}">
                     <span class="figure"><i class="ico-file-text"></i></span>
                     <span class="text">@lang("ManageEvent.registration")</span>
+                </a>
+            </li>
+            <li class="{{ Request::is('*user-types*') ? 'active' : '' }}">
+                <a href="{{ route('showEventUserTypes', ['event_id' => $event->id]) }}">
+                    <span class="figure"><i class="ico-users"></i></span>
+                    <span class="text">User Types</span>
+                </a>
+            </li>
+            <li class="{{ Request::is('*registration/members*') ? 'active' : '' }}">
+                <a href="{{ route('showEventMembers', ['event_id' => $event->id]) }}">
+                    <span class="figure"><i class="ico-user"></i></span>
+                    <span class="text">Members</span>
                 </a>
             </li>
             <li class="{{ Request::is('*check_in*') ? 'active' : '' }}">
                 <a href="{{route('showCheckIn', array('event_id' => $event->id))}}">
                     <span class="figure"><i class="ico-checkbox-checked"></i></span>
                     <span class="text">@lang("ManageEvent.check-in")</span>
+                </a>
+            </li>
+            <li class="{{ Request::is('*payment-reports*') ? 'active' : '' }}">
+                <a href="{{ route('showEventPayments', [ 'event_id' => $event->id ]) }}">
+                    <span class="figure"><i class="ico-credit"></i></span>
+                    <span class="text">Payment Reports</span>
                 </a>
             </li>
             <li class="{{ Request::is('*surveys*') ? 'active' : '' }}">

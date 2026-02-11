@@ -87,4 +87,28 @@ class RegistrationUser extends Model
     {
         return $this->belongsTo(UserType::class);
     }
+
+    /**
+     * Get all check-in/check-out logs for the registration user.
+     */
+    public function checkInCheckOutLogs()
+    {
+        return $this->hasMany(CheckInCheckOutLog::class);
+    }
+
+    /**
+     * Get all payments for the registration user.
+     */
+    public function payments()
+    {
+        return $this->hasMany(RegistrationPayment::class);
+    }
+
+    /**
+     * Member-specific data (when user is in a "Member" category).
+     */
+    public function memberData()
+    {
+        return $this->hasMany(RegistrationUserMemberData::class);
+    }
 }

@@ -261,6 +261,9 @@
                             data-href="{{ route('showImportUsers', ['event_id' => $event->id]) }}">
                         <i class="ico-upload"></i> Import Users
                     </button>
+                    <button type="button" class="btn btn-success" id="btn-open-whatsapp-modal" style="background:#25D366; border-color:#25D366;">
+                        <i class="fa fa-whatsapp"></i> Send WhatsApp
+                    </button>
                 </div>
             </div>
 
@@ -362,6 +365,8 @@
                                             <li role="separator" class="divider"></li>
                                             <li><a href="javascript:void(0);" class="bulk-action" data-action="send-approve-email"><i class="ico-mail"></i> Send Approve Email</a></li>
                                             <li><a href="javascript:void(0);" class="bulk-action" data-action="send-reject-email"><i class="ico-mail"></i> Send Reject Email</a></li>
+                                            <li role="separator" class="divider"></li>
+                                            <li><a href="javascript:void(0);" class="bulk-action-open-whatsapp"><i class="fa fa-whatsapp"></i> Send WhatsApp</a></li>
                                             <li role="separator" class="divider"></li>
                                             <li><a href="javascript:void(0);" class="bulk-action" data-action="export-selected"><i class="ico-download"></i> Export Selected</a></li>
                                         </ul>
@@ -550,6 +555,48 @@
                             </p>
                         </div>
                     @endif
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Send WhatsApp Modal -->
+    <div class="modal fade" id="whatsapp-modal" tabindex="-1" role="dialog" aria-labelledby="whatsapp-modal-title" style="display: none;">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
+                <div class="modal-header text-center">
+                    <button type="button" class="close" data-dismiss="modal">×</button>
+                    <h3 class="modal-title" id="whatsapp-modal-title">
+                        <i class="fa fa-whatsapp" style="color:#25D366;"></i> Send WhatsApp Message
+                    </h3>
+                </div>
+                <div class="modal-body">
+                    <p class="text-muted">Select users using the checkboxes in the table, then write your message below. Use placeholders to personalize (click to insert).</p>
+                    <div class="form-group">
+                        <label class="control-label">Placeholders (click to insert)</label>
+                        <div class="placeholder-chips" style="margin-bottom:10px;">
+                            <button type="button" class="btn btn-xs btn-default placeholder-btn" data-placeholder="@first_name">@first_name</button>
+                            <button type="button" class="btn btn-xs btn-default placeholder-btn" data-placeholder="@last_name">@last_name</button>
+                            <button type="button" class="btn btn-xs btn-default placeholder-btn" data-placeholder="@email">@email</button>
+                            <button type="button" class="btn btn-xs btn-default placeholder-btn" data-placeholder="@phone">@phone</button>
+                            <button type="button" class="btn btn-xs btn-default placeholder-btn" data-placeholder="@unique_code">@unique_code</button>
+                            <button type="button" class="btn btn-xs btn-default placeholder-btn" data-placeholder="@event_title">@event_title</button>
+                            <button type="button" class="btn btn-xs btn-default placeholder-btn" data-placeholder="@registration_name">@registration_name</button>
+                            <button type="button" class="btn btn-xs btn-default placeholder-btn" data-placeholder="@user_type">@user_type</button>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="whatsapp-message" class="control-label required">Message</label>
+                        <textarea id="whatsapp-message" class="form-control" rows="6" placeholder="e.g. مرحبا @first_name @last_name ندعوكم لحضور @event_title ..." maxlength="4000"></textarea>
+                        <small class="help-block">Recipients must have a phone number. Max 4000 characters.</small>
+                    </div>
+                    <p class="text-info"><strong>Recipients: <span id="whatsapp-recipient-count">0</span> selected</strong></p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-success" id="whatsapp-send-btn" style="background:#25D366; border-color:#25D366;">
+                        <i class="fa fa-whatsapp"></i> Send to <span id="whatsapp-send-count">0</span> recipients
+                    </button>
                 </div>
             </div>
         </div>
@@ -819,6 +866,87 @@
                         }
                     });
                 }
+            });
+
+            // Open WhatsApp modal (from header button or bulk "Send WhatsApp")
+            function openWhatsAppModal() {
+                var n = $('.user-checkbox:checked').length;
+                $('#whatsapp-recipient-count').text(n);
+                $('#whatsapp-send-count').text(n);
+                $('#whatsapp-send-btn').prop('disabled', n === 0);
+                $('#whatsapp-modal').modal('show');
+            }
+            $('#btn-open-whatsapp-modal').on('click', function() {
+                openWhatsAppModal();
+            });
+            $('.bulk-action-open-whatsapp').on('click', function(e) {
+                e.preventDefault();
+                if ($('.user-checkbox:checked').length === 0) {
+                    alert('Please select at least one user.');
+                    return;
+                }
+                openWhatsAppModal();
+            });
+            $('#whatsapp-modal').on('show.bs.modal', function() {
+                var n = $('.user-checkbox:checked').length;
+                $('#whatsapp-recipient-count').text(n);
+                $('#whatsapp-send-count').text(n);
+                $('#whatsapp-send-btn').prop('disabled', n === 0);
+            });
+            // Insert placeholder at cursor
+            $('.placeholder-btn').on('click', function() {
+                var placeholder = $(this).data('placeholder');
+                var ta = document.getElementById('whatsapp-message');
+                var start = ta.selectionStart;
+                var end = ta.selectionEnd;
+                var text = $('#whatsapp-message').val();
+                $('#whatsapp-message').val(text.substring(0, start) + placeholder + text.substring(end));
+                ta.selectionStart = ta.selectionEnd = start + placeholder.length;
+                ta.focus();
+            });
+            // Send WhatsApp
+            $('#whatsapp-send-btn').on('click', function() {
+                var userIds = [];
+                $('.user-checkbox:checked').each(function() { userIds.push($(this).val()); });
+                if (userIds.length === 0) {
+                    alert('Please select at least one user.');
+                    return;
+                }
+                var message = $('#whatsapp-message').val().trim();
+                if (!message) {
+                    alert('Please enter a message.');
+                    return;
+                }
+                var btn = $(this);
+                btn.prop('disabled', true).html('<i class="ico-spinner"></i> Sending...');
+                $.ajax({
+                    url: '{{ route('sendBulkWhatsApp', ['event_id' => $event->id]) }}',
+                    type: 'POST',
+                    data: {
+                        _token: '{{ csrf_token() }}',
+                        user_ids: userIds,
+                        message: message
+                    },
+                    success: function(response) {
+                        if (response.status === 'success') {
+                            if (typeof toastr !== 'undefined') toastr.success(response.message);
+                            else alert(response.message);
+                            $('#whatsapp-modal').modal('hide');
+                            $('#whatsapp-message').val('');
+                        } else {
+                            if (typeof toastr !== 'undefined') toastr.error(response.message || 'Error');
+                            else alert(response.message || 'Error');
+                        }
+                    },
+                    error: function(xhr) {
+                        var msg = (xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : 'An error occurred.';
+                        if (typeof toastr !== 'undefined') toastr.error(msg);
+                        else alert(msg);
+                    },
+                    complete: function() {
+                        btn.prop('disabled', false).html('<i class="fa fa-whatsapp"></i> Send to <span id="whatsapp-send-count">' + userIds.length + '</span> recipients');
+                    }
+                });
             });
 
             // Initialize selected count

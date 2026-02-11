@@ -12,7 +12,7 @@
     -->
     <title>
         @section('title')
-            Attendize -
+            Four Links -
         @show
     </title>
 
@@ -43,8 +43,8 @@
 <header id="header" class="navbar">
 
     <div class="navbar-header">
-        <a class="navbar-brand" href="javascript:void(0);">
-            <img style="width: 150px;" class="logo" alt="Attendize" src="{{asset('assets/images/logo-light.png')}}"/>
+        <a class="navbar-brand" href="javascript:void(0);" style="font-size: 1.5rem; font-weight: 600; color: #fff;">
+            Four Links
         </a>
     </div>
 

@@ -52,7 +52,7 @@ class EventRegistrationProfessionController extends MyBaseController
                 ->get()
                 ->map(function ($conference) use ($category_id) {
                     $conference->price = $conference->getPriceForCategory($category_id);
-                    return $conference; 
+                    return $conference;
                 });
 
             return response()->json([
@@ -91,6 +91,40 @@ class EventRegistrationProfessionController extends MyBaseController
             return response()->json([
                 'error' => $e->getMessage(),
                 'professions' => []
+            ], 400);
+        }
+    }
+
+    /**
+     * Get price for category and conference combination
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getRegistrationPrice(Request $request)
+    {
+        try {
+            $categoryId = $request->get('category_id');
+            $conferenceId = $request->get('conference_id');
+
+            if (!$categoryId || !$conferenceId) {
+                return response()->json([
+                    'price' => 0,
+                    'error' => 'Category ID and Conference ID are required'
+                ], 400);
+            }
+
+            $conference = Conference::findOrFail($conferenceId);
+            $price = $conference->getPriceForCategory($categoryId);
+
+            return response()->json([
+                'price' => (float) $price,
+                'formatted_price' => number_format($price, 2)
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'price' => 0,
+                'error' => $e->getMessage()
             ], 400);
         }
     }

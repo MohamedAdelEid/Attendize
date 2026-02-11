@@ -18,7 +18,7 @@ class CreateDynamicFormFieldsTable extends Migration
             $table->unsignedInteger('registration_id');
             $table->string('label');
             $table->string('name');
-            $table->enum('type', ['text', 'email', 'number', 'select', 'checkbox', 'radio', 'textarea', 'date', 'file', 'tel', 'time', 'datetime-local', 'url']);
+            $table->enum('type', ['text', 'email', 'number', 'select', 'checkbox', 'radio', 'textarea', 'date', 'file', 'tel', 'time', 'datetime-local', 'url', 'external_payment']);
             $table->text('options')->nullable(); // For select, checkbox, radio options (JSON)
             $table->boolean('is_required')->default(false);
             $table->integer('sort_order')->default(0);

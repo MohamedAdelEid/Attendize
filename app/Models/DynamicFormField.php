@@ -63,6 +63,23 @@ class DynamicFormField extends Model
             'user_types' => 'User Types',
             'conference' => 'Conference',
             'profession' => 'Profession',
+            'external_payment' => 'External Payment (Bank Transfer)',
+        ];
+    }
+
+    /**
+     * Bank details for external_payment type (stored in options).
+     */
+    public function getBankOptions(): array
+    {
+        if ($this->type !== 'external_payment' || !is_array($this->options)) {
+            return [];
+        }
+        return [
+            'bank_account_name' => $this->options['bank_account_name'] ?? '',
+            'bank_name' => $this->options['bank_name'] ?? '',
+            'bank_iban' => $this->options['bank_iban'] ?? '',
+            'bank_account_number' => $this->options['bank_account_number'] ?? '',
         ];
     }
 }

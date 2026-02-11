@@ -62,5 +62,21 @@ class PaymentGatewaySeeder extends Seeder
             );
         }
 
+        $hyperpay = DB::table('payment_gateways')->where('name', '=', 'HyperPay')->first();
+        if ($hyperpay === null) {
+            DB::table('payment_gateways')->insert(
+                [
+                    'provider_name' => 'HyperPay',
+                    'provider_url' => 'https://www.hyperpay.com',
+                    'is_on_site' => 0,
+                    'can_refund' => 1,
+                    'name' => 'HyperPay',
+                    'default' => 0,
+                    'admin_blade_template' => 'ManageAccount.Partials.HyperPay',
+                    'checkout_blade_template' => 'Public.ViewEvent.Partials.PaymentHyperPay'
+                ]
+            );
+        }
+
     }
 }

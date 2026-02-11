@@ -1,5 +1,5 @@
-// Global variables
-let currentStream = null
+// Global variables (use window.currentStream to avoid redeclaration with scanner inline script)
+if (typeof window.currentStream === 'undefined') window.currentStream = null
 let isScanning = false
 let registrations = []
 let filteredRegistrations = []
@@ -43,7 +43,7 @@ function showTab(tabName) {
   event.target.classList.remove("text-gray-700", "hover:text-black", "hover:bg-gray-100")
 
   // Stop camera when switching away from scanner
-  if (tabName !== "scanner" && currentStream) {
+  if (tabName !== "scanner" && window.currentStream) {
     stopCamera()
   }
 }
@@ -64,9 +64,9 @@ async function startCamera() {
       },
     }
 
-    currentStream = await navigator.mediaDevices.getUserMedia(constraints)
+    window.currentStream = await navigator.mediaDevices.getUserMedia(constraints)
     const video = document.getElementById("qrVideo")
-    video.srcObject = currentStream
+    video.srcObject = window.currentStream
 
     // Show video, hide placeholder
     video.classList.remove("hidden")
@@ -89,9 +89,9 @@ async function startCamera() {
 }
 
 function stopCamera() {
-  if (currentStream) {
-    currentStream.getTracks().forEach((track) => track.stop())
-    currentStream = null
+  if (window.currentStream) {
+    window.currentStream.getTracks().forEach((track) => track.stop())
+    window.currentStream = null
   }
 
   isScanning = false
@@ -137,7 +137,7 @@ function handleQRCodeDetected(qrData) {
   performCheckIn(uniqueCode)
 
   setTimeout(() => {
-    if (currentStream) {
+    if (window.currentStream) {
       isScanning = true
       scanQRCode()
     }
@@ -286,9 +286,8 @@ function displayCheckInResult(result) {
           <p class="text-sm font-medium ${isSuccess ? config.textColor : errorTextColor}">
             ${result.message}
           </p>
-          ${
-            result.user && isSuccess
-              ? `
+          ${result.user && isSuccess
+      ? `
             <div class="mt-3 p-3 bg-white rounded-lg border border-gray-200">
               <div class="flex items-center space-x-3">
                 <div class="flex-shrink-0">
@@ -305,22 +304,21 @@ function displayCheckInResult(result) {
                     <i class="fas fa-clock mr-1"></i>
                     ${config.actionText} at ${new Date().toLocaleTimeString()}
                   </p>
-                  ${
-                    result.user.check_in && result.user.check_out
-                      ? `
+                  ${result.user.check_in && result.user.check_out
+        ? `
                     <div class="mt-2 text-xs text-gray-600">
                       <div>Check-in: ${new Date(result.user.check_in).toLocaleString()}</div>
                       <div>Check-out: ${new Date(result.user.check_out).toLocaleString()}</div>
                     </div>
                   `
-                      : ""
-                  }
+        : ""
+      }
                 </div>
               </div>
             </div>
           `
-              : ""
-          }
+      : ""
+    }
         </div>
       </div>
     </div>
