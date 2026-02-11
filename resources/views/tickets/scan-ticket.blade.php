@@ -76,7 +76,7 @@
                     </div>
                     <div>
                         <h1 class="text-xl font-bold text-gray-900">{{ $event->title }}</h1>
-                        <p class="text-sm text-gray-500">Streamlined event check-in/check-out</p>
+                        <p class="text-sm text-gray-500">Multiple check-in/check-out system</p>
                     </div>
                 </div>
 

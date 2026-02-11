@@ -1,6 +1,7 @@
 <?php
 namespace App\Http\Controllers;
 
+use App\Models\Attendances;
 use App\Models\Attendee;
 use App\Models\CheckInCheckOutLog;
 use App\Models\Event;
@@ -79,7 +80,7 @@ class EventCheckInController extends MyBaseController
             // Perform Check-in
             $uniqueCodeFromDb->update([
                 'check_in' => $actionTime,
-                'check_out' => null // Reset check_out when checking in again
+                'check_out' => null
             ]);
 
             $action = 'check_in';
@@ -134,6 +135,36 @@ class EventCheckInController extends MyBaseController
             'user' => $uniqueCodeFromDb,
             'unique_code_input' => $input,
         ]);
+    }
+
+    public function getAttendanceStats(Event $event)
+    {
+        $totalRegistrations = $event->registrations->sum(function ($registration) {
+            return $registration->registrationUsers()->count();
+        });
+
+        // Currently checked in (latest attendance is check_in without check_out)
+        $currentlyCheckedIn = Attendances::where('event_id', $event->id)
+            ->where('status', 'checked_in')
+            ->whereNull('check_out')
+            ->distinct('registration_user_id')
+            ->count();
+
+        // Total unique users who have checked out at least once
+        $totalCheckedOut = Attendances::where('event_id', $event->id)
+            ->whereNotNull('check_out')
+            ->distinct('registration_user_id')
+            ->count();
+
+        // Total attendance records (all check-ins)
+        $totalCheckIns = Attendances::where('event_id', $event->id)->count();
+
+        return [
+            'total_registrations' => $totalRegistrations,
+            'currently_checked_in' => $currentlyCheckedIn,
+            'total_checked_out' => $totalCheckedOut,
+            'total_check_ins' => $totalCheckIns
+        ];
     }
 
     /**

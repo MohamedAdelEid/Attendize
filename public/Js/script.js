@@ -1,8 +1,8 @@
 // Global variables (use window.currentStream to avoid redeclaration with scanner inline script)
 if (typeof window.currentStream === 'undefined') window.currentStream = null
 let isScanning = false
-let registrations = []
-let filteredRegistrations = []
+const registrations = []
+const filteredRegistrations = []
 
 // Import jsQR library
 const jsQR = window.jsQR
@@ -32,12 +32,6 @@ function showTab(tabName) {
     btn.classList.add("text-gray-700", "hover:text-black", "hover:bg-gray-100")
   })
 
-  // Update navigation - mobile
-  document.querySelectorAll(".mobile-nav-btn").forEach((btn) => {
-    btn.classList.remove("active", "bg-black", "text-white")
-    btn.classList.add("text-gray-700", "hover:text-black", "hover:bg-gray-100")
-  })
-
   // Set active state
   event.target.classList.add("active", "bg-black", "text-white")
   event.target.classList.remove("text-gray-700", "hover:text-black", "hover:bg-gray-100")
@@ -46,11 +40,6 @@ function showTab(tabName) {
   if (tabName !== "scanner" && window.currentStream) {
     stopCamera()
   }
-}
-
-function toggleMobileMenu() {
-  const mobileMenu = document.getElementById("mobileMenu")
-  mobileMenu.classList.toggle("hidden")
 }
 
 // Camera Functions
@@ -152,7 +141,7 @@ function handleManualCheckIn(event) {
   performCheckIn(uniqueCode)
 }
 
-// Check-in/Check-out Logic - Modified to handle both actions
+// Check-in/Check-out Logic - Updated for multiple attendance records
 async function performCheckIn(uniqueCode) {
   const btn = document.getElementById("manualCheckInBtn")
   const originalHTML = btn.innerHTML
@@ -184,7 +173,7 @@ async function performCheckIn(uniqueCode) {
   }
 }
 
-// Real API call to Laravel backend
+// API call to Laravel backend
 async function callCheckInAPI(uniqueCode) {
   const formData = new FormData()
   formData.append("unique_code", uniqueCode)
@@ -202,52 +191,10 @@ async function callCheckInAPI(uniqueCode) {
     throw new Error("Network response was not ok")
   }
 
-  // Handle both JSON and redirect responses
-  const contentType = response.headers.get("content-type")
-  if (contentType && contentType.includes("application/json")) {
-    return await response.json()
-  } else {
-    // Handle redirect response (Laravel's back() with session data)
-    const text = await response.text()
-
-    if (text.includes("User Checked In Successfully")) {
-      return {
-        status: "success",
-        action: "check_in",
-        message: "Successfully checked in!",
-        user: {
-          // You might need to extract user data from the response
-        },
-      }
-    } else if (text.includes("User Checked Out Successfully")) {
-      return {
-        status: "success",
-        action: "check_out",
-        message: "Successfully checked out!",
-        user: {
-          // You might need to extract user data from the response
-        },
-      }
-    } else if (text.includes("Invalid QR Code")) {
-      return {
-        status: "error",
-        message: "Invalid ticket code. Please check the code and try again.",
-      }
-    } else if (text.includes("User Already Completed")) {
-      return {
-        status: "error",
-        message: "Attendee already completed both check-in and check-out",
-      }
-    } else {
-      return {
-        status: "error",
-        message: "An error occurred. Please try again.",
-      }
-    }
-  }
+  return await response.json()
 }
 
-// Display Check-in/Check-out Result - Enhanced to show different actions
+// Display Check-in/Check-out Result - Enhanced for attendance history
 function displayCheckInResult(result) {
   const resultDiv = document.getElementById("checkInResult")
   const isSuccess = result.status === "success"
@@ -275,6 +222,28 @@ function displayCheckInResult(result) {
   const errorConfig = "bg-red-50 border-red-400"
   const errorTextColor = "text-red-800"
   const errorIconColor = "text-red-400"
+
+  let attendanceHistoryHtml = ""
+  if (result.user && result.user.attendance_history && result.user.attendance_history.length > 0) {
+    attendanceHistoryHtml = `
+      <div class="mt-3 p-3 bg-gray-50 rounded-lg">
+        <h4 class="text-xs font-medium text-gray-700 mb-2">Recent Attendance History:</h4>
+        <div class="space-y-1">
+          ${result.user.attendance_history
+            .slice(0, 3)
+            .map(
+              (attendance) => `
+            <div class="text-xs text-gray-600 flex items-center space-x-2">
+              <i class="fas ${attendance.status === "checked_in" ? "fa-sign-in-alt text-green-500" : "fa-sign-out-alt text-blue-500"}"></i>
+              <span>${attendance.status === "checked_in" ? "Check-in" : "Check-out"}: ${new Date(attendance.check_in || attendance.check_out).toLocaleString()}</span>
+            </div>
+          `,
+            )
+            .join("")}
+        </div>
+      </div>
+    `
+  }
 
   const html = `
     <div class="p-4 rounded-lg border-l-4 ${isSuccess ? config.bgColor : errorConfig} animate-fade-in">
@@ -315,6 +284,7 @@ function displayCheckInResult(result) {
       }
                 </div>
               </div>
+              ${attendanceHistoryHtml}
             </div>
           `
       : ""
@@ -338,147 +308,59 @@ function displayCheckInResult(result) {
 
   setTimeout(() => {
     resultDiv.classList.add("hidden")
-  }, 5000)
+  }, 8000) // Longer display time for attendance history
 }
 
 // Registration Management
 function loadRegistrations() {
-  const xhr = new XMLHttpRequest()
-  xhr.open("GET", `/events/${eventId}/fetch-registration-users`, true)
-  xhr.onreadystatechange = () => {
-    if (xhr.readyState === XMLHttpRequest.DONE && xhr.status === 200) {
-      const data = JSON.parse(xhr.responseText)
-      registrations = data.registrationUsers
-      console.log(registrations)
-      filteredRegistrations = [...registrations]
-      renderRegistrationsTable()
-      updateStats()
-    } else if (xhr.readyState === XMLHttpRequest.DONE) {
-      console.error("Error loading registrations:", xhr.statusText)
-    }
-  }
-  xhr.send()
-}
-
-function getActionButtons(registration) {
-  const buttons = []
-  if (registration.status === "pending") {
-    buttons.push(`
-      <button onclick="approveRegistration(${registration.id})" 
-              class="bg-green-600 text-white px-3 py-1 rounded text-xs font-medium hover:bg-green-700 transition-colors duration-200 mr-2">
-        <i class="fas fa-check mr-1"></i>Approve
-      </button>
-      <button onclick="rejectRegistration(${registration.id})" 
-              class="bg-red-600 text-white px-3 py-1 rounded text-xs font-medium hover:bg-red-700 transition-colors duration-200">
-        <i class="fas fa-times mr-1"></i>Reject
-      </button>
-    `)
-  } else if (registration.status === "approved" && !registration.ticket_generated_at) {
-    buttons.push(`
-      <button onclick="generateTicket(${registration.id})" 
-              class="bg-blue-600 text-white px-3 py-1 rounded text-xs font-medium hover:bg-blue-700 transition-colors duration-200">
-        <i class="fas fa-qrcode mr-1"></i>Generate Ticket
-      </button>
-    `)
-  } else if (registration.ticket_generated_at) {
-    buttons.push(`
-      <button onclick="downloadTicket(${registration.id})" 
-              class="bg-gray-600 text-white px-3 py-1 rounded text-xs font-medium hover:bg-gray-700 transition-colors duration-200">
-        <i class="fas fa-download mr-1"></i>Download
-      </button>
-    `)
-  }
-
-  return `<div class="flex items-center space-x-2">${buttons.join("")}</div>`
-}
-
-// Registration Actions
-async function approveRegistration(id) {
-  showLoadingModal()
-  try {
-    await new Promise((resolve) => setTimeout(resolve, 1000))
-    const registration = registrations.find((reg) => reg.id === id)
-    if (registration) {
-      registration.status = "approved"
-      registration.unique_code = generateUniqueCode()
-      registration.updated_at = new Date().toISOString()
-    }
-    renderRegistrationsTable()
-    updateStats()
-    showToast("Registration approved successfully", "success")
-  } catch (error) {
-    showToast("Error approving registration", "error")
-  } finally {
-    hideLoadingModal()
-  }
-}
-
-async function rejectRegistration(id) {
-  showLoadingModal()
-  try {
-    await new Promise((resolve) => setTimeout(resolve, 1000))
-    const registration = registrations.find((reg) => reg.id === id)
-    if (registration) {
-      registration.status = "rejected"
-      registration.updated_at = new Date().toISOString()
-    }
-    renderRegistrationsTable()
-    updateStats()
-    showToast("Registration rejected", "success")
-  } catch (error) {
-    showToast("Error rejecting registration", "error")
-  } finally {
-    hideLoadingModal()
-  }
-}
-
-// Utility Functions
-function generateUniqueCode() {
-  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-  let result = ""
-  for (let i = 0; i < 6; i++) {
-    result += chars.charAt(Math.floor(Math.random() * chars.length))
-  }
-  return result
-}
-
-function filterRegistrations() {
-  const searchTerm = document.getElementById("searchInput").value.toLowerCase()
-  const statusFilter = document.getElementById("statusFilter").value
-
-  filteredRegistrations = registrations.filter((reg) => {
-    const matchesSearch =
-      !searchTerm ||
-      reg.first_name.toLowerCase().includes(searchTerm) ||
-      reg.last_name.toLowerCase().includes(searchTerm) ||
-      reg.email.toLowerCase().includes(searchTerm) ||
-      (reg.unique_code && reg.unique_code.toLowerCase().includes(searchTerm))
-
-    const matchesStatus = !statusFilter || reg.status === statusFilter
-
-    return matchesSearch && matchesStatus
-  })
-
-  renderRegistrationsTable()
-}
-
-function refreshRegistrations() {
-  showLoadingModal()
-  setTimeout(() => {
-    loadRegistrations()
-    updateStats()
-    hideLoadingModal()
-    showToast("Registrations refreshed", "success")
-  }, 1000)
+  // This would be implemented to load registration data via AJAX
+  // For now, we'll use the data already loaded in the page
 }
 
 function updateStats() {
-  const total = registrations.length
-  const checkedIn = registrations.filter((reg) => reg.check_in && !reg.check_out).length
-  const checkedOut = registrations.filter((reg) => reg.check_out).length
-  const qrGenerated = registrations.filter((reg) => reg.ticket_generated_at).length
-  const pending = registrations.filter((reg) => reg.status === "pending").length
+  // Stats are now calculated server-side and displayed in the blade template
+  // This function can be used to refresh stats via AJAX if needed
+}
 
+function filterRegistrations() {
+  // Implementation for filtering the registration table
+  const searchTerm = document.getElementById("searchInput").value.toLowerCase()
+  const statusFilter = document.getElementById("statusFilter").value
+
+  const rows = document.querySelectorAll("tbody tr")
+
+  rows.forEach((row) => {
+    const name = row.querySelector("td:first-child").textContent.toLowerCase()
+    const email = row.querySelector("td:nth-child(2)").textContent.toLowerCase()
+    const code = row.querySelector("td:nth-child(3)").textContent.toLowerCase()
+
+    const matchesSearch =
+      !searchTerm || name.includes(searchTerm) || email.includes(searchTerm) || code.includes(searchTerm)
+
+    let matchesStatus = true
+    if (statusFilter) {
+      const statusCell = row.querySelector("td:nth-child(4)")
+      const statusText = statusCell.textContent.toLowerCase()
+
+      switch (statusFilter) {
+        case "checked_in":
+          matchesStatus = statusText.includes("checked in")
+          break
+        case "checked_out":
+          matchesStatus = statusText.includes("checked out")
+          break
+        case "never_attended":
+          matchesStatus = statusText.includes("never attended")
+          break
+      }
+    }
+
+    if (matchesSearch && matchesStatus) {
+      row.style.display = ""
+    } else {
+      row.style.display = "none"
+    }
+  })
 }
 
 // UI Helper Functions
@@ -524,8 +406,4 @@ function showLoadingModal() {
 
 function hideLoadingModal() {
   document.getElementById("loadingModal").classList.add("hidden")
-}
-
-function renderRegistrationsTable() {
-  console.log("Rendering registrations table with", filteredRegistrations.length, "items")
 }
