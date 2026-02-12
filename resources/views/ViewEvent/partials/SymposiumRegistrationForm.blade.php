@@ -13,7 +13,7 @@
     $externalPaymentField = $landingRegistration->dynamicFormFields && $landingRegistration->dynamicFormFields->count() > 0
         ? $landingRegistration->dynamicFormFields->where('type', 'external_payment')->first()
         : null;
-    $currencyCode = $event->currency ? $event->currency->code : 'SAR';
+    $currencyCode = 'SAR'; // Always use Saudi Riyal for symposium
 @endphp
 <form method="POST" action="{{ route('postEventRegistration', ['event_id' => $event->id, 'registration_id' => $landingRegistration->id]) }}" enctype="multipart/form-data" class="space-y-6" id="{{ $formId }}">
     @csrf
@@ -94,7 +94,7 @@
             <select id="field_{{ $field->id }}" name="fields[{{ $field->id }}]" {{ $field->is_required ? 'required' : '' }} class="w-full input-navy rounded-lg py-3 px-4 symposium-conference-select">
                 <option value="" data-price="0">-- Select conference --</option>
                 @if($landingRegistration->category && $landingRegistration->category->conferences)
-                    @php $currencyCode = $event->currency ? $event->currency->code : 'SAR'; @endphp
+                    @php $currencyCode = 'SAR'; @endphp
                     @foreach($landingRegistration->category->conferences as $conf)
                         @php $price = $conf->getPriceForCategory($landingRegistration->category_id); @endphp
                         <option value="{{ $conf->id }}" data-price="{{ $price }}" {{ old('fields.'.$field->id) == $conf->id ? 'selected' : '' }}>

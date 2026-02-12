@@ -4,6 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>@yield('title', 'Event')</title>
+    {{-- Favicon (SGSS logo on white background) --}}
+    <link rel="icon" type="image/png" href="{{ route('symposiumFavicon') }}">
+    {{-- Open Graph / Social meta --}}
+    <meta property="og:site_name" content="SGSS 2026 - Registration">
+    <meta property="og:title" content="SGSS 2026 Symposium" />
+    <meta property="og:description" content="2 May 2026 - VOCO HOTEL - JEDDAH" />
+    <meta property="og:type" content="website" />
     <!-- Tailwind CSS v3 CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>

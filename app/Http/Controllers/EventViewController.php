@@ -28,6 +28,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Lang;
 use Illuminate\Support\Facades\Storage;
+use Intervention\Image\Facades\Image;
 use Services\Captcha\Factory;
 use Services\PaymentGateway\Factory as PaymentGatewayFactory;
 use Auth;
@@ -1131,6 +1132,27 @@ class EventViewController extends Controller
     {
         $event_id = config('attendize.default_symposium_event_id', 2);
         return $this->showSymposium($request, $event_id);
+    }
+
+    /**
+     * Serve favicon for symposium/show page: SGSS logo on white background.
+     */
+    public function symposiumFavicon()
+    {
+        $logoUrl = 'https://sgss.org.sa/wp-content/uploads/2026/01/Asset-3@3x.png';
+        $size = 64;
+
+        try {
+            $logo = Image::make($logoUrl);
+            $logo->resize($size - 8, $size - 8); // padding
+            $canvas = Image::canvas($size, $size, '#ffffff');
+            $canvas->insert($logo, 'center');
+            return $canvas->response('png')->header('Cache-Control', 'public, max-age=86400');
+        } catch (\Exception $e) {
+            \Log::warning('Symposium favicon generation failed: ' . $e->getMessage());
+            $canvas = Image::canvas($size, $size, '#ffffff');
+            return $canvas->response('png')->header('Cache-Control', 'public, max-age=3600');
+        }
     }
 
     /**

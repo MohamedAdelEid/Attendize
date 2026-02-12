@@ -1195,6 +1195,12 @@ Route::group(
             [EventViewController::class, 'showSpeakersRoot']
         )->name('showSpeakersRoot');
 
+        // Favicon for symposium/show page (logo on white background)
+        Route::get(
+            'favicon-symposium.png',
+            [EventViewController::class, 'symposiumFavicon']
+        )->name('symposiumFavicon');
+
         Route::get(
             '/index',
             [IndexController::class, 'showIndex']
