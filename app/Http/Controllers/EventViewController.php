@@ -300,15 +300,15 @@ class EventViewController extends Controller
                 if ($request->expectsJson()) {
                     return response()->json([
                         'status' => 'error',
-                        'message' => 'خيار التسجيل هذا لم يعد متاحاً.'
+                        'message' => 'This registration option is no longer available.'
                     ], 400);
                 }
                 return redirect()
                     ->route('showEventPage', ['event_id' => $event_id, 'event_slug' => $event->slug])
-                    ->with('error', 'خيار التسجيل هذا لم يعد متاحاً.');
+                    ->with('error', 'This registration option is no longer available.');
             }
 
-            // Validate basic fields with Arabic messages
+            // Validate basic fields with English messages
             $rules = [
                 'first_name' => 'required|string|max:255',
                 'last_name' => 'required|string|max:255',
@@ -317,19 +317,19 @@ class EventViewController extends Controller
             ];
 
             $messages = [
-                'first_name.required' => 'الاسم الأول مطلوب',
-                'first_name.string' => 'الاسم الأول يجب أن يكون نص',
-                'first_name.max' => 'الاسم الأول يجب ألا يزيد عن 255 حرف',
-                'last_name.required' => 'الاسم الأخير مطلوب',
-                'last_name.string' => 'الاسم الأخير يجب أن يكون نص',
-                'last_name.max' => 'الاسم الأخير يجب ألا يزيد عن 255 حرف',
-                'email.required' => 'البريد الإلكتروني مطلوب',
-                'email.email' => 'البريد الإلكتروني غير صحيح',
-                'email.max' => 'البريد الإلكتروني يجب ألا يزيد عن 255 حرف',
-                'email.unique' => 'البريد الإلكتروني مستخدم من قبل',
-                'phone.string' => 'رقم الجوال يجب أن يكون نص',
-                'phone.max' => 'رقم الجوال يجب ألا يزيد عن 20 رقم',
-                'phone.unique' => 'رقم الجوال مستخدم من قبل',
+                'first_name.required' => 'First name is required.',
+                'first_name.string' => 'First name must be text.',
+                'first_name.max' => 'First name may not exceed 255 characters.',
+                'last_name.required' => 'Last name is required.',
+                'last_name.string' => 'Last name must be text.',
+                'last_name.max' => 'Last name may not exceed 255 characters.',
+                'email.required' => 'Email is required.',
+                'email.email' => 'Please enter a valid email address.',
+                'email.max' => 'Email may not exceed 255 characters.',
+                'email.unique' => 'This email is already registered.',
+                'phone.string' => 'Phone must be text.',
+                'phone.max' => 'Phone may not exceed 20 characters.',
+                'phone.unique' => 'This phone number is already registered.',
             ];
 
             // Extract conference_id and profession_id from dynamic fields
@@ -350,14 +350,14 @@ class EventViewController extends Controller
             if ($registration->category && $registration->category->conferences && $registration->category->conferences->where('status', 'active')->count() > 0) {
                 if ($conferenceField) {
                     $rules['fields.' . $conferenceField->id] = 'required|exists:conferences,id';
-                    $messages['fields.' . $conferenceField->id . '.required'] = 'اختيار المؤتمر مطلوب';
-                    $messages['fields.' . $conferenceField->id . '.exists'] = 'المؤتمر المختار غير صحيح';
+                    $messages['fields.' . $conferenceField->id . '.required'] = 'Please select a conference.';
+                    $messages['fields.' . $conferenceField->id . '.exists'] = 'The selected conference is invalid.';
                 }
 
                 if ($professionField) {
                     $rules['fields.' . $professionField->id] = 'required|exists:professions,id';
-                    $messages['fields.' . $professionField->id . '.required'] = 'اختيار المهنة مطلوب';
-                    $messages['fields.' . $professionField->id . '.exists'] = 'المهنة المختارة غير صحيحة';
+                    $messages['fields.' . $professionField->id . '.required'] = 'Please select a profession.';
+                    $messages['fields.' . $professionField->id . '.exists'] = 'The selected profession is invalid.';
                 }
 
                 // Verify the conference is active
@@ -368,12 +368,12 @@ class EventViewController extends Controller
                         if ($request->expectsJson()) {
                             return response()->json([
                                 'status' => 'error',
-                                'message' => 'المؤتمر المختار لم يعد متاحاً.'
+                                'message' => 'The selected conference is no longer available.'
                             ], 400);
                         }
                         return redirect()
                             ->back()
-                            ->with('error', 'المؤتمر المختار لم يعد متاحاً.')
+                            ->with('error', 'The selected conference is no longer available.')
                             ->withInput();
                     }
                 }
@@ -400,16 +400,16 @@ class EventViewController extends Controller
                         $fieldRules[] = 'required';
                         $fieldRules[] = 'file';
                         $fieldRules[] = 'max:10240';
-                        $messages["fields.{$field->id}.required"] = 'يرجى رفع صورة إيصال التحويل البنكي';
-                        $messages["fields.{$field->id}.file"] = "حقل {$field->label} يجب أن يكون ملف";
-                        $messages["fields.{$field->id}.max"] = "حجم الملف يجب ألا يزيد عن 10 ميجابايت";
+                        $messages["fields.{$field->id}.required"] = 'Please upload your bank transfer receipt.';
+                        $messages["fields.{$field->id}.file"] = "The {$field->label} field must be a file.";
+                        $messages["fields.{$field->id}.max"] = "File size may not exceed 10 MB.";
                     } else {
                         $fieldRules[] = 'nullable';
                     }
                 } else {
                     if ($field->is_required) {
                         $fieldRules[] = 'required';
-                        $messages["fields.{$field->id}.required"] = "حقل {$field->label} مطلوب";
+                        $messages["fields.{$field->id}.required"] = "The {$field->label} field is required.";
                     } else {
                         $fieldRules[] = 'nullable';
                     }
@@ -417,14 +417,14 @@ class EventViewController extends Controller
                     if ($field->type == 'file') {
                         $fieldRules[] = 'file';
                         $fieldRules[] = 'max:10240';
-                        $messages["fields.{$field->id}.file"] = "حقل {$field->label} يجب أن يكون ملف";
-                        $messages["fields.{$field->id}.max"] = "حجم الملف يجب ألا يزيد عن 10 ميجابايت";
+                        $messages["fields.{$field->id}.file"] = "The {$field->label} field must be a file.";
+                        $messages["fields.{$field->id}.max"] = "File size may not exceed 10 MB.";
                     } elseif ($field->type == 'email') {
                         $fieldRules[] = 'email';
-                        $messages["fields.{$field->id}.email"] = "حقل {$field->label} يجب أن يكون بريد إلكتروني صحيح";
+                        $messages["fields.{$field->id}.email"] = "The {$field->label} field must be a valid email address.";
                     } elseif ($field->type == 'date') {
                         $fieldRules[] = 'date';
-                        $messages["fields.{$field->id}.date"] = "حقل {$field->label} يجب أن يكون تاريخ صحيح";
+                        $messages["fields.{$field->id}.date"] = "The {$field->label} field must be a valid date.";
                     }
                 }
 
@@ -437,7 +437,7 @@ class EventViewController extends Controller
                 if ($request->expectsJson()) {
                     return response()->json([
                         'status' => 'error',
-                        'message' => 'يرجى تصحيح الأخطاء في النموذج',
+                        'message' => 'Please correct the errors in the form.',
                         'errors' => $validator->errors()
                     ], 422);
                 }
@@ -505,20 +505,20 @@ class EventViewController extends Controller
                 $activeAccountPaymentGateway = $event->account->getGateway($event->account->payment_gateway_id);
 
                 if (empty($activeAccountPaymentGateway)) {
-                    $errorDetails[] = 'لا توجد بوابة دفع مفعلة للحساب';
+                    $errorDetails[] = 'No payment gateway is enabled for this account.';
                 } else {
                     $paymentGateway = $activeAccountPaymentGateway->payment_gateway;
 
                     if ($paymentGateway->name != 'HyperPay') {
-                        $errorDetails[] = 'البوابة المفعلة ليست HyperPay: ' . $paymentGateway->name;
+                        $errorDetails[] = 'The enabled gateway is not HyperPay: ' . $paymentGateway->name;
                     } else {
                         // Check config
                         $config = $activeAccountPaymentGateway->config ?? [];
                         if (empty($config['accessToken'])) {
-                            $errorDetails[] = 'Access Token غير موجود في الإعدادات';
+                            $errorDetails[] = 'Access Token is missing in settings.';
                         }
                         if (empty($config['entityId'])) {
-                            $errorDetails[] = 'Entity ID غير موجود في الإعدادات';
+                            $errorDetails[] = 'Entity ID is missing in settings.';
                         }
 
                         if (!empty($config['accessToken']) && !empty($config['entityId'])) {
@@ -577,12 +577,12 @@ class EventViewController extends Controller
                                         session()->put('hyperpay_checkout_id_' . $event_id, $checkoutId);
                                         session()->put('registration_order_' . $event_id . '.transaction_data', $transactionData);
                                     } else {
-                                        $errorDetails[] = 'لم يتم إنشاء checkout ID. Response: ' . json_encode($responseData);
+                                        $errorDetails[] = 'Checkout ID was not created. Response: ' . json_encode($responseData);
                                     }
                                 } else {
                                     $resultCode = $responseData['result']['code'] ?? 'UNKNOWN';
                                     $resultDesc = $responseData['result']['description'] ?? 'No description';
-                                    $errorDetails[] = "فشل في إنشاء جلسة الدفع. Code: {$resultCode}, Description: {$resultDesc}";
+                                    $errorDetails[] = "Failed to create payment session. Code: {$resultCode}, Description: {$resultDesc}";
                                     \Log::error('HyperPay API Error: ', $responseData);
                                 }
                             } catch (\Exception $e) {
@@ -597,9 +597,9 @@ class EventViewController extends Controller
                 }
 
                 if (!$checkoutId) {
-                    $errorMessage = 'فشل في إنشاء جلسة الدفع. تأكد من إعداد بوابة الدفع بشكل صحيح.';
+                    $errorMessage = 'Failed to create payment session. Please check that the payment gateway is set up correctly.';
                     if (!empty($errorDetails)) {
-                        $errorMessage .= ' التفاصيل: ' . implode(' | ', $errorDetails);
+                        $errorMessage .= ' Details: ' . implode(' | ', $errorDetails);
                     }
 
                     if ($request->expectsJson() || $request->ajax()) {
@@ -618,7 +618,7 @@ class EventViewController extends Controller
                 if ($request->expectsJson() || $request->ajax()) {
                     return response()->json([
                         'status' => 'success',
-                        'message' => 'تم حفظ بيانات التسجيل',
+                        'message' => 'Registration details saved.',
                         'requires_payment' => true,
                         'total_price' => $totalPrice,
                         'checkout_id' => $checkoutId,
@@ -724,14 +724,14 @@ class EventViewController extends Controller
             if ($request->expectsJson() || $request->ajax()) {
                 return response()->json([
                     'status' => 'error',
-                    'message' => 'حدث خطأ أثناء معالجة طلب التسجيل. يرجى المحاولة مرة أخرى.',
+                    'message' => 'An error occurred while processing your registration. Please try again.',
                     'error' => config('app.debug') ? $e->getMessage() : null
                 ], 500);
             }
 
             return redirect()
                 ->back()
-                ->with('error', 'حدث خطأ أثناء معالجة طلب التسجيل. يرجى المحاولة مرة أخرى.')
+                ->with('error', 'An error occurred while processing your registration. Please try again.')
                 ->withInput();
         }
     }
@@ -750,7 +750,7 @@ class EventViewController extends Controller
         if (!$registrationOrder || $registrationOrder['expires'] < time()) {
             return redirect()
                 ->route('showEventPage', ['event_id' => $event_id])
-                ->with('error', 'انتهت صلاحية جلسة التسجيل. يرجى المحاولة مرة أخرى.');
+                ->with('error', 'Your registration session has expired. Please try again.');
         }
 
         $event = Event::findOrFail($event_id);
@@ -759,7 +759,7 @@ class EventViewController extends Controller
         if (empty($activeAccountPaymentGateway)) {
             return redirect()
                 ->route('showEventPage', ['event_id' => $event_id])
-                ->with('error', 'لا توجد بوابة دفع متاحة.');
+                ->with('error', 'No payment gateway is available.');
         }
 
         $paymentGateway = $activeAccountPaymentGateway->payment_gateway;
@@ -825,7 +825,7 @@ class EventViewController extends Controller
         if (!$registrationOrder) {
             return redirect()
                 ->route('showEventPage', ['event_id' => $event_id])
-                ->with('error', 'لا توجد بيانات تسجيل متاحة.');
+                ->with('error', 'No registration data is available.');
         }
 
         $event = Event::findOrFail($event_id);
@@ -834,7 +834,7 @@ class EventViewController extends Controller
         if (empty($activeAccountPaymentGateway)) {
             return redirect()
                 ->route('showEventPage', ['event_id' => $event_id])
-                ->with('error', 'لا توجد بوابة دفع متاحة.');
+                ->with('error', 'No payment gateway is available.');
         }
 
         $payment_gateway_config = $activeAccountPaymentGateway->config + [
@@ -868,7 +868,7 @@ class EventViewController extends Controller
             // Payment failed
             return redirect()
                 ->route('showRegistrationPayment', ['event_id' => $event_id, 'is_payment_failed' => 1])
-                ->with('error', $response->getMessage() ?? 'فشلت عملية الدفع. يرجى المحاولة مرة أخرى.');
+                ->with('error', $response->getMessage() ?? 'Payment failed. Please try again.');
         }
     }
 
@@ -886,7 +886,7 @@ class EventViewController extends Controller
         if (!$registrationOrder) {
             return redirect()
                 ->route('showEventPage', ['event_id' => $event_id])
-                ->with('error', 'لا توجد بيانات تسجيل متاحة.');
+                ->with('error', 'No registration data is available.');
         }
 
         try {
@@ -949,13 +949,13 @@ class EventViewController extends Controller
 
             return redirect()
                 ->route('showRegistrationConfirmation', ['event_id' => $event_id])
-                ->with('success', 'تم التسجيل والدفع بنجاح!');
+                ->with('success', 'Registration and payment completed successfully!');
 
         } catch (\Exception $e) {
             DB::rollBack();
             return redirect()
                 ->route('showRegistrationPayment', ['event_id' => $event_id, 'is_payment_failed' => 1])
-                ->with('error', 'حدث خطأ أثناء حفظ بيانات التسجيل. يرجى المحاولة مرة أخرى.');
+                ->with('error', 'An error occurred while saving your registration. Please try again.');
         }
     }
 
@@ -989,7 +989,7 @@ class EventViewController extends Controller
         if (!$registrationOrder) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'لا توجد بيانات تسجيل متاحة.'
+                'message' => 'No registration data is available.'
             ], 400);
         }
 
@@ -999,7 +999,7 @@ class EventViewController extends Controller
         if (empty($activeAccountPaymentGateway)) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'لا توجد بوابة دفع متاحة.'
+                'message' => 'No payment gateway is available.'
             ], 400);
         }
 
@@ -1008,7 +1008,7 @@ class EventViewController extends Controller
         if ($paymentGateway->name != 'HyperPay') {
             return response()->json([
                 'status' => 'error',
-                'message' => 'بوابة الدفع غير مدعومة.'
+                'message' => 'Payment gateway is not supported.'
             ], 400);
         }
 
@@ -1027,7 +1027,7 @@ class EventViewController extends Controller
             if (!$resourcePath && !$checkoutId) {
                 return response()->json([
                     'status' => 'error',
-                    'message' => 'معاملات الدفع غير صحيحة.'
+                    'message' => 'Invalid payment parameters.'
                 ], 400);
             }
 
@@ -1121,7 +1121,7 @@ class EventViewController extends Controller
 
                     return response()->json([
                         'status' => 'success',
-                        'message' => 'تم الدفع والتسجيل بنجاح!',
+                        'message' => 'Payment and registration completed successfully!',
                         'redirect_url' => route('showRegistrationConfirmation', ['event_id' => $event_id])
                     ]);
 
@@ -1131,13 +1131,13 @@ class EventViewController extends Controller
 
                     return response()->json([
                         'status' => 'error',
-                        'message' => 'حدث خطأ أثناء إتمام التسجيل.'
+                        'message' => 'An error occurred while completing your registration.'
                     ], 500);
                 }
             } else {
                 return response()->json([
                     'status' => 'error',
-                    'message' => $response->getMessage() ?? 'فشلت عملية الدفع. يرجى المحاولة مرة أخرى.'
+                    'message' => $response->getMessage() ?? 'Payment failed. Please try again.'
                 ], 400);
             }
 
@@ -1146,7 +1146,7 @@ class EventViewController extends Controller
 
             return response()->json([
                 'status' => 'error',
-                'message' => 'حدث خطأ أثناء التحقق من حالة الدفع.'
+                'message' => 'An error occurred while checking payment status.'
             ], 500);
         }
     }
@@ -1388,9 +1388,9 @@ class EventViewController extends Controller
 
         if (RegistrationUser::where('registration_id', $registration->id)->where('email', $email)->exists()) {
             if ($request->expectsJson() || $request->ajax()) {
-                return response()->json(['status' => 'error', 'message' => 'هذا البريد مسجل مسبقاً في هذا التسجيل.'], 422);
+                return response()->json(['status' => 'error', 'message' => 'This email is already registered for this event.'], 422);
             }
-            return redirect()->back()->with('error', 'هذا البريد مسجل مسبقاً في هذا التسجيل.');
+            return redirect()->back()->with('error', 'This email is already registered for this event.');
         }
 
         try {
