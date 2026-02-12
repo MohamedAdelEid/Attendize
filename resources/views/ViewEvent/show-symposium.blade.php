@@ -170,8 +170,8 @@
                         <div class="flex items-start gap-3">
                             <svg class="w-6 h-6 flex-shrink-0 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                             <div>
-                                <p class="font-semibold">تم التسجيل بنجاح</p>
-                                <p class="text-sm mt-1 opacity-90">تم استلام طلبك. سيتم مراجعته من قبل الفريق.</p>
+                                <p class="font-semibold">Registration Successful</p>
+                                <p class="text-sm mt-1 opacity-90">Your registration request has been received. It will be reviewed by our team.</p>
                             </div>
                         </div>
                     </div>
@@ -216,8 +216,8 @@
                                     <div class="flex items-start gap-3">
                                         <svg class="w-6 h-6 flex-shrink-0 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                                         <div>
-                                            <p class="font-semibold">تم التسجيل بنجاح</p>
-                                            <p class="text-sm mt-1 opacity-90">تم استلام طلبك. سيتم مراجعته من قبل الفريق.</p>
+                                            <p class="font-semibold">Registration Successful</p>
+                                            <p class="text-sm mt-1 opacity-90">Your registration request has been received. It will be reviewed by our team.</p>
                                         </div>
                                     </div>
                                 </div>
@@ -361,7 +361,7 @@
             var successEl = document.getElementById('non-member-register-success');
             var paymentWrap = document.getElementById('non-member-payment-wrap');
             clearFormFieldErrors(form);
-            statusEl.textContent = 'جاري الإرسال...';
+            statusEl.textContent = 'Submitting...';
             statusEl.classList.remove('hidden', 'text-red-400', 'text-primary', 'rounded-lg', 'p-3', 'bg-red-500/10', 'border', 'border-red-500/30', 'mb-4');
             successEl.classList.add('hidden');
             paymentWrap.classList.add('hidden');
@@ -389,14 +389,14 @@
                     }
                 } else {
                     statusEl.innerHTML = '';
-                    statusEl.textContent = data.message || 'حدث خطأ.';
+                    statusEl.textContent = data.message || 'An error occurred.';
                     statusEl.classList.remove('hidden');
                     statusEl.classList.add('text-red-400', 'rounded-lg', 'p-3', 'bg-red-500/10', 'border', 'border-red-500/30', 'mb-4');
                     if (data.errors && typeof data.errors === 'object') showFormFieldErrors(form, data.errors);
                     form.querySelector('[name="email"]') && form.querySelector('[name="email"]').scrollIntoView({ behavior: 'smooth', block: 'center' });
                 }
             }).catch(function() {
-                statusEl.textContent = 'فشل الإرسال. حاول مرة أخرى.';
+                statusEl.textContent = 'Submission failed. Please try again.';
                 statusEl.classList.remove('hidden');
                 statusEl.classList.add('text-red-400');
             });
@@ -505,7 +505,7 @@
                 var form = this;
                 var statusEl = document.getElementById('member-register-status');
                 clearFormFieldErrors(form);
-                statusEl.textContent = 'جاري الإرسال...';
+                statusEl.textContent = 'Submitting...';
                 statusEl.classList.remove('hidden', 'text-red-400', 'rounded-lg', 'p-3', 'bg-red-500/10', 'border', 'border-red-500/30', 'mb-4');
                 var formData = new FormData(form);
                 fetch(form.action, {
@@ -521,14 +521,14 @@
                         if (formContainer) formContainer.classList.add('hidden');
                         successEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
                     } else {
-                        statusEl.textContent = data.message || 'حدث خطأ.';
+                        statusEl.textContent = data.message || 'An error occurred.';
                         statusEl.classList.remove('hidden');
                         statusEl.classList.add('text-red-400', 'rounded-lg', 'p-3', 'bg-red-500/10', 'border', 'border-red-500/30', 'mb-4');
                         if (data.errors && typeof data.errors === 'object') showFormFieldErrors(form, data.errors);
                         form.querySelector('[name="email"]') && form.querySelector('[name="email"]').scrollIntoView({ behavior: 'smooth', block: 'center' });
                     }
                 }).catch(function() {
-                    statusEl.textContent = 'فشل الإرسال. حاول مرة أخرى.';
+                    statusEl.textContent = 'Submission failed. Please try again.';
                     statusEl.classList.remove('hidden');
                     statusEl.classList.add('text-red-400');
                 });

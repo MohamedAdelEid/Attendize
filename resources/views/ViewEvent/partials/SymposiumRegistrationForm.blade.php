@@ -91,13 +91,13 @@
             </select>
             @elseif($field->type == 'conference')
             @if(!$professionField)
-            <select id="field_{{ $field->id }}" name="fields[{{ $field->id }}]" {{ $field->is_required ? 'required' : '' }} class="w-full input-navy rounded-lg py-3 px-4">
-                <option value="">-- Select conference --</option>
+            <select id="field_{{ $field->id }}" name="fields[{{ $field->id }}]" {{ $field->is_required ? 'required' : '' }} class="w-full input-navy rounded-lg py-3 px-4 symposium-conference-select">
+                <option value="" data-price="0">-- Select conference --</option>
                 @if($landingRegistration->category && $landingRegistration->category->conferences)
                     @php $currencyCode = $event->currency ? $event->currency->code : 'SAR'; @endphp
                     @foreach($landingRegistration->category->conferences as $conf)
                         @php $price = $conf->getPriceForCategory($landingRegistration->category_id); @endphp
-                        <option value="{{ $conf->id }}" {{ old('fields.'.$field->id) == $conf->id ? 'selected' : '' }}>
+                        <option value="{{ $conf->id }}" data-price="{{ $price }}" {{ old('fields.'.$field->id) == $conf->id ? 'selected' : '' }}>
                             {{ $conf->name }} - {{ number_format($price, 2) }} {{ $currencyCode }}
                         </option>
                     @endforeach
@@ -146,6 +146,7 @@
     if (!form) return;
     var confInput = document.getElementById(formId + '-conference-id');
     var professionSelect = form.querySelector('.symposium-profession-select');
+    var conferenceSelect = form.querySelector('.symposium-conference-select');
     var externalSection = document.getElementById(formId + '-external-payment-section');
     var externalTotalEl = document.getElementById(formId + '-external-payment-total');
     var currencyCode = '{{ $currencyCode }}';
@@ -156,10 +157,24 @@
             confInput.value = opt && opt.getAttribute('data-conference-id') ? opt.getAttribute('data-conference-id') : '';
         }
     }
+    function getSelectedPrice() {
+        var price = 0;
+        if (professionSelect) {
+            var opt = professionSelect.options[professionSelect.selectedIndex];
+            if (opt && opt.getAttribute('data-price')) {
+                price = parseFloat(opt.getAttribute('data-price'));
+            }
+        } else if (conferenceSelect) {
+            var opt = conferenceSelect.options[conferenceSelect.selectedIndex];
+            if (opt && opt.getAttribute('data-price')) {
+                price = parseFloat(opt.getAttribute('data-price'));
+            }
+        }
+        return price;
+    }
     function updateExternalPaymentSection() {
-        if (!externalSection || !professionSelect) return;
-        var opt = professionSelect.options[professionSelect.selectedIndex];
-        var price = opt && opt.getAttribute('data-price') ? parseFloat(opt.getAttribute('data-price')) : 0;
+        if (!externalSection) return;
+        var price = getSelectedPrice();
         var receiptInput = externalSection.querySelector('input[type="file"]');
         if (price > 0) {
             externalSection.classList.remove('hidden');
@@ -177,6 +192,12 @@
             updateExternalPaymentSection();
         });
         setConferenceFromProfession();
+        updateExternalPaymentSection();
+    }
+    if (conferenceSelect) {
+        conferenceSelect.addEventListener('change', function() {
+            updateExternalPaymentSection();
+        });
         updateExternalPaymentSection();
     }
 })();

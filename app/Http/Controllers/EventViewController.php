@@ -678,7 +678,7 @@ class EventViewController extends Controller
             if ($request->expectsJson() || $request->ajax()) {
                 $payload = [
                     'status' => 'success',
-                    'message' => 'تم التسجيل بنجاح',
+                    'message' => 'Registration successful',
                     'requires_payment' => false,
                 ];
                 if (!$registration->is_members_form) {
@@ -1122,6 +1122,15 @@ class EventViewController extends Controller
     }
 
     /**
+     * Show symposium landing page on root URL (/). Uses event_id from config or defaults to 2.
+     */
+    public function showSymposiumRoot(Request $request)
+    {
+        $event_id = config('attendize.default_symposium_event_id', 2);
+        return $this->showSymposium($request, $event_id);
+    }
+
+    /**
      * Show symposium landing page (navy/gold style) with landing + members registration forms.
      */
     public function showSymposium(Request $request, $event_id)
@@ -1346,10 +1355,10 @@ class EventViewController extends Controller
             if ($request->expectsJson() || $request->ajax()) {
                 return response()->json([
                     'status' => 'success',
-                    'message' => 'تم التسجيل بنجاح',
+                    'message' => 'Registration successful',
                 ]);
             }
-            return redirect()->back()->with('success', 'تم التسجيل بنجاح');
+            return redirect()->back()->with('success', 'Registration successful');
         } catch (\Exception $e) {
             DB::rollBack();
             if ($request->expectsJson() || $request->ajax()) {

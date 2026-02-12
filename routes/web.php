@@ -1178,8 +1178,14 @@ Route::group(
             });
         });
 
+        // Symposium landing page on root URL (/) - must be before index route
         Route::get(
             '/',
+            [EventViewController::class, 'showSymposiumRoot']
+        )->name('showSymposiumRoot');
+
+        Route::get(
+            '/index',
             [IndexController::class, 'showIndex']
         )->name('index');
     }
