@@ -124,8 +124,28 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
                 @if(!empty($bankOpts['bank_account_name']))<p><span class="text-muted-foreground">Account Name:</span> <span class="font-medium">{{ $bankOpts['bank_account_name'] }}</span></p>@endif
                 @if(!empty($bankOpts['bank_name']))<p><span class="text-muted-foreground">Bank Name:</span> <span class="font-medium">{{ $bankOpts['bank_name'] }}</span></p>@endif
-                @if(!empty($bankOpts['bank_iban']))<p><span class="text-muted-foreground">IBAN:</span> <span class="font-medium">{{ $bankOpts['bank_iban'] }}</span></p>@endif
-                @if(!empty($bankOpts['bank_account_number']))<p><span class="text-muted-foreground">Account Number:</span> <span class="font-medium">{{ $bankOpts['bank_account_number'] }}</span></p>@endif
+                @if(!empty($bankOpts['bank_iban']))
+                <p class="flex items-center gap-2">
+                    <span class="text-muted-foreground">IBAN:</span> 
+                    <span class="font-medium" id="{{ $formId }}-iban-value">{{ $bankOpts['bank_iban'] }}</span>
+                    <button type="button" onclick="copyToClipboard('{{ $bankOpts['bank_iban'] }}', '{{ $formId }}-iban-copy-btn')" id="{{ $formId }}-iban-copy-btn" class="text-primary hover:text-accent transition-colors" title="Copy IBAN">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                        </svg>
+                    </button>
+                </p>
+                @endif
+                @if(!empty($bankOpts['bank_account_number']))
+                <p class="flex items-center gap-2">
+                    <span class="text-muted-foreground">Account Number:</span> 
+                    <span class="font-medium" id="{{ $formId }}-account-value">{{ $bankOpts['bank_account_number'] }}</span>
+                    <button type="button" onclick="copyToClipboard('{{ $bankOpts['bank_account_number'] }}', '{{ $formId }}-account-copy-btn')" id="{{ $formId }}-account-copy-btn" class="text-primary hover:text-accent transition-colors" title="Copy Account Number">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                        </svg>
+                    </button>
+                </p>
+                @endif
             </div>
             @endif
             <div>
@@ -201,6 +221,66 @@
         updateExternalPaymentSection();
     }
 })();
+
+// Copy to clipboard function
+function copyToClipboard(text, buttonId) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(function() {
+            showCopyFeedback(buttonId, true);
+        }).catch(function(err) {
+            console.error('Failed to copy:', err);
+            fallbackCopyToClipboard(text, buttonId);
+        });
+    } else {
+        fallbackCopyToClipboard(text, buttonId);
+    }
+}
+
+function fallbackCopyToClipboard(text, buttonId) {
+    var textArea = document.createElement('textarea');
+    textArea.value = text;
+    textArea.style.position = 'fixed';
+    textArea.style.left = '-999999px';
+    textArea.style.top = '-999999px';
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    try {
+        document.execCommand('copy');
+        showCopyFeedback(buttonId, true);
+    } catch (err) {
+        console.error('Fallback copy failed:', err);
+        showCopyFeedback(buttonId, false);
+    }
+    document.body.removeChild(textArea);
+}
+
+function showCopyFeedback(buttonId, success) {
+    var button = document.getElementById(buttonId);
+    if (!button) return;
+    
+    var svg = button.querySelector('svg');
+    if (!svg) return;
+    
+    // Save original SVG
+    if (!button.dataset.originalSvg) {
+        button.dataset.originalSvg = svg.innerHTML;
+    }
+    
+    if (success) {
+        // Show checkmark icon
+        svg.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>';
+        button.style.color = '#10b981'; // green-500
+        button.classList.remove('text-primary');
+        
+        // Restore after 2 seconds
+        setTimeout(function() {
+            svg.innerHTML = button.dataset.originalSvg;
+            button.style.color = '';
+            button.classList.add('text-primary');
+        }, 2000);
+    }
+}
 </script>
 @else
 <p class="text-muted-foreground text-center py-4">No landing registration form is configured. Set one registration as "Display on landing page" in Event → Registration.</p>

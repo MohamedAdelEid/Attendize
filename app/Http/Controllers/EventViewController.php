@@ -456,8 +456,11 @@ class EventViewController extends Controller
                 }
             }
 
-            // If payment is required, store data in session and redirect to payment
-            if ($totalPrice > 0) {
+            // Check if external payment field exists - if yes, skip online payment and register directly
+            $hasExternalPaymentField = $registration->dynamicFormFields->where('type', 'external_payment')->isNotEmpty();
+            
+            // If payment is required and NO external payment field, store data in session and redirect to payment
+            if ($totalPrice > 0 && !$hasExternalPaymentField) {
                 // Store registration data in session
                 $registrationData = [
                     'event_id' => $event_id,
@@ -1131,6 +1134,15 @@ class EventViewController extends Controller
     }
 
     /**
+     * Show speakers page on root URL (/speakers). Uses event_id from config or defaults to 2.
+     */
+    public function showSpeakersRoot(Request $request)
+    {
+        $event_id = config('attendize.default_symposium_event_id', 2);
+        return $this->showSpeakers($request, $event_id);
+    }
+
+    /**
      * Show symposium landing page (navy/gold style) with landing + members registration forms.
      */
     public function showSymposium(Request $request, $event_id)
@@ -1143,6 +1155,15 @@ class EventViewController extends Controller
         $countries = Country::all();
 
         return view('ViewEvent.show-symposium', compact('event', 'landingRegistration', 'membersRegistration', 'uniqueMemberField', 'countries'));
+    }
+
+    /**
+     * Show speakers page with same theme as symposium.
+     */
+    public function showSpeakers(Request $request, $event_id)
+    {
+        $event = Event::findOrFail($event_id);
+        return view('ViewEvent.show-speakers', compact('event'));
     }
 
     /**

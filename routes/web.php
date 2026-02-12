@@ -259,6 +259,11 @@ Route::group(
                 [EventViewController::class, 'showSymposium']
             )->name('showEventSymposium');
 
+            Route::get(
+                '/{event_id}/speakers',
+                [EventViewController::class, 'showSpeakers']
+            )->name('showEventSpeakers');
+
             Route::post(
                 '/{event_id}/api/member-lookup',
                 [EventViewController::class, 'memberLookup']
@@ -1183,6 +1188,12 @@ Route::group(
             '/',
             [EventViewController::class, 'showSymposiumRoot']
         )->name('showSymposiumRoot');
+
+        // Speakers page on root URL (/speakers)
+        Route::get(
+            '/speakers',
+            [EventViewController::class, 'showSpeakersRoot']
+        )->name('showSpeakersRoot');
 
         Route::get(
             '/index',

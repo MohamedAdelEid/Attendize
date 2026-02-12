@@ -1,6 +1,6 @@
 @extends('ViewEvent.layouts.symposium-layout')
 
-@section('title', isset($event) ? $event->title : 'Medicine & Law Seminar')
+@section('title', isset($event) ? $event->title : 'Medicine & Judiciary Symposium')
 
 @section('content')
 <main class="min-h-screen">
@@ -8,13 +8,14 @@
     <header id="header" class="fixed top-0 left-0 right-0 z-50 transition-all duration-300 header-sticky py-4 header-scrolled">
         <div class="container mx-auto px-4 flex items-center justify-between">
             <div class="flex items-center gap-4">
-                <img src="{{ asset('images/logo-placeholder.svg') }}" alt="Logo 1" class="h-12 w-12 md:h-14 md:w-14 object-contain" onerror="this.style.display='none'">
-                <img src="{{ asset('images/logo-placeholder-2.svg') }}" alt="Logo 2" class="h-12 w-12 md:h-14 md:w-14 object-contain" onerror="this.style.display='none'">
+                <img src="https://sgss.org.sa/wp-content/uploads/2026/01/Asset-3@3x.png" alt="Logo 1" class="h-12 w-12 md:h-14 md:w-14 object-contain bg-white " onerror="this.style.display='none'">
+                <img src="https://cdn4.premiumread.com/?url=https://www.al-madina.com/uploads/images/2020/06/24/1786780.jpg&w=800&q=100&f=jpg" alt="Logo 2" class="h-12 w-12 md:h-14 md:w-14 object-contain" onerror="this.style.display='none'">
                 @if(!isset($event))
                 <span class="text-lg font-semibold">Event</span>
                 @endif
             </div>
             <nav class="hidden md:flex items-center gap-8">
+                <a href="{{ route('showSpeakersRoot') }}" class="link-gold font-medium text-foreground">Speakers</a>
                 <button type="button" onclick="document.getElementById('pricing').scrollIntoView({behavior:'smooth'})" class="link-gold font-medium text-foreground">Pricing</button>
                 <button type="button" onclick="document.getElementById('registration').scrollIntoView({behavior:'smooth'})" class="link-gold font-medium text-foreground">Registration</button>
                 <button type="button" onclick="document.getElementById('location').scrollIntoView({behavior:'smooth'})" class="link-gold font-medium text-foreground">Location</button>
@@ -39,24 +40,25 @@
             </div>
             <h1 class="text-4xl md:text-6xl lg:text-7xl font-bold mb-4 opacity-0 animate-fade-up delay-100">
                 <span class="block text-foreground">Medicine &</span>
-                <span class="text-gold-gradient">Law Seminar</span>
+                <span class="text-gold-gradient">Judiciary Symposium</span>
             </h1>
             <p class="text-xl md:text-2xl lg:text-3xl text-muted-foreground mb-8 opacity-0 animate-fade-up delay-200 font-serif">Legal Liability in Surgical Professions</p>
             <div class="flex flex-col md:flex-row items-center justify-center gap-4 md:gap-8 mb-10 opacity-0 animate-fade-up delay-300">
                 <div class="flex items-center gap-2 text-foreground">
                     <svg class="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-                    <span class="text-lg">{{ isset($event) ? $event->start_date->format('F j, Y') : 'May 2, 2026' }}</span>
+                    {{-- <span class="text-lg">{{ isset($event) ? $event->start_date->format('F j, Y') : 'May 2, 2026' }}</span> --}}
+                    <span class="text-lg">May 2, 2026</span>
                 </div>
                 <div class="hidden md:block w-px h-6 bg-border"></div>
                 <div class="flex items-center gap-2 text-foreground">
                     <svg class="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-                    <span class="text-lg">Crowne Plaza - Al Hamra, Jeddah</span>
+                    <span class="text-lg">voco Jeddah Gate by IHG, Jeddah</span>
                 </div>
             </div>
             <div class="mb-10 opacity-0 animate-fade-up delay-400">
                 <p class="text-muted-foreground mb-4">Target Audience</p>
                 <div class="flex flex-wrap justify-center gap-3">
-                    @foreach(['Consultants', 'Specialists', 'Residents'] as $item)
+                    @foreach(['Consultants', 'Specialists', 'Residents' , 'Students', 'Nursing'] as $item)
                     <span class="px-4 py-2 rounded-full bg-secondary border border-border text-foreground text-sm">{{ $item }}</span>
                     @endforeach
                 </div>
@@ -148,7 +150,7 @@
         <div class="container mx-auto px-4 relative z-10">
             <div class="text-center mb-12">
                 <h2 class="text-3xl md:text-4xl font-bold mb-4"><span class="text-gold-gradient">Registration</span></h2>
-                <p class="text-muted-foreground text-lg">Register now to attend the Medicine & Law Seminar</p>
+                <p class="text-muted-foreground text-lg">Register now to attend the Medicine & Judiciary Symposium</p>
             </div>
             <div class="max-w-2xl mx-auto card-navy rounded-2xl p-6 md:p-8">
                 <div class="flex rounded-xl overflow-hidden mb-8" role="tablist">
@@ -237,12 +239,12 @@
         <div class="container mx-auto px-4">
             <div class="text-center mb-12">
                 <h2 class="text-3xl md:text-4xl font-bold mb-4"><span class="text-gold-gradient">Venue Location</span></h2>
-                <p class="text-muted-foreground text-lg">Crowne Plaza Hotel - Al Hamra, Jeddah</p>
+                <p class="text-muted-foreground text-lg">voco Jeddah Gate by IHG, Jeddah</p>
             </div>
             <div class="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
                 <div class="card-navy rounded-2xl overflow-hidden">
                     <div class="relative aspect-video md:aspect-square">
-                        <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3710.6895376880237!2d39.13892397515805!3d21.536891680251474!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x15c3d127f7f0a5b5%3A0x9e3b3c0d1c7a9e2b!2sCrowne%20Plaza%20Jeddah%20Al%20Hamra!5e0!3m2!1sen!2ssa!4v1699999999999!5m2!1sen!2ssa" width="100%" height="100%" style="border:0;" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade" class="absolute inset-0" title="Crowne Plaza Jeddah"></iframe>
+                        <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3712.04569652667!2d39.20396467526981!3d21.505929980265574!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x15c3cfc9ce8ada75%3A0xd4e277b25872b830!2svoco%20Jeddah%20Gate%20by%20IHG!5e0!3m2!1sen!2ssa!4v1770895702331!5m2!1sen!2ssa" width="100%" height="100%" style="border:0;" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade" class="absolute inset-0" title="voco Jeddah Gate"></iframe>
                     </div>
                 </div>
                 <div class="space-y-4">
@@ -252,7 +254,7 @@
                         </div>
                         <div>
                             <h3 class="font-bold text-foreground mb-1">Address</h3>
-                            <p class="text-muted-foreground">Crowne Plaza Hotel, Al Hamra District, Jeddah, Saudi Arabia</p>
+                            <p class="text-muted-foreground">voco Jeddah Gate by IHG, Jeddah, Saudi Arabia</p>
                         </div>
                     </div>
                     <div class="card-navy rounded-xl p-6 flex items-start gap-4">
@@ -280,7 +282,7 @@
         <div class="container mx-auto px-4">
             <div class="grid md:grid-cols-3 gap-8 mb-8">
                 <div class="text-center md:text-left">
-                    <p class="text-muted-foreground text-sm">Medicine & Law Seminar<br>Legal Liability in Surgical Professions</p>
+                    <p class="text-muted-foreground text-sm">Medicine & Judiciary Symposium<br>Legal Liability in Surgical Professions</p>
                 </div>
                 <div class="text-center md:text-left">
                     <h4 class="font-bold text-foreground mb-4 text-gold-gradient">Contact Us</h4>
