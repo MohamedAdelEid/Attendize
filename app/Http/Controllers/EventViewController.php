@@ -675,7 +675,33 @@ class EventViewController extends Controller
             // Always set to pending for both Non-Member and Member (manual approval)
             $registrationUser->status = 'pending';
             $registrationUser->save();
-            // Mail::to($registrationUser->email)->send(new RegistrationPending($registrationUser, $event));
+
+            try {
+                $recipient = $registrationUser->email;
+                \Log::info('Registration pending email: attempting to send', [
+                    'to' => $recipient,
+                    'event_id' => $event->id,
+                    'registration_user_id' => $registrationUser->id,
+                    'mail_driver' => config('mail.driver'),
+                    'mail_host' => config('mail.host'),
+                    'mail_port' => config('mail.port'),
+                    'mail_username_set' => !empty(config('mail.username')),
+                ]);
+                Mail::to($recipient)->send(new RegistrationPending($registrationUser, $event));
+                \Log::info('Registration pending email: sent successfully', ['to' => $recipient]);
+            } catch (\Exception $mailEx) {
+                $msg = $mailEx->getMessage();
+                $isAuth = (stripos($msg, 'auth') !== false || stripos($msg, 'login') !== false || stripos($msg, 'credential') !== false || stripos($msg, 'password') !== false || stripos($msg, 'authentication') !== false);
+                \Log::error('Registration pending email: FAILED', [
+                    'to' => $registrationUser->email ?? 'unknown',
+                    'error' => $msg,
+                    'possible_credentials_issue' => $isAuth,
+                    'exception_class' => get_class($mailEx),
+                    'file' => $mailEx->getFile(),
+                    'line' => $mailEx->getLine(),
+                    'trace' => $mailEx->getTraceAsString(),
+                ]);
+            }
 
             DB::commit();
 
