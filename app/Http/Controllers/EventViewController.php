@@ -672,6 +672,29 @@ class EventViewController extends Controller
                 }
             }
 
+            // File inputs are not in $request->input('fields') – save file-only fields to dynamic_form_field_values
+            if ($request->hasFile('fields')) {
+                foreach ($request->file('fields') as $fieldId => $file) {
+                    $field = $registration->dynamicFormFields()->find($fieldId);
+                    if (!$field || ($field->type !== 'file' && $field->type !== 'external_payment')) {
+                        continue;
+                    }
+                    // Avoid duplicate: only save if we didn't already save this field in the input('fields') loop
+                    $exists = DynamicFormFieldValue::where('registration_user_id', $registrationUser->id)
+                        ->where('dynamic_form_field_id', $fieldId)
+                        ->exists();
+                    if ($exists) {
+                        continue;
+                    }
+                    $path = $file->store('form-uploads', 'public');
+                    $formFieldValue = new DynamicFormFieldValue();
+                    $formFieldValue->registration_user_id = $registrationUser->id;
+                    $formFieldValue->dynamic_form_field_id = (int) $fieldId;
+                    $formFieldValue->value = $path;
+                    $formFieldValue->save();
+                }
+            }
+
             // Always set to pending for both Non-Member and Member (manual approval)
             $registrationUser->status = 'pending';
             $registrationUser->save();

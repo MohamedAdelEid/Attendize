@@ -543,22 +543,31 @@
                                     </thead>
                                     <tbody>
                                         @foreach ($user->formFieldValues as $response)
+                                            @php
+                                                $field = $response->field;
+                                                $label = $field ? $field->label : ('Field #' . $response->dynamic_form_field_id);
+                                                $type = $field ? $field->type : '';
+                                                $value = $response->value;
+                                                $isFile = $type === 'file' || $type === 'attachment' || (is_string($value) && (strpos($value, 'form-uploads') !== false || strpos($value, 'storage/') !== false || strpos($value, 'storage\\') !== false));
+                                            @endphp
                                             <tr>
-                                                <td>{{ $response->field->label }}</td>
+                                                <td>{{ $label }}</td>
                                                 <td>
-                                                    @if ($response->field->type == 'file')
-                                                        @if ($response->value)
-                                                            <a href="{{ asset('storage/' . $response->value) }}"
-                                                                class="link" target="_blank">
+                                                    @if ($isFile)
+                                                        @if ($value)
+                                                            @php
+                                                                $fileUrl = (strpos($value, 'http') === 0 || strpos($value, '//') === 0) ? $value : asset('storage/' . ltrim(str_replace('\\', '/', $value), '/'));
+                                                            @endphp
+                                                            <a href="{{ $fileUrl }}" class="link" target="_blank" rel="noopener">
                                                                 <i class="fa fa-file-o"></i> View File
                                                             </a>
                                                         @else
                                                             <span class="text-muted">No file uploaded</span>
                                                         @endif
-                                                    @elseif($response->field->type == 'checkbox' || $response->field->type == 'radio')
-                                                        {{ $response->value ?? 'No selection' }}
+                                                    @elseif($type === 'checkbox' || $type === 'radio')
+                                                        {{ $value ?? 'No selection' }}
                                                     @else
-                                                        {{ $response->value ?? 'No response' }}
+                                                        {{ is_array($value) ? implode(', ', $value) : ($value ?? '—') }}
                                                     @endif
                                                 </td>
                                             </tr>
@@ -581,18 +590,18 @@
                     <!-- Payment History Section -->
                     <div class="section">
                         <h4 class="section-title">
-                            <i class="fa fa-credit-card"></i> المدفوعات
+                            <i class="fa fa-credit-card"></i> Payment History
                         </h4>
                         @if ($user->payments && $user->payments->count() > 0)
                             <div class="table-container">
                                 <table class="custom-table">
                                     <thead>
                                         <tr>
-                                            <th>التاريخ</th>
-                                            <th>المبلغ</th>
-                                            <th>الحالة</th>
-                                            <th>بوابة الدفع</th>
-                                            <th>رقم المعاملة</th>
+                                            <th>Date</th>
+                                            <th>Amount</th>
+                                            <th>Status</th>
+                                            <th>Payment Gateway</th>
+                                            <th>Transaction ID</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -602,11 +611,11 @@
                                                 <td>{{ number_format($p->amount, 2) }} {{ $p->currency }}</td>
                                                 <td>
                                                     @if ($p->status === 'captured')
-                                                        <span class="label label-success">تم التحصيل</span>
+                                                        <span class="label label-success">Captured</span>
                                                     @elseif ($p->status === 'pending')
-                                                        <span class="label label-warning">قيد الانتظار</span>
+                                                        <span class="label label-warning">Pending</span>
                                                     @elseif ($p->status === 'failed')
-                                                        <span class="label label-danger">فاشل</span>
+                                                        <span class="label label-danger">Failed</span>
                                                     @else
                                                         <span class="label label-default">{{ $p->status }}</span>
                                                     @endif
@@ -624,7 +633,7 @@
                                     <i class="fa fa-info-circle"></i>
                                 </div>
                                 <div class="alert-content">
-                                    <p>لا توجد مدفوعات مسجلة لهذا المستخدم.</p>
+                                    <p>No payments recorded for this user.</p>
                                 </div>
                             </div>
                         @endif

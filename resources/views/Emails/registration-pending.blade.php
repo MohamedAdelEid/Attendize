@@ -47,8 +47,8 @@
                     <h3>Event details</h3>
                     <ul>
                         <li><strong>Event:</strong> {{ $event->title }}</li>
-                        <li><strong>Date:</strong> {{ $event->start_date ? \Carbon\Carbon::parse($event->start_date)->format('F j, Y') : 'May 2, 2026' }}</li>
-                        <li><strong>Venue:</strong> voco Jeddah Gate by IHG, Jeddah</li>
+                        <li><strong>Date:</strong> May 2, 2026</li>
+                        <li><strong>Venue:</strong> Crowne Plaza, Jeddah - Crystal Hall</li>
                         <li><strong>Status:</strong> <span class="status-badge">Pending</span></li>
                     </ul>
                 </div>

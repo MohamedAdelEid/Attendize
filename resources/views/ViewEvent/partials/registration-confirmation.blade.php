@@ -16,17 +16,17 @@
             </div>
 
             <!-- Confirmation Message -->
-            <div class="text-center" dir="rtl">
-                <h2 class="text-2xl font-bold text-gray-900 mb-4">تم التسجيل بنجاح ✅</h2>
-                <p class="text-gray-600 mb-2">يرجى التحقق من بريدك الإلكتروني أو صندوق الرسائل الغير مرغوب فيها (Junk أو Spam).</p>
-                <p class="text-gray-600 mb-2">سيتم الرد عليك خلال ٢٤ ساعة.</p>
-                <p class="text-gray-600 mb-6">شكراً لتسجيلك معنا.</p>
+            <div class="text-center">
+                <h2 class="text-2xl font-bold text-gray-900 mb-4">Thank you for your registration</h2>
+                <p class="text-gray-600 mb-2">We have received your registration successfully.</p>
+                <p class="text-gray-600 mb-2"><strong>Please check your email</strong> (including your <strong>spam</strong> or <strong>junk</strong> folder) for a confirmation message. Our team will get back to you within 24 hours.</p>
+                <p class="text-gray-600 mb-6">We look forward to seeing you at the event.</p>
 
                 <!-- Return Button -->
                 <div class="mt-8">
                     <a href="{{ route('showEventPage', ['event_id' => $event->id, 'event_slug' => $event->slug]) }}"
                        class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors duration-200">
-                        العودة للصفحة الرئيسية
+                        Back to event page
                     </a>
                 </div>
             </div>
