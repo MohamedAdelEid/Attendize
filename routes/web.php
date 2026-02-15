@@ -264,6 +264,11 @@ Route::group(
                 [EventViewController::class, 'showSpeakers']
             )->name('showEventSpeakers');
 
+            Route::get(
+                '/{event_id}/type/{user_type_slug}/{option_slug?}',
+                [EventViewController::class, 'showEventUserType']
+            )->name('showEventUserType');
+
             Route::post(
                 '/{event_id}/api/member-lookup',
                 [EventViewController::class, 'memberLookup']

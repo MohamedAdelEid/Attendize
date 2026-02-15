@@ -16,7 +16,8 @@ use Maatwebsite\Excel\Concerns\WithHeadingRow;
 class RegistrationUsersImport implements ToCollection, WithHeadingRow
 {
     protected $registration;
-    protected $userTypeId;
+    /** @var array|null Default user type IDs for import (null = use Delegate) */
+    protected $userTypeIds;
     protected $approvalStatus;
     protected $ticketService;
     protected $results = [
@@ -25,10 +26,10 @@ class RegistrationUsersImport implements ToCollection, WithHeadingRow
         'error_details' => []
     ];
 
-    public function __construct($registration, $userTypeId, $approvalStatus, TicketService $ticketService)
+    public function __construct($registration, $userTypeIds, $approvalStatus, TicketService $ticketService)
     {
         $this->registration = $registration;
-        $this->userTypeId = $userTypeId;
+        $this->userTypeIds = is_array($userTypeIds) ? $userTypeIds : ($userTypeIds ? [$userTypeIds] : null);
         $this->approvalStatus = $approvalStatus;
         $this->ticketService = $ticketService;
     }
@@ -53,28 +54,20 @@ class RegistrationUsersImport implements ToCollection, WithHeadingRow
                     continue;
                 }
 
-                // Determine user type
-                $userTypeId = $this->userTypeId;
-                if (!$userTypeId) {
-                    // Try to get from row data if user_types field exists
-                    if (isset($row['user_type']) && !empty($row['user_type'])) {
-                        $userType = UserType::where('event_id', $this->registration->event_id)
-                            ->where('name', $row['user_type'])
-                            ->first();
-                        if ($userType) {
-                            $userTypeId = $userType->id;
-                        }
-                    }
-
-                    // Fallback to default "Delegate"
-                    if (!$userTypeId) {
-                        $defaultUserType = UserType::where('event_id', $this->registration->event_id)
-                            ->where('name', 'Delegate')
-                            ->first();
-                        if ($defaultUserType) {
-                            $userTypeId = $defaultUserType->id;
-                        }
-                    }
+                // Resolve user type IDs: row column "user_types" (comma-separated names) > request default > Delegate
+                $userTypeIds = $this->userTypeIds;
+                if (isset($row['user_types']) && trim((string) $row['user_types']) !== '') {
+                    $names = array_map('trim', explode(',', (string) $row['user_types']));
+                    $userTypeIds = UserType::where('event_id', $this->registration->event_id)
+                        ->whereIn('name', $names)
+                        ->pluck('id')
+                        ->toArray();
+                }
+                if (empty($userTypeIds)) {
+                    $defaultUserType = UserType::where('event_id', $this->registration->event_id)
+                        ->where('name', 'Delegate')
+                        ->first();
+                    $userTypeIds = $defaultUserType ? [$defaultUserType->id] : [];
                 }
 
                 // Determine status
@@ -89,7 +82,6 @@ class RegistrationUsersImport implements ToCollection, WithHeadingRow
                 $user = RegistrationUser::create([
                     'registration_id' => $this->registration->id,
                     'category_id' => $this->registration->category_id,
-                    'user_type_id' => $userTypeId,
                     'first_name' => $row['first_name'],
                     'last_name' => $row['last_name'],
                     'email' => $row['email'],
@@ -97,6 +89,7 @@ class RegistrationUsersImport implements ToCollection, WithHeadingRow
                     'status' => $status,
                     'is_new' => false,
                 ]);
+                $user->userTypes()->sync($userTypeIds);
 
                 // Save dynamic field values
                 foreach ($this->registration->dynamicFormFields as $field) {

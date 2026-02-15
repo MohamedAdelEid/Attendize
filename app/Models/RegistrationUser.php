@@ -18,6 +18,7 @@ class RegistrationUser extends Model
         'last_name',
         'email',
         'phone',
+        'avatar',
         'status',
         'unique_code',
         'qr_code_path',
@@ -25,7 +26,6 @@ class RegistrationUser extends Model
         'ticket_token',
         'check_in',
         'check_out',
-        'user_type_id',
     ];
 
     protected $casts = [
@@ -85,11 +85,20 @@ class RegistrationUser extends Model
     }
 
     /**
-     * Get the user type that owns the registration user.
+     * Get the user types for this registration user (many-to-many), with optional sub-type (option) per type.
      */
-    public function userType()
+    public function userTypes()
     {
-        return $this->belongsTo(UserType::class);
+        return $this->belongsToMany(UserType::class, 'registration_user_user_type', 'registration_user_id', 'user_type_id')
+            ->withPivot('user_type_option_id');
+    }
+
+    /**
+     * First user type for backward compatibility (e.g. $user->userType).
+     */
+    public function getUserTypeAttribute()
+    {
+        return $this->userTypes->first();
     }
 
     /**

@@ -4,7 +4,11 @@ namespace App\Models;
 
 class UserType extends MyBaseModel
 {
-    protected $fillable = ['name', 'event_id'];
+    protected $fillable = ['name', 'slug', 'event_id', 'show_on_landing'];
+
+    protected $casts = [
+        'show_on_landing' => 'boolean',
+    ];
 
     /**
      * The rules to validate the model.
@@ -15,7 +19,24 @@ class UserType extends MyBaseModel
     {
         return [
             'name' => 'required|string|max:255',
+            'show_on_landing' => 'nullable|boolean',
         ];
+    }
+
+    /**
+     * Registration users that have this user type.
+     */
+    public function registrationUsers()
+    {
+        return $this->belongsToMany(RegistrationUser::class, 'registration_user_user_type', 'user_type_id', 'registration_user_id');
+    }
+
+    /**
+     * Sub-types/options for this user type (e.g. Delegate -> "Type A", "Type B").
+     */
+    public function options()
+    {
+        return $this->hasMany(UserTypeOption::class, 'user_type_id')->orderBy('sort_order');
     }
 
     /**
@@ -39,5 +60,13 @@ class UserType extends MyBaseModel
     public function event()
     {
         return $this->belongsTo(Event::class);
+    }
+
+    /**
+     * Number of registration users with this type.
+     */
+    public function getUsersCountAttribute()
+    {
+        return $this->registrationUsers()->count();
     }
 }

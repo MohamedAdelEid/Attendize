@@ -4,9 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Models\Event;
 use App\Models\UserType;
+use App\Models\UserTypeOption;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class EventUserTypeController extends MyBaseController
 {
@@ -39,7 +41,7 @@ class EventUserTypeController extends MyBaseController
             $query->where('name', 'like', '%' . $searchQuery . '%');
         }
         
-        $userTypes = $query->orderBy($sort_by, $sort_order)->paginate(15);
+        $userTypes = $query->with('options')->withCount('registrationUsers')->orderBy($sort_by, $sort_order)->paginate(15);
 
         $data = [
             'userTypes' => $userTypes,
@@ -60,9 +62,8 @@ class EventUserTypeController extends MyBaseController
      */
     public function showCreateUserType($event_id)
     {
-        return view('ManageEvent.Modals.CreateUserType', [
-            'event' => Event::scope()->find($event_id),
-        ]);
+        $event = Event::scope()->find($event_id);
+        return view('ManageEvent.Modals.CreateUserType', ['event' => $event]);
     }
 
     /**
@@ -86,11 +87,24 @@ class EventUserTypeController extends MyBaseController
                 ]);
             }
 
+            $slug = $this->uniqueUserTypeSlug($event_id, $request->name);
             $userType = UserType::create([
                 'name' => $request->name,
+                'slug' => $slug,
                 'event_id' => $event_id,
+                'show_on_landing' => $request->boolean('show_on_landing', true),
             ]);
-
+            $optionNames = $request->input('option_names', []);
+            if (is_array($optionNames)) {
+                foreach (array_filter(array_map('trim', $optionNames)) as $i => $name) {
+                    UserTypeOption::create([
+                        'user_type_id' => $userType->id,
+                        'name' => $name,
+                        'slug' => $this->uniqueUserTypeOptionSlug($userType->id, $name),
+                        'sort_order' => $i,
+                    ]);
+                }
+            }
             DB::commit();
 
             session()->flash('message', 'Successfully Created User Type');
@@ -125,14 +139,12 @@ class EventUserTypeController extends MyBaseController
      */
     public function showEditUserType(Request $request, $event_id, $user_type_id)
     {
-        $userType = UserType::findOrFail($user_type_id);
-
-        $data = [
+        $userType = UserType::with('options')->findOrFail($user_type_id);
+        $event = $userType->event;
+        return view('ManageEvent.Modals.EditUserType', [
             'userType' => $userType,
-            'event' => $userType->event,
-        ];
-
-        return view('ManageEvent.Modals.EditUserType', $data);
+            'event' => $event,
+        ]);
     }
 
     /**
@@ -158,8 +170,33 @@ class EventUserTypeController extends MyBaseController
             }
 
             $userType->name = $request->input('name');
+            $userType->slug = $this->uniqueUserTypeSlug($event_id, $userType->name, $userType->id);
+            $userType->show_on_landing = $request->boolean('show_on_landing', true);
             $userType->save();
-
+            $optionNames = $request->input('option_names', []);
+            if (is_array($optionNames)) {
+                $optionNames = array_values(array_filter(array_map('trim', $optionNames)));
+                $existing = $userType->options()->pluck('name', 'id')->toArray();
+                $toKeep = [];
+                foreach ($optionNames as $i => $name) {
+                    $found = array_search($name, $existing);
+                    if ($found !== false) {
+                        $toKeep[] = $found;
+                        $userType->options()->where('id', $found)->update(['sort_order' => $i]);
+                    } else {
+                        $opt = UserTypeOption::create([
+                            'user_type_id' => $userType->id,
+                            'name' => $name,
+                            'slug' => $this->uniqueUserTypeOptionSlug($userType->id, $name),
+                            'sort_order' => $i,
+                        ]);
+                        $toKeep[] = $opt->id;
+                    }
+                }
+                $userType->options()->whereNotIn('id', $toKeep)->delete();
+            } else {
+                $userType->options()->delete();
+            }
             DB::commit();
 
             session()->flash('message', 'Successfully Updated User Type');
@@ -304,5 +341,55 @@ class EventUserTypeController extends MyBaseController
                 'error' => $e->getMessage()
             ]);
         }
+    }
+
+    /**
+     * Generate unique slug for user type (unique per event).
+     */
+    protected function uniqueUserTypeSlug($event_id, $name, $excludeId = null)
+    {
+        $slug = Str::slug($name);
+        if (strlen($slug) === 0) {
+            $slug = 'type';
+        }
+        $base = $slug;
+        $n = 0;
+        $q = UserType::where('event_id', $event_id)->where('slug', $slug);
+        if ($excludeId !== null) {
+            $q->where('id', '!=', $excludeId);
+        }
+        while ($q->exists()) {
+            $slug = $base . '-' . (++$n);
+            $q = UserType::where('event_id', $event_id)->where('slug', $slug);
+            if ($excludeId !== null) {
+                $q->where('id', '!=', $excludeId);
+            }
+        }
+        return $slug;
+    }
+
+    /**
+     * Generate unique slug for user type option (unique per user type).
+     */
+    protected function uniqueUserTypeOptionSlug($user_type_id, $name, $excludeId = null)
+    {
+        $slug = Str::slug($name);
+        if (strlen($slug) === 0) {
+            $slug = 'option';
+        }
+        $base = $slug;
+        $n = 0;
+        $q = UserTypeOption::where('user_type_id', $user_type_id)->where('slug', $slug);
+        if ($excludeId !== null) {
+            $q->where('id', '!=', $excludeId);
+        }
+        while ($q->exists()) {
+            $slug = $base . '-' . (++$n);
+            $q = UserTypeOption::where('user_type_id', $user_type_id)->where('slug', $slug);
+            if ($excludeId !== null) {
+                $q->where('id', '!=', $excludeId);
+            }
+        }
+        return $slug;
     }
 }

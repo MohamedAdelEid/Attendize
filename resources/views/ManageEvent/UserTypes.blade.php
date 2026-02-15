@@ -121,6 +121,8 @@
                                 <th>
                                     {!! Html::sortable_link('Name', $sort_by, 'name', $sort_order, ['q' => $q, 'page' => $userTypes->currentPage()]) !!}
                                 </th>
+                                <th>Sub-types</th>
+                                <th>Users</th>
                                 <th>
                                     {!! Html::sortable_link('Created', $sort_by, 'created_at', $sort_order, ['q' => $q, 'page' => $userTypes->currentPage()]) !!}
                                 </th>
@@ -134,6 +136,16 @@
                                     <input type="checkbox" class="user-type-checkbox" data-id="{{ $userType->id }}" data-name="{{ $userType->name }}">
                                 </td>
                                 <td>{{ $userType->name }}</td>
+                                <td>
+                                    @if($userType->options && $userType->options->count() > 0)
+                                        @foreach($userType->options as $opt)
+                                            <span class="badge badge-default" style="margin-right: 2px;">{{ $opt->name }}</span>
+                                        @endforeach
+                                    @else
+                                        <span class="text-muted">—</span>
+                                    @endif
+                                </td>
+                                <td>{{ $userType->registration_users_count ?? 0 }}</td>
                                 <td>{{ $userType->created_at->format('M d, Y') }}</td>
                                 <td>
                                     <a data-modal-id="EditUserType"

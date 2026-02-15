@@ -447,7 +447,11 @@
                     <!-- User Header Section -->
                     <div class="user-header">
                         <div class="user-avatar">
-                            {{ substr($user->first_name, 0, 1) }}{{ substr($user->last_name, 0, 1) }}
+                            @if($user->avatar)
+                                <img src="{{ asset('storage/' . $user->avatar) }}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">
+                            @else
+                                {{ substr($user->first_name, 0, 1) }}{{ substr($user->last_name, 0, 1) }}
+                            @endif
                         </div>
                         <div class="user-info">
                             <h2 class="user-name">{{ $user->first_name }} {{ $user->last_name }}</h2>
@@ -501,11 +505,14 @@
                                 <p class="card-value">{{ $user->phone ?? 'Not provided' }}</p>
                             </div>
 
-                            @if($user->userType)
+                            @php $userTypeOptionNames = $userTypeOptionNames ?? []; @endphp
+                            @if($user->userTypes && $user->userTypes->count() > 0)
                                 <div class="info-card">
-                                    <p class="card-label">User Type</p>
+                                    <p class="card-label">User Types</p>
                                     <p class="card-value">
-                                        <span class="badge badge-info">{{ $user->userType->name }}</span>
+                                        @foreach($user->userTypes as $ut)
+                                            <span class="badge badge-info">{{ $ut->name }}@if(!empty($ut->pivot->user_type_option_id) && isset($userTypeOptionNames[$ut->pivot->user_type_option_id])) – {{ $userTypeOptionNames[$ut->pivot->user_type_option_id] }}@endif</span>
+                                        @endforeach
                                     </p>
                                 </div>
                             @endif

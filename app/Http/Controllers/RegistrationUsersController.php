@@ -48,7 +48,7 @@ class RegistrationUsersController extends Controller
         $registrationIds = Registration::where('event_id', $event_id)->pluck('id')->toArray();
 
         // Get filters from request
-        $filters = $request->only(['search', 'status', 'registration_id']);
+        $filters = $request->only(['search', 'status', 'registration_id', 'user_type_id']);
 
         // Get per page setting from request, default to 15
         $perPage = $request->get('per_page', 15);
@@ -58,7 +58,7 @@ class RegistrationUsersController extends Controller
 
         // Query registration users with filters
         $query = RegistrationUser::whereIn('registration_id', $registrationIds)
-            ->with(['registration', 'userType']);
+            ->with(['registration', 'userTypes']);
 
         // Apply search filter if provided
         if (!empty($filters['search'])) {
@@ -82,15 +82,37 @@ class RegistrationUsersController extends Controller
             $query->where('registration_id', $filters['registration_id']);
         }
 
+        // Apply user type filter if provided
+        if (!empty($filters['user_type_id'])) {
+            $query->whereHas('userTypes', function ($q) use ($filters) {
+                $q->where('user_types.id', $filters['user_type_id']);
+            });
+        }
+
         // Get paginated results
         $users = $query->orderBy('created_at', 'desc')->paginate($perPage);
         $users->appends($request->except('page'));
+
+        $userTypeOptionNames = [];
+        foreach ($users as $u) {
+            foreach ($u->userTypes ?? [] as $ut) {
+                if (!empty($ut->pivot->user_type_option_id)) {
+                    $userTypeOptionNames[$ut->pivot->user_type_option_id] = true;
+                }
+            }
+        }
+        if (!empty($userTypeOptionNames)) {
+            $userTypeOptionNames = \App\Models\UserTypeOption::whereIn('id', array_keys($userTypeOptionNames))->pluck('name', 'id')->toArray();
+        }
 
         // Get all registrations for the filter dropdown
         $registrations = Registration::where('event_id', $event_id)
             ->orderBy('name')
             ->pluck('name', 'id')
             ->toArray();
+
+        // Get all user types for the filter dropdown
+        $userTypesFilter = UserType::where('event_id', $event_id)->orderBy('name')->pluck('name', 'id')->toArray();
 
         // Mark all new registrations as viewed
         if ($request->has('mark_as_viewed')) {
@@ -101,7 +123,7 @@ class RegistrationUsersController extends Controller
             return redirect()->route('showEventRegistrationUsers', ['event_id' => $event_id]);
         }
 
-        return view('ManageEvent.RegistrationUsers', compact('event', 'users', 'filters', 'registrations', 'perPage'));
+        return view('ManageEvent.RegistrationUsers', compact('event', 'users', 'filters', 'registrations', 'perPage', 'userTypesFilter', 'userTypeOptionNames'));
     }
 
     /**
@@ -117,7 +139,7 @@ class RegistrationUsersController extends Controller
         $registration = Registration::findOrFail($registration_id);
 
         // Get filters from request
-        $filters = $request->only(['search', 'status']);
+        $filters = $request->only(['search', 'status', 'user_type_id']);
 
         // Get per page setting from request, default to 15
         $perPage = $request->get('per_page', 15);
@@ -127,7 +149,7 @@ class RegistrationUsersController extends Controller
 
         // Query registration users with filters
         $query = RegistrationUser::where('registration_id', $registration_id)
-            ->with(['registration', 'userType']);
+            ->with(['registration', 'userTypes']);
 
         // Apply search filter if provided
         if (!empty($filters['search'])) {
@@ -146,15 +168,36 @@ class RegistrationUsersController extends Controller
             $query->where('status', $filters['status']);
         }
 
+        // Apply user type filter if provided
+        if (!empty($filters['user_type_id'])) {
+            $query->whereHas('userTypes', function ($q) use ($filters) {
+                $q->where('user_types.id', $filters['user_type_id']);
+            });
+        }
+
         // Get paginated results
         $users = $query->orderBy('created_at', 'desc')->paginate($perPage);
         $users->appends($request->except('page'));
+
+        $userTypeOptionNames = [];
+        foreach ($users as $u) {
+            foreach ($u->userTypes ?? [] as $ut) {
+                if (!empty($ut->pivot->user_type_option_id)) {
+                    $userTypeOptionNames[$ut->pivot->user_type_option_id] = true;
+                }
+            }
+        }
+        if (!empty($userTypeOptionNames)) {
+            $userTypeOptionNames = \App\Models\UserTypeOption::whereIn('id', array_keys($userTypeOptionNames))->pluck('name', 'id')->toArray();
+        }
 
         // Get all registrations for the filter dropdown (for potential switching)
         $registrations = Registration::where('event_id', $event_id)
             ->orderBy('name')
             ->pluck('name', 'id')
             ->toArray();
+
+        $userTypesFilter = UserType::where('event_id', $event_id)->orderBy('name')->pluck('name', 'id')->toArray();
 
         // Mark new registrations for this form as viewed
         if ($request->has('mark_as_viewed')) {
@@ -165,7 +208,7 @@ class RegistrationUsersController extends Controller
             return redirect()->route('showRegistrationUsers', ['event_id' => $event_id, 'registration_id' => $registration_id]);
         }
 
-        return view('ManageEvent.RegistrationUsers', compact('event', 'registration', 'users', 'filters', 'registrations', 'perPage'));
+        return view('ManageEvent.RegistrationUsers', compact('event', 'registration', 'users', 'filters', 'registrations', 'perPage', 'userTypesFilter', 'userTypeOptionNames'));
     }
 
     /**
@@ -207,6 +250,7 @@ class RegistrationUsersController extends Controller
         $event = Event::findOrFail($event_id);
         $registrations = Registration::where('event_id', $event_id)->pluck('name', 'id')->toArray();
         $userTypes = UserType::where('event_id', $event_id)->pluck('name', 'id')->toArray();
+        $userTypesWithOptions = UserType::where('event_id', $event_id)->with('options')->orderBy('name')->get();
         $countries = Country::all();
         $conferences = Conference::where('event_id', $event_id)->pluck('name', 'id')->toArray();
         $professions = Profession::all()->pluck('name', 'id')->toArray();
@@ -219,7 +263,7 @@ class RegistrationUsersController extends Controller
             $formFields = $selectedRegistration->dynamicFormFields;
         }
 
-        return view('ManageEvent.Modals.AddUser', compact('event', 'registrations', 'userTypes', 'countries', 'conferences', 'professions', 'selectedRegistration', 'formFields'));
+        return view('ManageEvent.Modals.AddUser', compact('event', 'registrations', 'userTypes', 'userTypesWithOptions', 'countries', 'conferences', 'professions', 'selectedRegistration', 'formFields'));
     }
 
     /**
@@ -244,7 +288,9 @@ class RegistrationUsersController extends Controller
                 'last_name' => 'required|string|max:255',
                 'email' => 'required|email|max:255|unique:registration_users,email',
                 'phone' => 'nullable|string|max:20',
-                'user_type_id' => 'nullable|exists:user_types,id',
+                'user_type_ids' => 'nullable|array',
+                'user_type_ids.*' => 'exists:user_types,id',
+                'avatar' => 'nullable|image|max:2048',
                 'conference_id' => 'nullable|exists:conferences,id',
                 'profession_id' => 'nullable|exists:professions,id',
                 'status' => 'required|in:pending,approved,rejected',
@@ -280,31 +326,39 @@ class RegistrationUsersController extends Controller
                 ]);
             }
 
-            // Set default user type if not provided
-            $userTypeId = $request->user_type_id;
-            if (!$userTypeId) {
-                $defaultUserType = UserType::where('event_id', $event_id)
-                    ->where('name', 'Delegate')
-                    ->first();
-                if ($defaultUserType) {
-                    $userTypeId = $defaultUserType->id;
-                }
+            // Resolve user type IDs: use selected or default to Delegate
+            $userTypeIds = $request->user_type_ids;
+            if (empty($userTypeIds) || !is_array($userTypeIds)) {
+                $defaultUserType = UserType::where('event_id', $event_id)->where('name', 'Delegate')->first();
+                $userTypeIds = $defaultUserType ? [$defaultUserType->id] : [];
+            }
+            $userTypeIds = array_values(array_filter(array_map('intval', $userTypeIds)));
+            $syncData = [];
+            foreach ($userTypeIds as $tid) {
+                $optId = $request->input('user_type_option_' . $tid);
+                $syncData[$tid] = $optId ? ['user_type_option_id' => (int) $optId] : [];
+            }
+
+            $avatarPath = null;
+            if ($request->hasFile('avatar') && $request->file('avatar')->isValid()) {
+                $avatarPath = $request->file('avatar')->store('registration-avatars', 'public');
             }
 
             // Create the registration user
             $registrationUser = RegistrationUser::create([
                 'registration_id' => $request->registration_id,
                 'category_id' => $registration->category_id,
-                'user_type_id' => $userTypeId,
                 'conference_id' => $request->conference_id,
                 'profession_id' => $request->profession_id,
                 'first_name' => $request->first_name,
                 'last_name' => $request->last_name,
                 'email' => $request->email,
                 'phone' => $request->phone,
+                'avatar' => $avatarPath,
                 'status' => $request->status,
                 'is_new' => false, // Admin added, so not new
             ]);
+            $registrationUser->userTypes()->sync($syncData);
 
             // Save form field values
             if ($request->has('fields')) {
@@ -362,8 +416,9 @@ class RegistrationUsersController extends Controller
     public function showEditUser($event_id, $user_id)
     {
         $event = Event::findOrFail($event_id);
-        $user = RegistrationUser::with(['registration.dynamicFormFields', 'formFieldValues', 'userType'])->findOrFail($user_id);
+        $user = RegistrationUser::with(['registration.dynamicFormFields', 'formFieldValues', 'userTypes'])->findOrFail($user_id);
         $userTypes = UserType::where('event_id', $event_id)->pluck('name', 'id')->toArray();
+        $userTypesWithOptions = UserType::where('event_id', $event_id)->with('options')->orderBy('name')->get();
         $countries = Country::all();
         $conferences = Conference::where('event_id', $event_id)->pluck('name', 'id')->toArray();
         $professions = Profession::all()->pluck('name', 'id')->toArray();
@@ -379,6 +434,7 @@ class RegistrationUsersController extends Controller
             'event',
             'user',
             'userTypes',
+            'userTypesWithOptions',
             'countries',
             'conferences',
             'professions',
@@ -412,7 +468,9 @@ class RegistrationUsersController extends Controller
                 'last_name' => 'required|string|max:255',
                 'email' => 'required|email|max:255|unique:registration_users,email,' . $user_id,
                 'phone' => 'nullable|string|max:20',
-                'user_type_id' => 'nullable|exists:user_types,id',
+                'user_type_ids' => 'nullable|array',
+                'user_type_ids.*' => 'exists:user_types,id',
+                'avatar' => 'nullable|image|max:2048',
                 'country_id' => 'nullable|exists:countries,id',
                 'city' => 'nullable|string|max:255',
                 'conference_id' => 'nullable|exists:conferences,id',
@@ -449,19 +507,35 @@ class RegistrationUsersController extends Controller
 
             $oldStatus = $user->status;
 
-            // Update user basic fields
-            $user->update([
+            $updateData = [
                 'first_name' => $request->first_name,
                 'last_name' => $request->last_name,
                 'email' => $request->email,
                 'phone' => $request->phone,
-                'user_type_id' => $request->user_type_id,
                 'country_id' => $request->country_id,
                 'city' => $request->city,
                 'conference_id' => $request->conference_id,
                 'profession_id' => $request->profession_id,
                 'status' => $request->status,
-            ]);
+            ];
+            if ($request->hasFile('avatar') && $request->file('avatar')->isValid()) {
+                if ($user->avatar && Storage::disk('public')->exists($user->avatar)) {
+                    Storage::disk('public')->delete($user->avatar);
+                }
+                $updateData['avatar'] = $request->file('avatar')->store('registration-avatars', 'public');
+            }
+            $user->update($updateData);
+
+            $userTypeIds = $request->user_type_ids;
+            if (is_array($userTypeIds)) {
+                $userTypeIds = array_values(array_filter(array_map('intval', $userTypeIds)));
+                $syncData = [];
+                foreach ($userTypeIds as $tid) {
+                    $optId = $request->input('user_type_option_' . $tid);
+                    $syncData[$tid] = $optId ? ['user_type_option_id' => (int) $optId] : [];
+                }
+                $user->userTypes()->sync($syncData);
+            }
 
             // Update form field values
             if ($request->has('fields')) {
@@ -580,7 +654,8 @@ class RegistrationUsersController extends Controller
         $validator = Validator::make($request->all(), [
             'registration_id' => 'required|exists:registrations,id',
             'import_file' => 'required|file|mimes:xlsx,xls,csv|max:10240',
-            'user_type_id' => 'nullable|exists:user_types,id',
+            'user_type_ids' => 'nullable|array',
+            'user_type_ids.*' => 'exists:user_types,id',
             'approval_status' => 'required|in:automatic,manual,approved,pending,rejected',
         ]);
 
@@ -597,7 +672,7 @@ class RegistrationUsersController extends Controller
 
             $import = new RegistrationUsersImport(
                 $registration,
-                $request->user_type_id,
+                $request->user_type_ids ?? [],
                 $request->approval_status,
                 $this->ticketService
             );
@@ -639,7 +714,7 @@ class RegistrationUsersController extends Controller
 
         // Get selected users with their relationships
         $users = RegistrationUser::whereIn('id', $userIds)
-            ->with(['registration', 'userType', 'formFieldValues.field'])
+            ->with(['registration', 'userTypes', 'formFieldValues.field'])
             ->get();
 
         if ($users->isEmpty()) {
@@ -862,10 +937,20 @@ class RegistrationUsersController extends Controller
      */
     public function getUserDetails($event_id, $user_id)
     {
-        $user = RegistrationUser::with(['registration', 'formFieldValues.field', 'userType', 'payments'])->findOrFail($user_id);
+        $user = RegistrationUser::with(['registration', 'formFieldValues.field', 'userTypes', 'payments'])->findOrFail($user_id);
         $event = Event::findOrFail($event_id);
 
-        return view('ManageEvent.Modals.UserDetails', compact('user', 'event'));
+        $userTypeOptionNames = [];
+        foreach ($user->userTypes ?? [] as $ut) {
+            if (!empty($ut->pivot->user_type_option_id)) {
+                $userTypeOptionNames[$ut->pivot->user_type_option_id] = true;
+            }
+        }
+        if (!empty($userTypeOptionNames)) {
+            $userTypeOptionNames = \App\Models\UserTypeOption::whereIn('id', array_keys($userTypeOptionNames))->pluck('name', 'id')->toArray();
+        }
+
+        return view('ManageEvent.Modals.UserDetails', compact('user', 'event', 'userTypeOptionNames'));
     }
 
     /**
@@ -1066,7 +1151,7 @@ class RegistrationUsersController extends Controller
 
         $users = RegistrationUser::whereIn('id', $request->user_ids)
             ->whereIn('registration_id', $registrationIds)
-            ->with(['registration.event', 'userType'])
+            ->with(['registration.event', 'userTypes'])
             ->get();
 
         $whatsApp = new WhatsAppService();

@@ -41,12 +41,15 @@
                     </div>
                     <div class="col-md-6">
                         <div class="form-group">
-                            {!! Form::label('user_type_id', 'Default User Type', ['class' => 'control-label']) !!}
-                            {!! Form::select('user_type_id', $userTypes, null, [
-                                'class' => 'form-control',
-                                'placeholder' => 'Select Default User Type (Optional)'
-                            ]) !!}
-                            <small class="help-block">If not specified, "Delegate" will be used as default</small>
+                            <label class="control-label">Default User Types (optional)</label>
+                            <div style="max-height: 120px; overflow-y: auto; border: 1px solid #ccc; padding: 8px; border-radius: 4px;">
+                                @foreach($userTypes as $id => $name)
+                                    <label style="display: block; margin-bottom: 4px;">
+                                        <input type="checkbox" name="user_type_ids[]" value="{{ $id }}"> {{ $name }}
+                                    </label>
+                                @endforeach
+                            </div>
+                            <small class="help-block">If none selected, "Delegate" is used. You can also use a "user_types" column in Excel (comma-separated names).</small>
                         </div>
                     </div>
                 </div>

@@ -28,11 +28,39 @@
                     </div>
                     <div class="col-md-6">
                         <div class="form-group">
-                            {!! Form::label('user_type_id', 'User Type', ['class' => 'control-label']) !!}
-                            {!! Form::select('user_type_id', $userTypes, null, [
-                                'class' => 'form-control',
-                                'placeholder' => 'Select User Type (Default: Delegate)'
-                            ]) !!}
+                            <label class="control-label">User Types (default: Delegate if none selected)</label>
+                            <div class="checkbox-group" style="max-height: 200px; overflow-y: auto; border: 1px solid #ccc; padding: 8px; border-radius: 4px;">
+                                @foreach(isset($userTypesWithOptions) ? $userTypesWithOptions : [] as $ut)
+                                    <div class="user-type-row" style="margin-bottom: 8px;">
+                                        <label style="display: block; margin-bottom: 2px;">
+                                            <input type="checkbox" name="user_type_ids[]" value="{{ $ut->id }}" class="ut-checkbox"> {{ $ut->name }}
+                                        </label>
+                                        @if($ut->options && $ut->options->count() > 0)
+                                            <select name="user_type_option_{{ $ut->id }}" class="form-control input-sm ut-option-select" style="margin-left: 20px; width: auto; display: none;">
+                                                <option value="">— Select sub-type —</option>
+                                                @foreach($ut->options as $opt)
+                                                    <option value="{{ $opt->id }}">{{ $opt->name }}</option>
+                                                @endforeach
+                                            </select>
+                                        @endif
+                                    </div>
+                                @endforeach
+                                @if(!isset($userTypesWithOptions) || $userTypesWithOptions->isEmpty())
+                                    @foreach($userTypes as $id => $name)
+                                        <label style="display: block; margin-bottom: 4px;">
+                                            <input type="checkbox" name="user_type_ids[]" value="{{ $id }}"> {{ $name }}
+                                        </label>
+                                    @endforeach
+                                @endif
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-12">
+                        <div class="form-group">
+                            {!! Form::label('avatar', 'Photo (optional)', ['class' => 'control-label']) !!}
+                            <input type="file" name="avatar" class="form-control" accept="image/*">
                         </div>
                     </div>
                 </div>
@@ -268,6 +296,17 @@ $(document).ready(function() {
             }
         });
     }
+
+    // User type option dropdown: show when checkbox checked
+    $('.ut-checkbox').each(function() {
+        var $row = $(this).closest('.user-type-row');
+        var $sel = $row.find('.ut-option-select');
+        if ($(this).is(':checked')) $sel.show(); else $sel.hide();
+    });
+    $(document).on('change', '.ut-checkbox', function() {
+        var $row = $(this).closest('.user-type-row');
+        $row.find('.ut-option-select').toggle($(this).is(':checked'));
+    });
 
     // Initial binding
     bindConferenceChange();

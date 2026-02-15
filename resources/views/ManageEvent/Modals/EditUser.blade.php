@@ -14,15 +14,40 @@
                 </h3>
             </div>
             <div class="modal-body">
-                <!-- User Type - Always at top -->
+                <!-- User Types (multiple) and Status -->
+                @php
+                    $userTypeIds = $user->userTypes ? $user->userTypes->pluck('id')->toArray() : [];
+                    $userPivotOptions = $user->userTypes ? $user->userTypes->keyBy('id')->map(function($ut) { return $ut->pivot->user_type_option_id; })->toArray() : [];
+                @endphp
                 <div class="row">
                     <div class="col-md-6">
                         <div class="form-group">
-                            {!! Form::label('user_type_id', 'User Type', ['class' => 'control-label']) !!}
-                            {!! Form::select('user_type_id', $userTypes, $user->user_type_id, [
-                                'class' => 'form-control',
-                                'placeholder' => 'Select User Type'
-                            ]) !!}
+                            <label class="control-label">User Types</label>
+                            <div class="checkbox-group" style="max-height: 200px; overflow-y: auto; border: 1px solid #ccc; padding: 8px; border-radius: 4px;">
+                                @foreach(isset($userTypesWithOptions) ? $userTypesWithOptions : collect() as $ut)
+                                    @php $checked = in_array($ut->id, $userTypeIds); $selectedOpt = $userPivotOptions[$ut->id] ?? null; @endphp
+                                    <div class="user-type-row" style="margin-bottom: 8px;">
+                                        <label style="display: block; margin-bottom: 2px;">
+                                            <input type="checkbox" name="user_type_ids[]" value="{{ $ut->id }}" class="ut-checkbox" {{ $checked ? 'checked' : '' }}> {{ $ut->name }}
+                                        </label>
+                                        @if($ut->options && $ut->options->count() > 0)
+                                            <select name="user_type_option_{{ $ut->id }}" class="form-control input-sm ut-option-select" style="margin-left: 20px; width: auto; display: {{ $checked ? 'inline-block' : 'none' }};">
+                                                <option value="">— Select sub-type —</option>
+                                                @foreach($ut->options as $opt)
+                                                    <option value="{{ $opt->id }}" {{ $selectedOpt == $opt->id ? 'selected' : '' }}>{{ $opt->name }}</option>
+                                                @endforeach
+                                            </select>
+                                        @endif
+                                    </div>
+                                @endforeach
+                                @if(!isset($userTypesWithOptions) || $userTypesWithOptions->isEmpty())
+                                    @foreach($userTypes as $id => $name)
+                                        <label style="display: block; margin-bottom: 4px;">
+                                            <input type="checkbox" name="user_type_ids[]" value="{{ $id }}" {{ in_array($id, $userTypeIds) ? 'checked' : '' }}> {{ $name }}
+                                        </label>
+                                    @endforeach
+                                @endif
+                            </div>
                         </div>
                     </div>
                     <div class="col-md-6">
@@ -78,6 +103,17 @@
                             {!! Form::text('phone', $user->phone, [
                                 'class' => 'form-control'
                             ]) !!}
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-12">
+                        <div class="form-group">
+                            <label class="control-label">Photo (optional)</label>
+                            @if($user->avatar)
+                                <div class="mb-2"><img src="{{ asset('storage/' . $user->avatar) }}" alt="" style="max-width: 60px; max-height: 60px; object-fit: cover; border-radius: 50%;"></div>
+                            @endif
+                            <input type="file" name="avatar" class="form-control" accept="image/*">
                         </div>
                     </div>
                 </div>
@@ -226,6 +262,18 @@
                                     @if($value)
                                         <p class="help-block">Current file: {{ $value }}</p>
                                     @endif
+                                @elseif($field->type == 'external_payment')
+                                    {{-- External payment: show stored value (e.g. receipt path) and allow re-upload --}}
+                                    @if($value)
+                                        <p class="help-block text-muted">Current: {{ $value }}</p>
+                                        @if(\Illuminate\Support\Str::startsWith($value, 'receipts/') || \Illuminate\Support\Str::contains($value, '.'))
+                                            <a href="{{ asset('storage/' . $value) }}" target="_blank" class="btn btn-xs btn-default">View receipt</a>
+                                        @endif
+                                    @else
+                                        <p class="help-block text-muted">No receipt on file.</p>
+                                    @endif
+                                    <input type="file" name="fields[{{ $field->id }}]" class="form-control" accept="image/*,.pdf">
+                                    <p class="help-block">Leave empty to keep current. Upload to replace.</p>
                                 @endif
                             </div>
                         @endif
@@ -243,6 +291,17 @@
 
 <script>
 $(document).ready(function() {
+    // User type option dropdown: show when checkbox checked
+    $('#edit-user-modal .ut-checkbox').each(function() {
+        var $row = $(this).closest('.user-type-row');
+        var $sel = $row.find('.ut-option-select');
+        if ($(this).is(':checked')) $sel.show(); else $sel.hide();
+    });
+    $('#edit-user-modal').on('change', '.ut-checkbox', function() {
+        var $row = $(this).closest('.user-type-row');
+        $row.find('.ut-option-select').toggle($(this).is(':checked'));
+    });
+
     // Conference-Profession dependency for edit modal
     $('#edit-user-modal .conference-select').on('change', function() {
         const conferenceId = $(this).val();

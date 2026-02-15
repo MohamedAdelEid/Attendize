@@ -8,14 +8,38 @@
     <header id="header" class="fixed top-0 left-0 right-0 z-50 transition-all duration-300 header-sticky py-4 header-scrolled">
         <div class="container mx-auto px-4 flex items-center justify-between">
             <div class="flex items-center gap-4">
-                <img src="https://sgss.org.sa/wp-content/uploads/2026/01/Asset-3@3x.png" alt="Logo 1" class="h-12 w-12 md:h-14 md:w-14 object-contain bg-white " onerror="this.style.display='none'">
-                <img src="https://cdn4.premiumread.com/?url=https://www.al-madina.com/uploads/images/2020/06/24/1786780.jpg&w=800&q=100&f=jpg" alt="Logo 2" class="h-12 w-12 md:h-14 md:w-14 object-contain" onerror="this.style.display='none'">
+                <a href="{{ route('showEventSymposium', ['event_id' => $event->id]) }}" class="flex items-center gap-4" aria-label="Home">
+                    <img src="{{ asset('images/sgss-logo.png') }}" alt="الجمعية السعودية للجراحة العامة - SGSS" class="h-12 w-12 md:h-14 md:w-14 object-contain" onerror="this.style.display='none'">
+                    <img src="https://cdn4.premiumread.com/?url=https://www.al-madina.com/uploads/images/2020/06/24/1786780.jpg&w=800&q=100&f=jpg" alt="Logo 2" class="h-12 w-12 md:h-14 md:w-14 object-contain" onerror="this.style.display='none'">
+                </a>
                 @if(!isset($event))
                 <span class="text-lg font-semibold">Event</span>
                 @endif
             </div>
             <nav class="hidden md:flex items-center gap-8">
-                <a href="{{ route('showSpeakersRoot') }}" class="link-gold font-medium text-foreground">Committees</a>
+                <a href="{{ route('showEventSymposium', ['event_id' => $event->id]) }}" class="link-gold font-medium text-foreground">Home</a>
+                @if(isset($landingUserTypes) && $landingUserTypes->count() > 0)
+                    @foreach($landingUserTypes as $ut)
+                        @if($ut->options && $ut->options->count() > 0)
+                            <div class="relative group inline-block committee-dropdown">
+                                <a href="{{ route('showEventUserType', ['event_id' => $event->id, 'user_type_slug' => $ut->slug]) }}" class="link-gold font-medium text-foreground inline-flex items-center gap-1">
+                                    {{ $ut->name }}
+                                    <svg class="w-4 h-4 transition-transform group-hover:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                                </a>
+                                <div class="absolute left-0 top-full pt-1 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 min-w-[180px]">
+                                    <div class="rounded-lg shadow-xl border border-border overflow-hidden" style="background: linear-gradient(145deg, hsl(220, 55%, 14%) 0%, hsl(220, 55%, 10%) 100%);">
+                                        <a href="{{ route('showEventUserType', ['event_id' => $event->id, 'user_type_slug' => $ut->slug]) }}" class="block px-4 py-3 text-left font-medium hover:bg-primary/20 transition-colors" style="color: hsl(45, 70%, 50%); border-bottom: 1px solid hsl(220, 40%, 25%);">{{ $ut->name }} (All)</a>
+                                        @foreach($ut->options as $opt)
+                                            <a href="{{ route('showEventUserType', ['event_id' => $event->id, 'user_type_slug' => $ut->slug, 'option_slug' => $opt->slug]) }}" class="block px-4 py-3 text-left hover:bg-primary/20 transition-colors text-foreground">{{ $opt->name }}</a>
+                                        @endforeach
+                                    </div>
+                                </div>
+                            </div>
+                        @else
+                            <a href="{{ route('showEventUserType', ['event_id' => $event->id, 'user_type_slug' => $ut->slug]) }}" class="link-gold font-medium text-foreground">{{ $ut->name }}</a>
+                        @endif
+                    @endforeach
+                @endif
                 <button type="button" onclick="document.getElementById('pricing').scrollIntoView({behavior:'smooth'})" class="link-gold font-medium text-foreground">Fees</button>
                 <button type="button" onclick="document.getElementById('registration').scrollIntoView({behavior:'smooth'})" class="link-gold font-medium text-foreground">Registration</button>
                 <button type="button" onclick="document.getElementById('location').scrollIntoView({behavior:'smooth'})" class="link-gold font-medium text-foreground">Location</button>
@@ -43,7 +67,27 @@
                 </button>
             </div>
             <nav style="padding: 1rem 1.5rem; display: flex; flex-direction: column;">
-                <a href="{{ route('showSpeakersRoot') }}" class="mobile-nav-link block py-3" style="color: hsl(45, 70%, 50%); font-weight: 500; border-bottom: 1px solid hsl(220, 40%, 25%);">Committees</a>
+                <a href="{{ route('showEventSymposium', ['event_id' => $event->id]) }}" class="mobile-nav-link block py-3" style="color: hsl(45, 70%, 50%); font-weight: 500; border-bottom: 1px solid hsl(220, 40%, 25%);">Home</a>
+                @if(isset($landingUserTypes) && $landingUserTypes->count() > 0)
+                    @foreach($landingUserTypes as $ut)
+                        @if($ut->options && $ut->options->count() > 0)
+                            <div class="mobile-committee-wrap" style="border-bottom: 1px solid hsl(220, 40%, 25%);">
+                                <button type="button" class="mobile-nav-link block w-full text-left py-3 flex items-center justify-between" style="color: hsl(45, 70%, 50%); font-weight: 500;" data-committee-toggle="{{ $ut->id }}">
+                                    {{ $ut->name }}
+                                    <svg class="committee-arrow w-4 h-4 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                                </button>
+                                <div class="mobile-committee-sub hidden" data-committee-panel="{{ $ut->id }}" style="padding-left: 1rem; padding-bottom: 0.5rem;">
+                                    <a href="{{ route('showEventUserType', ['event_id' => $event->id, 'user_type_slug' => $ut->slug]) }}" class="block py-2 text-sm" style="color: hsl(0, 0%, 90%);">{{ $ut->name }} (All)</a>
+                                    @foreach($ut->options as $opt)
+                                        <a href="{{ route('showEventUserType', ['event_id' => $event->id, 'user_type_slug' => $ut->slug, 'option_slug' => $opt->slug]) }}" class="block py-2 text-sm" style="color: hsl(0, 0%, 90%);">{{ $opt->name }}</a>
+                                    @endforeach
+                                </div>
+                            </div>
+                        @else
+                            <a href="{{ route('showEventUserType', ['event_id' => $event->id, 'user_type_slug' => $ut->slug]) }}" class="mobile-nav-link block py-3" style="color: hsl(45, 70%, 50%); font-weight: 500; border-bottom: 1px solid hsl(220, 40%, 25%);">{{ $ut->name }}</a>
+                        @endif
+                    @endforeach
+                @endif
                 <button type="button" class="mobile-nav-link block w-full text-left py-3" style="color: hsl(45, 70%, 50%); font-weight: 500; border-bottom: 1px solid hsl(220, 40%, 25%);" data-scroll="pricing">Fees</button>
                 <button type="button" class="mobile-nav-link block w-full text-left py-3" style="color: hsl(45, 70%, 50%); font-weight: 500; border-bottom: 1px solid hsl(220, 40%, 25%);" data-scroll="registration">Registration</button>
                 <button type="button" class="mobile-nav-link block w-full text-left py-3" style="color: hsl(45, 70%, 50%); font-weight: 500; border-bottom: 1px solid hsl(220, 40%, 25%);" data-scroll="location">Location</button>
@@ -68,6 +112,7 @@
             <div class="inline-block mb-6 opacity-0 animate-fade-up">
                 <span class="px-4 py-2 rounded-full border border-primary/30 bg-secondary/50 text-primary text-sm font-medium">Specialized Scientific Seminar</span>
             </div>
+            <p class="text-2xl md:text-4xl lg:text-5xl font-bold text-foreground mb-3 opacity-0 animate-fade-up delay-100" dir="rtl" lang="ar">المسؤولية القانونية في المهن الجراحية</p>
             <h1 class="text-4xl md:text-6xl lg:text-7xl font-bold mb-4 opacity-0 animate-fade-up delay-100">
                 <span class="block text-foreground">Medicine &</span>
                 <span class="text-gold-gradient">Judiciary Symposium</span>
@@ -606,12 +651,28 @@
 
     document.querySelectorAll('.mobile-nav-link').forEach(function(el) {
         el.addEventListener('click', function() {
+            if (el.getAttribute('data-committee-toggle')) return;
             var id = el.getAttribute('data-scroll');
             if (id) {
                 var target = document.getElementById(id);
                 if (target) target.scrollIntoView({ behavior: 'smooth' });
             }
             closeMenu();
+        });
+    });
+
+    document.querySelectorAll('[data-committee-toggle]').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            var id = this.getAttribute('data-committee-toggle');
+            var panel = document.querySelector('[data-committee-panel="' + id + '"]');
+            var arrow = this.querySelector('.committee-arrow');
+            if (panel && panel.classList.contains('hidden')) {
+                panel.classList.remove('hidden');
+                if (arrow) arrow.style.transform = 'rotate(180deg)';
+            } else if (panel) {
+                panel.classList.add('hidden');
+                if (arrow) arrow.style.transform = '';
+            }
         });
     });
 })();

@@ -22,6 +22,8 @@ use App\Models\Registration;
 use App\Models\RegistrationUserMemberData;
 use App\Models\RegistrationPayment;
 use App\Models\RegistrationUser;
+use App\Models\UserType;
+use App\Models\UserTypeOption;
 use App\Services\TicketService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -631,7 +633,7 @@ class EventViewController extends Controller
             }
 
             // No payment required, proceed with registration (reuses transaction started at top of try)
-            // Create the registration user
+            // Create the registration user (default user type: Delegate)
             $registrationUser = RegistrationUser::create([
                 'category_id' => $registration->category_id,
                 'conference_id' => $conferenceId,
@@ -644,6 +646,10 @@ class EventViewController extends Controller
                 'status' => 'pending',
                 'is_new' => true,
             ]);
+            $defaultTypeId = $this->getDefaultUserTypeIdForEvent($event->id);
+            if ($defaultTypeId) {
+                $registrationUser->userTypes()->sync([$defaultTypeId]);
+            }
 
             // Save form responses (skip conference and profession as they're already saved)
             if ($request->has('fields')) {
@@ -918,7 +924,7 @@ class EventViewController extends Controller
             $event = Event::findOrFail($event_id);
             $registration = $event->registrations()->findOrFail($registrationOrder['registration_id']);
 
-            // Create the registration user
+            // Create the registration user (default user type: Delegate)
             $registrationUser = RegistrationUser::create([
                 'category_id' => $registrationOrder['category_id'],
                 'conference_id' => $registrationOrder['conference_id'],
@@ -931,6 +937,10 @@ class EventViewController extends Controller
                 'status' => 'pending',
                 'is_new' => true,
             ]);
+            $defaultTypeId = $this->getDefaultUserTypeIdForEvent($event_id);
+            if ($defaultTypeId) {
+                $registrationUser->userTypes()->sync([$defaultTypeId]);
+            }
 
             // Save form responses
             if (isset($registrationOrder['fields'])) {
@@ -1072,7 +1082,7 @@ class EventViewController extends Controller
                     $conferenceId = $registrationOrder['conference_id'] ?? null;
                     $professionId = $registrationOrder['profession_id'] ?? null;
 
-                    // Create the registration user
+                    // Create the registration user (default user type: Delegate)
                     $registrationUser = RegistrationUser::create([
                         'category_id' => $registrationOrder['category_id'],
                         'conference_id' => $conferenceId,
@@ -1085,6 +1095,10 @@ class EventViewController extends Controller
                         'status' => 'pending',
                         'is_new' => true,
                     ]);
+                    $defaultTypeId = $this->getDefaultUserTypeIdForEvent($event->id);
+                    if ($defaultTypeId) {
+                        $registrationUser->userTypes()->sync([$defaultTypeId]);
+                    }
 
                     // Save form responses (including files from temporary storage)
                     if (!empty($registrationOrder['fields'])) {
@@ -1184,24 +1198,26 @@ class EventViewController extends Controller
     }
 
     /**
-     * Serve favicon for symposium/show page: SGSS logo on white background.
+     * Serve favicon for symposium/show page: SGSS logo (local image).
      */
     public function symposiumFavicon()
     {
-        $logoUrl = 'https://sgss.org.sa/wp-content/uploads/2026/01/Asset-3@3x.png';
+        $logoPath = public_path('images/sgss-logo.png');
         $size = 64;
 
         try {
-            $logo = Image::make($logoUrl);
-            $logo->resize($size - 8, $size - 8); // padding
-            $canvas = Image::canvas($size, $size, '#ffffff');
-            $canvas->insert($logo, 'center');
-            return $canvas->response('png')->header('Cache-Control', 'public, max-age=86400');
+            if (file_exists($logoPath)) {
+                $logo = Image::make($logoPath);
+                $logo->resize($size - 8, $size - 8);
+                $canvas = Image::canvas($size, $size, '#ffffff');
+                $canvas->insert($logo, 'center');
+                return $canvas->response('png')->header('Cache-Control', 'public, max-age=86400');
+            }
         } catch (\Exception $e) {
             \Log::warning('Symposium favicon generation failed: ' . $e->getMessage());
-            $canvas = Image::canvas($size, $size, '#ffffff');
-            return $canvas->response('png')->header('Cache-Control', 'public, max-age=3600');
         }
+        $canvas = Image::canvas($size, $size, '#ffffff');
+        return $canvas->response('png')->header('Cache-Control', 'public, max-age=3600');
     }
 
     /**
@@ -1224,8 +1240,9 @@ class EventViewController extends Controller
         $event->load('eventMemberFields');
         $uniqueMemberField = $event->eventMemberFields->where('is_unique', true)->first();
         $countries = Country::all();
+        $landingUserTypes = \App\Models\UserType::where('event_id', $event_id)->where('show_on_landing', true)->with('options')->orderBy('name')->get();
 
-        return view('ViewEvent.show-symposium', compact('event', 'landingRegistration', 'membersRegistration', 'uniqueMemberField', 'countries'));
+        return view('ViewEvent.show-symposium', compact('event', 'landingRegistration', 'membersRegistration', 'uniqueMemberField', 'countries', 'landingUserTypes'));
     }
 
     /**
@@ -1235,6 +1252,35 @@ class EventViewController extends Controller
     {
         $event = Event::findOrFail($event_id);
         return view('ViewEvent.show-speakers', compact('event'));
+    }
+
+    /**
+     * Show user type page: big title + grid of users (same theme as landing).
+     * URL: /e/{event_id}/type/{user_type_slug} or .../type/{user_type_slug}/{option_slug}
+     */
+    public function showEventUserType(Request $request, $event_id, $user_type_slug, $option_slug = null)
+    {
+        $event = Event::findOrFail($event_id);
+        $userType = UserType::where('event_id', $event_id)->where('slug', $user_type_slug)->with('options')->firstOrFail();
+        $option = null;
+        if ($option_slug !== null && $option_slug !== '') {
+            $option = UserTypeOption::where('user_type_id', $userType->id)->where('slug', $option_slug)->firstOrFail();
+        }
+
+        $pageTitle = $option ? $option->name : $userType->name;
+        $usersQuery = RegistrationUser::whereHas('registration', function ($q) use ($event_id) {
+            $q->where('event_id', $event_id);
+        })->whereHas('userTypes', function ($q) use ($userType, $option) {
+            $q->where('user_types.id', $userType->id);
+            if ($option !== null) {
+                $q->where('registration_user_user_type.user_type_option_id', $option->id);
+            }
+        })->with('userTypes')->orderBy('first_name')->orderBy('last_name');
+
+        $users = $usersQuery->get();
+        $landingUserTypes = UserType::where('event_id', $event_id)->where('show_on_landing', true)->with('options')->orderBy('name')->get();
+
+        return view('ViewEvent.user-type', compact('event', 'userType', 'option', 'pageTitle', 'users', 'landingUserTypes'));
     }
 
     /**
@@ -1430,6 +1476,10 @@ class EventViewController extends Controller
                 'status' => 'pending',
                 'is_new' => false,
             ]);
+            $defaultTypeId = $this->getDefaultUserTypeIdForEvent($registration->event_id);
+            if ($defaultTypeId) {
+                $registrationUser->userTypes()->sync([$defaultTypeId]);
+            }
 
             foreach ($fields as $fieldId => $value) {
                 $field = $registration->dynamicFormFields->find($fieldId);
@@ -1498,5 +1548,20 @@ class EventViewController extends Controller
         } catch (\Exception $e) {
             return null;
         }
+    }
+
+    /**
+     * Get or create the default user type "Delegate" for an event. Used for all new registrations when no user type is selected.
+     *
+     * @param int $event_id
+     * @return int|null User type id, or null if creation failed
+     */
+    protected function getDefaultUserTypeIdForEvent($event_id)
+    {
+        $userType = UserType::firstOrCreate(
+            ['event_id' => $event_id, 'name' => 'Delegate'],
+            ['event_id' => $event_id, 'name' => 'Delegate']
+        );
+        return $userType ? $userType->id : null;
     }
 }

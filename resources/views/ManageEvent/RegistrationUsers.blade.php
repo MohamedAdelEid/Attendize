@@ -218,6 +218,8 @@
             background-color: #138496;
             border-color: #117a8b;
         }
+        .user-row-clickable { cursor: pointer; }
+        .user-row-clickable:hover { background-color: #f5f5f5 !important; }
     </style>
 @stop
 
@@ -300,6 +302,22 @@
                                         @foreach ($registrations as $id => $name)
                                             <option value="{{ $id }}"
                                                 {{ isset($filters['registration_id']) && $filters['registration_id'] == $id ? 'selected' : '' }}>
+                                                {{ $name }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                            </div>
+                            @endif
+                            @if(isset($userTypesFilter) && count($userTypesFilter) > 0)
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="user_type_id">User Type</label>
+                                    <select name="user_type_id" id="user_type_id" class="form-control">
+                                        <option value="">All User Types</option>
+                                        @foreach ($userTypesFilter as $id => $name)
+                                            <option value="{{ $id }}"
+                                                {{ isset($filters['user_type_id']) && $filters['user_type_id'] == $id ? 'selected' : '' }}>
                                                 {{ $name }}
                                             </option>
                                         @endforeach
@@ -401,12 +419,19 @@
                                     </thead>
                                     <tbody>
                                         @foreach ($users as $user)
-                                            <tr class="{{ $user->is_new ? 'new-registration' : '' }}">
-                                                <td class="checkbox-column">
+                                            <tr class="{{ $user->is_new ? 'new-registration' : '' }} user-row-clickable">
+                                                <td class="checkbox-column" onclick="event.stopPropagation();">
                                                     <input type="checkbox" class="user-checkbox" name="user_ids[]"
                                                         value="{{ $user->id }}">
                                                 </td>
-                                                <td>{{ $user->first_name }} {{ $user->last_name }}</td>
+                                                <td>
+                                                    @if($user->avatar)
+                                                        <img src="{{ asset('storage/' . $user->avatar) }}" alt="" class="img-circle" style="width:28px;height:28px;object-fit:cover;margin-right:6px;vertical-align:middle;">
+                                                    @else
+                                                        <span class="avatar-placeholder" style="display:inline-block;width:28px;height:28px;border-radius:50%;background:#e9ecef;margin-right:6px;vertical-align:middle;text-align:center;line-height:28px;font-size:12px;color:#6c757d;">{{ strtoupper(substr($user->first_name,0,1).substr($user->last_name,0,1)) }}</span>
+                                                    @endif
+                                                    {{ $user->first_name }} {{ $user->last_name }}
+                                                </td>
                                                 <td>{{ $user->email }}</td>
                                                 @if(!isset($registration))
                                                     <td>
@@ -416,8 +441,10 @@
                                                     </td>
                                                 @endif
                                                 <td>
-                                                    @if($user->userType)
-                                                        <span class="badge badge-info">{{ $user->userType->name }}</span>
+                                                    @if($user->userTypes && $user->userTypes->count() > 0)
+                                                        @foreach($user->userTypes as $ut)
+                                                            <span class="badge badge-info">{{ $ut->name }}@if(!empty($ut->pivot->user_type_option_id) && isset($userTypeOptionNames[$ut->pivot->user_type_option_id])) – {{ $userTypeOptionNames[$ut->pivot->user_type_option_id] }}@endif</span>
+                                                        @endforeach
                                                     @else
                                                         <span class="text-muted">-</span>
                                                     @endif
@@ -606,6 +633,12 @@
 @section('foot')
     <script>
         $(document).ready(function() {
+            // Row click: open View Details modal (unless clicking checkbox or actions)
+            $(document).on('click', '.user-row-clickable', function(e) {
+                if ($(e.target).closest('.checkbox-column, .user-actions, .btn, a').length) return;
+                $(this).find('a.view-user').first().trigger('click');
+            });
+
             // Select all checkbox functionality
             $('#select-all-checkbox').change(function() {
                 $('.user-checkbox').prop('checked', this.checked);

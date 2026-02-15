@@ -7,8 +7,9 @@ use Auth;
 use Image;
 use Validator;
 use App\Models\Event;
-use App\Models\Organiser;
 use App\Models\EventImage;
+use App\Models\Organiser;
+use App\Models\UserType;
 use Illuminate\Http\Request;
 use Spatie\GoogleCalendar\Event as GCEvent;
 
@@ -164,6 +165,12 @@ class EventController extends MyBaseController
                 'messages' => trans("Controllers.event_create_exception"),
             ]);
         }
+
+        // Create default user type "Delegate" for this event (used as default for all registrations)
+        UserType::firstOrCreate(
+            ['event_id' => $event->id, 'name' => 'Delegate'],
+            ['event_id' => $event->id, 'name' => 'Delegate']
+        );
 
         if ($request->hasFile('event_image')) {
             $path = public_path() . '/' . config('attendize.event_images_path');
