@@ -130,17 +130,17 @@
                         @foreach($formFields as $field)
                             @if($field->type !== 'user_types') {{-- Skip user_types as it's already shown above --}}
                                 <div class="form-group">
-                                    <label class="control-label {{ $field->is_required ? 'required' : '' }}">
+                                    <label class="control-label">
                                         {{ $field->label }}
                                     </label>
                                     @if($field->type == 'text')
-                                        <input type="text" name="fields[{{ $field->id }}]" class="form-control" {{ $field->is_required ? 'required' : '' }}>
+                                        <input type="text" name="fields[{{ $field->id }}]" class="form-control">
                                     @elseif($field->type == 'email')
-                                        <input type="email" name="fields[{{ $field->id }}]" class="form-control" {{ $field->is_required ? 'required' : '' }}>
+                                        <input type="email" name="fields[{{ $field->id }}]" class="form-control">
                                     @elseif($field->type == 'textarea')
-                                        <textarea name="fields[{{ $field->id }}]" class="form-control" rows="3" {{ $field->is_required ? 'required' : '' }}></textarea>
+                                        <textarea name="fields[{{ $field->id }}]" class="form-control" rows="3"></textarea>
                                     @elseif($field->type == 'select')
-                                        <select name="fields[{{ $field->id }}]" class="form-control" {{ $field->is_required ? 'required' : '' }}>
+                                        <select name="fields[{{ $field->id }}]" class="form-control">
                                             <option value="">Select option</option>
                                             @if(is_array($field->options))
                                                 @foreach($field->options as $option)
@@ -149,28 +149,58 @@
                                             @endif
                                         </select>
                                     @elseif($field->type == 'country')
-                                        <select name="fields[{{ $field->id }}]" class="form-control" {{ $field->is_required ? 'required' : '' }}>
+                                        <select name="fields[{{ $field->id }}]" class="form-control">
                                             <option value="">Select Country</option>
                                             @foreach($countries as $country)
                                                 <option value="{{ $country->id }}">{{ $country->name }}</option>
                                             @endforeach
                                         </select>
                                     @elseif($field->type == 'city')
-                                        <input type="text" name="fields[{{ $field->id }}]" class="form-control" placeholder="Enter city name" {{ $field->is_required ? 'required' : '' }}>
+                                        <input type="text" name="fields[{{ $field->id }}]" class="form-control" placeholder="Enter city name">
                                     @elseif($field->type == 'conference')
-                                        <select name="fields[{{ $field->id }}]" class="form-control conference-select" {{ $field->is_required ? 'required' : '' }}>
+                                        <select name="fields[{{ $field->id }}]" class="form-control conference-select">
                                             <option value="">Select Conference</option>
                                             @foreach($conferences as $id => $name)
                                                 <option value="{{ $id }}">{{ $name }}</option>
                                             @endforeach
                                         </select>
                                     @elseif($field->type == 'profession')
-                                        <select name="fields[{{ $field->id }}]" class="form-control profession-select" {{ $field->is_required ? 'required' : '' }}>
+                                        <select name="fields[{{ $field->id }}]" class="form-control profession-select">
                                             <option value="">Select Profession</option>
                                             @foreach($professions as $id => $name)
                                                 <option value="{{ $id }}">{{ $name }}</option>
                                             @endforeach
                                         </select>
+                                    @elseif($field->type == 'external_payment')
+                                        {{-- External payment: file upload for receipt (optional in admin) --}}
+                                        <input type="file" name="fields[{{ $field->id }}]" class="form-control" accept="image/*,.pdf">
+                                        <p class="help-block">Upload receipt file (optional).</p>
+                                    @elseif($field->type == 'file')
+                                        <input type="file" name="fields[{{ $field->id }}]" class="form-control">
+                                    @elseif($field->type == 'checkbox')
+                                        <div class="checkbox">
+                                            <label>
+                                                <input type="checkbox" name="fields[{{ $field->id }}]" value="1">
+                                                {{ $field->description ?? '' }}
+                                            </label>
+                                        </div>
+                                    @elseif($field->type == 'radio')
+                                        @if(is_array($field->options))
+                                            @foreach($field->options as $option)
+                                                <div class="radio">
+                                                    <label>
+                                                        <input type="radio" name="fields[{{ $field->id }}]" value="{{ trim($option) }}">
+                                                        {{ trim($option) }}
+                                                    </label>
+                                                </div>
+                                            @endforeach
+                                        @endif
+                                    @elseif($field->type == 'date')
+                                        <input type="date" name="fields[{{ $field->id }}]" class="form-control">
+                                    @elseif($field->type == 'tel')
+                                        <input type="tel" name="fields[{{ $field->id }}]" class="form-control">
+                                    @elseif($field->type == 'number')
+                                        <input type="number" name="fields[{{ $field->id }}]" class="form-control">
                                     @endif
                                 </div>
                             @endif
@@ -208,16 +238,16 @@ $(document).ready(function() {
                                 }
 
                                 fieldsHtml += '<div class="form-group">';
-                                fieldsHtml += '<label class="control-label ' + (field.is_required ? 'required' : '') + '">' + field.label + '</label>';
+                                fieldsHtml += '<label class="control-label">' + field.label + '</label>';
 
                                 if (field.type === 'text') {
-                                    fieldsHtml += '<input type="text" name="fields[' + field.id + ']" class="form-control" ' + (field.is_required ? 'required' : '') + '>';
+                                    fieldsHtml += '<input type="text" name="fields[' + field.id + ']" class="form-control">';
                                 } else if (field.type === 'email') {
-                                    fieldsHtml += '<input type="email" name="fields[' + field.id + ']" class="form-control" ' + (field.is_required ? 'required' : '') + '>';
+                                    fieldsHtml += '<input type="email" name="fields[' + field.id + ']" class="form-control">';
                                 } else if (field.type === 'textarea') {
-                                    fieldsHtml += '<textarea name="fields[' + field.id + ']" class="form-control" rows="3" ' + (field.is_required ? 'required' : '') + '></textarea>';
+                                    fieldsHtml += '<textarea name="fields[' + field.id + ']" class="form-control" rows="3"></textarea>';
                                 } else if (field.type === 'select') {
-                                    fieldsHtml += '<select name="fields[' + field.id + ']" class="form-control" ' + (field.is_required ? 'required' : '') + '>';
+                                    fieldsHtml += '<select name="fields[' + field.id + ']" class="form-control">';
                                     fieldsHtml += '<option value="">Select option</option>';
                                     if (field.options && Array.isArray(field.options)) {
                                         field.options.forEach(function(option) {
@@ -226,28 +256,47 @@ $(document).ready(function() {
                                     }
                                     fieldsHtml += '</select>';
                                 } else if (field.type === 'country') {
-                                    fieldsHtml += '<select name="fields[' + field.id + ']" class="form-control" ' + (field.is_required ? 'required' : '') + '>';
+                                    fieldsHtml += '<select name="fields[' + field.id + ']" class="form-control">';
                                     fieldsHtml += '<option value="">Select Country</option>';
                                     @foreach($countries as $country)
                                         fieldsHtml += '<option value="{{ $country->id }}">{{ $country->name }}</option>';
                                     @endforeach
                                     fieldsHtml += '</select>';
                                 } else if (field.type === 'city') {
-                                    fieldsHtml += '<input type="text" name="fields[' + field.id + ']" class="form-control" placeholder="Enter city name" ' + (field.is_required ? 'required' : '') + '>';
+                                    fieldsHtml += '<input type="text" name="fields[' + field.id + ']" class="form-control" placeholder="Enter city name">';
                                 } else if (field.type === 'conference') {
-                                    fieldsHtml += '<select name="fields[' + field.id + ']" class="form-control conference-select" ' + (field.is_required ? 'required' : '') + '>';
+                                    fieldsHtml += '<select name="fields[' + field.id + ']" class="form-control conference-select">';
                                     fieldsHtml += '<option value="">Select Conference</option>';
                                     @foreach($conferences as $id => $name)
                                         fieldsHtml += '<option value="{{ $id }}">{{ $name }}</option>';
                                     @endforeach
                                     fieldsHtml += '</select>';
                                 } else if (field.type === 'profession') {
-                                    fieldsHtml += '<select name="fields[' + field.id + ']" class="form-control profession-select" ' + (field.is_required ? 'required' : '') + '>';
+                                    fieldsHtml += '<select name="fields[' + field.id + ']" class="form-control profession-select">';
                                     fieldsHtml += '<option value="">Select Profession</option>';
                                     @foreach($professions as $id => $name)
                                         fieldsHtml += '<option value="{{ $id }}">{{ $name }}</option>';
                                     @endforeach
                                     fieldsHtml += '</select>';
+                                } else if (field.type === 'external_payment') {
+                                    fieldsHtml += '<input type="file" name="fields[' + field.id + ']" class="form-control" accept="image/*,.pdf">';
+                                    fieldsHtml += '<p class="help-block">Upload receipt file (optional).</p>';
+                                } else if (field.type === 'file') {
+                                    fieldsHtml += '<input type="file" name="fields[' + field.id + ']" class="form-control">';
+                                } else if (field.type === 'checkbox') {
+                                    fieldsHtml += '<div class="checkbox"><label><input type="checkbox" name="fields[' + field.id + ']" value="1">' + (field.description || '') + '</label></div>';
+                                } else if (field.type === 'radio') {
+                                    if (field.options && Array.isArray(field.options)) {
+                                        field.options.forEach(function(option) {
+                                            fieldsHtml += '<div class="radio"><label><input type="radio" name="fields[' + field.id + ']" value="' + option.trim() + '">' + option.trim() + '</label></div>';
+                                        });
+                                    }
+                                } else if (field.type === 'date') {
+                                    fieldsHtml += '<input type="date" name="fields[' + field.id + ']" class="form-control">';
+                                } else if (field.type === 'tel') {
+                                    fieldsHtml += '<input type="tel" name="fields[' + field.id + ']" class="form-control">';
+                                } else if (field.type === 'number') {
+                                    fieldsHtml += '<input type="number" name="fields[' + field.id + ']" class="form-control">';
                                 }
 
                                 fieldsHtml += '</div>';

@@ -296,20 +296,15 @@ class RegistrationUsersController extends Controller
                 'status' => 'required|in:pending,approved,rejected',
             ];
 
-            // Add validation for dynamic fields
+            // Add validation for dynamic fields (all optional in admin, even if required in registration form)
             foreach ($registration->dynamicFormFields as $field) {
-                $fieldRules = [];
-                if ($field->is_required) {
-                    $fieldRules[] = 'required';
-                } else {
-                    $fieldRules[] = 'nullable';
-                }
+                $fieldRules = ['nullable']; // Always nullable in admin panel
 
                 if ($field->type == 'email') {
                     $fieldRules[] = 'email';
                 } elseif ($field->type == 'date') {
                     $fieldRules[] = 'date';
-                } elseif ($field->type == 'file') {
+                } elseif ($field->type == 'file' || $field->type == 'external_payment') {
                     $fieldRules[] = 'file';
                     $fieldRules[] = 'max:10240';
                 }
@@ -478,19 +473,17 @@ class RegistrationUsersController extends Controller
                 'status' => 'required|in:pending,approved,rejected',
             ];
 
-            // Add validation for dynamic fields
+            // Add validation for dynamic fields (all optional in admin, even if required in registration form)
             foreach ($registration->dynamicFormFields as $field) {
-                $fieldRules = [];
-                if ($field->is_required) {
-                    $fieldRules[] = 'required';
-                } else {
-                    $fieldRules[] = 'nullable';
-                }
+                $fieldRules = ['nullable']; // Always nullable in admin panel
 
                 if ($field->type == 'email') {
                     $fieldRules[] = 'email';
                 } elseif ($field->type == 'date') {
                     $fieldRules[] = 'date';
+                } elseif ($field->type == 'file' || $field->type == 'external_payment') {
+                    $fieldRules[] = 'file';
+                    $fieldRules[] = 'max:10240';
                 }
 
                 $rules['fields.' . $field->id] = implode('|', $fieldRules);

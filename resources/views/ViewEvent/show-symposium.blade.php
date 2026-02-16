@@ -4,19 +4,23 @@
 
 @section('content')
 <main class="min-h-screen">
-    {{-- Header --}}
+    {{-- Header: if nav items > 8 show hamburger from lg; else from md to avoid overflow --}}
+    @php
+        $navItemCount = 5 + (isset($landingUserTypes) ? $landingUserTypes->count() : 0);
+        $navBreakpoint = $navItemCount > 8 ? 'lg' : 'md';
+    @endphp
     <header id="header" class="fixed top-0 left-0 right-0 z-50 transition-all duration-300 header-sticky py-4 header-scrolled">
         <div class="container mx-auto px-4 flex items-center justify-between">
             <div class="flex items-center gap-4">
                 <a href="{{ route('showEventSymposium', ['event_id' => $event->id]) }}" class="flex items-center gap-4" aria-label="Home">
-                    <img src="{{ asset('images/sgss-logo.png') }}" alt="الجمعية السعودية للجراحة العامة - SGSS" class="h-12 w-12 md:h-14 md:w-14 object-contain" onerror="this.style.display='none'">
+                    <img src="{{ asset('images/sgss-logo.png') }}" alt="الجمعية السعودية للجراحة العامة - SGSS" class="bg-white w-12 h-12 md:w-16 md:h-14 object-contain" onerror="this.style.display='none'">
                     <img src="https://cdn4.premiumread.com/?url=https://www.al-madina.com/uploads/images/2020/06/24/1786780.jpg&w=800&q=100&f=jpg" alt="Logo 2" class="h-12 w-12 md:h-14 md:w-14 object-contain" onerror="this.style.display='none'">
                 </a>
                 @if(!isset($event))
                 <span class="text-lg font-semibold">Event</span>
                 @endif
             </div>
-            <nav class="hidden md:flex items-center gap-8">
+            <nav class="hidden {{ $navBreakpoint === 'lg' ? 'lg:flex' : 'md:flex' }} items-center gap-8">
                 <a href="{{ route('showEventSymposium', ['event_id' => $event->id]) }}" class="link-gold font-medium text-foreground">Home</a>
                 @if(isset($landingUserTypes) && $landingUserTypes->count() > 0)
                     @foreach($landingUserTypes as $ut)
@@ -45,8 +49,8 @@
                 <button type="button" onclick="document.getElementById('location').scrollIntoView({behavior:'smooth'})" class="link-gold font-medium text-foreground">Location</button>
                 <button type="button" onclick="document.getElementById('footer').scrollIntoView({behavior:'smooth'})" class="link-gold font-medium text-foreground">Contact Us</button>
             </nav>
-            {{-- Mobile: hamburger + menu --}}
-            <div class="flex items-center gap-2 md:hidden">
+            {{-- Hamburger: show below breakpoint (lg if many items, else md) --}}
+            <div class="flex items-center gap-2 {{ $navBreakpoint === 'lg' ? 'lg:hidden' : 'md:hidden' }}">
                 <button type="button" id="mobile-menu-toggle" class="p-2 rounded-lg text-foreground hover:bg-secondary/50" aria-expanded="false" aria-label="Open menu">
                     <svg id="mobile-menu-icon-open" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
                     <svg id="mobile-menu-icon-close" class="w-6 h-6 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
@@ -56,8 +60,8 @@
         </div>
     </header>
 
-    {{-- Mobile menu: outside header, full-viewport overlay + right-side panel. Click on backdrop closes. --}}
-    <div id="mobile-menu" class="md:hidden hidden" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; min-height: 100vh; min-height: 100dvh; z-index: 9999;">
+    {{-- Mobile menu overlay: visible below same breakpoint as hamburger --}}
+    <div id="mobile-menu" class="{{ $navBreakpoint === 'lg' ? 'lg:hidden' : 'md:hidden' }} hidden" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; min-height: 100vh; min-height: 100dvh; z-index: 9999;">
         <div id="mobile-menu-backdrop" role="button" tabindex="0" aria-label="Close menu" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(19, 28, 46, 0.92); backdrop-filter: blur(8px); cursor: pointer;"></div>
         <div id="mobile-menu-panel" style="position: absolute; top: 0; right: 0; width: 280px; max-width: 85vw; height: 100%; min-height: 100vh; background: linear-gradient(145deg, hsl(220, 55%, 14%) 0%, hsl(220, 55%, 10%) 100%); border-left: 1px solid hsl(220, 40%, 25%); box-shadow: -8px 0 32px rgba(0,0,0,0.4); overflow-y: auto;">
             <div style="padding: 1.25rem 1.5rem; border-bottom: 1px solid hsl(220, 40%, 25%); display: flex; align-items: center; justify-content: space-between;">
