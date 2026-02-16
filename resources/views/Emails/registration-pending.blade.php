@@ -48,7 +48,7 @@
                     <ul>
                         <li><strong>Event:</strong> {{ $event->title }}</li>
                         <li><strong>Date:</strong> May 2, 2026</li>
-                        <li><strong>Venue:</strong> Crowne Plaza, Jeddah - Crystal Hall</li>
+                        <li><strong>Venue:</strong> Crown Plaza - Al Hamra - Crystal Hall</li>
                         <li><strong>Status:</strong> <span class="status-badge">Pending</span></li>
                     </ul>
                 </div>

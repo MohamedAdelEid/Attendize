@@ -9,7 +9,7 @@
     {{-- Open Graph / Social meta --}}
     <meta property="og:site_name" content="SGSS 2026 - Registration">
     <meta property="og:title" content="SGSS 2026 Symposium" />
-    <meta property="og:description" content="Medicine & Judiciary Symposium - Legal Liability in Surgical Professions - May 2, 2026 - Crowne Plaza, Al Hamra, Jeddah" />
+    <meta property="og:description" content="Medicine & Judiciary Symposium - Legal Liability in Surgical Professions - May 2, 2026 - Crown Plaza - Al Hamra - Crystal Hall" />
     <meta property="og:type" content="website" />
     <!-- Tailwind CSS v3 CDN -->
     <script src="https://cdn.tailwindcss.com"></script>

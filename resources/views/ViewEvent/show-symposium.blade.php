@@ -7,7 +7,7 @@
     {{-- Header: if nav items > 8 show hamburger from lg; else from md to avoid overflow --}}
     @php
         $navItemCount = 5 + (isset($landingUserTypes) ? $landingUserTypes->count() : 0);
-        $navBreakpoint = $navItemCount > 8 ? 'lg' : 'md';
+        $navBreakpoint = $navItemCount > 5 ? 'lg' : 'md';
     @endphp
     <header id="header" class="fixed top-0 left-0 right-0 z-50 transition-all duration-300 header-sticky py-4 header-scrolled">
         <div class="container mx-auto px-4 flex items-center justify-between">
@@ -116,7 +116,7 @@
             <div class="inline-block mb-6 opacity-0 animate-fade-up">
                 <span class="px-4 py-2 rounded-full border border-primary/30 bg-secondary/50 text-primary text-sm font-medium">Specialized Scientific Seminar</span>
             </div>
-            <p class="text-2xl md:text-4xl lg:text-5xl font-bold text-foreground mb-3 opacity-0 animate-fade-up delay-100" dir="rtl" lang="ar">المسؤولية القانونية في المهن الجراحية</p>
+            <p class="text-2xl md:text-4xl lg:text-5xl font-bold text-foreground mb-3 opacity-0 animate-fade-up delay-100" dir="rtl" lang="ar">الندوة الثانية: "الطب والقضاء: المسؤولية القانونية في المهن الجراحية"</p>
             <h1 class="text-4xl md:text-6xl lg:text-7xl font-bold mb-4 opacity-0 animate-fade-up delay-100">
                 <span class="block text-foreground">Medicine &</span>
                 <span class="text-gold-gradient">Judiciary Symposium</span>
@@ -131,7 +131,7 @@
                 <div class="hidden md:block w-px h-6 bg-border"></div>
                 <div class="flex items-center gap-2 text-foreground">
                     <svg class="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-                    <span class="text-lg">Crowne Plaza, Jeddah - Crystal Hall</span>
+                    <span class="text-lg">Crown Plaza - Al Hamra - Crystal Hall</span>
                 </div>
             </div>
             <div class="mb-10 opacity-0 animate-fade-up delay-400">
@@ -320,12 +320,12 @@
         <div class="container mx-auto px-4">
             <div class="text-center mb-12">
                 <h2 class="text-3xl md:text-4xl font-bold mb-4"><span class="text-gold-gradient">Venue Location</span></h2>
-                <p class="text-muted-foreground text-lg">Crowne Plaza, Jeddah - Crystal Hall</p>
+                <p class="text-muted-foreground text-lg">Crown Plaza - Al Hamra - Crystal Hall</p>
             </div>
             <div class="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
                 <div class="card-navy rounded-2xl overflow-hidden">
                     <div class="relative aspect-video md:aspect-square">
-                        <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d118776.07041036269!2d39.00339069726561!3d21.517424000000002!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x15c3cf8870b4f8dd%3A0x73f82606e0774b6a!2sCrowne%20Plaza%20Jeddah%20by%20IHG!5e0!3m2!1sen!2ssa!4v1770986393242!5m2!1sen!2ssa" width="600" height="450" style="border:0;" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade" class="absolute inset-0 w-full h-full" title="Crowne Plaza Jeddah"></iframe>
+                        <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d118776.07041036269!2d39.00339069726561!3d21.517424000000002!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x15c3cf8870b4f8dd%3A0x73f82606e0774b6a!2sCrowne%20Plaza%20Jeddah%20by%20IHG!5e0!3m2!1sen!2ssa!4v1770986393242!5m2!1sen!2ssa" width="600" height="450" style="border:0;" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade" class="absolute inset-0 w-full h-full" title="Crown Plaza - Al Hamra - Crystal Hall"></iframe>
                     </div>
                 </div>
                 <div class="space-y-4">
@@ -335,7 +335,7 @@
                         </div>
                         <div>
                             <h3 class="font-bold text-foreground mb-1">Address</h3>
-                            <p class="text-muted-foreground">Crowne Plaza, Jeddah - Crystal Hall, Saudi Arabia</p>
+                            <p class="text-muted-foreground">Crown Plaza - Al Hamra - Crystal Hall, Saudi Arabia</p>
                         </div>
                     </div>
                     <div class="card-navy rounded-xl p-6 flex items-start gap-4">
