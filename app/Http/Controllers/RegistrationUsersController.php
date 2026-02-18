@@ -331,7 +331,11 @@ class RegistrationUsersController extends Controller
             $syncData = [];
             foreach ($userTypeIds as $tid) {
                 $optId = $request->input('user_type_option_' . $tid);
-                $syncData[$tid] = $optId ? ['user_type_option_id' => (int) $optId] : [];
+                $pos = $request->input('user_type_position_' . $tid);
+                $syncData[$tid] = [
+                    'user_type_option_id' => $optId ? (int) $optId : null,
+                    'position' => $pos !== null && $pos !== '' ? (int) $pos : null,
+                ];
             }
 
             $avatarPath = null;
@@ -525,7 +529,11 @@ class RegistrationUsersController extends Controller
                 $syncData = [];
                 foreach ($userTypeIds as $tid) {
                     $optId = $request->input('user_type_option_' . $tid);
-                    $syncData[$tid] = $optId ? ['user_type_option_id' => (int) $optId] : [];
+                    $pos = $request->input('user_type_position_' . $tid);
+                    $syncData[$tid] = [
+                        'user_type_option_id' => $optId ? (int) $optId : null,
+                        'position' => $pos !== null && $pos !== '' ? (int) $pos : null,
+                    ];
                 }
                 $user->userTypes()->sync($syncData);
             }

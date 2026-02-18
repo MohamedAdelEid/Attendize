@@ -1275,12 +1275,31 @@ class EventViewController extends Controller
             if ($option !== null) {
                 $q->where('registration_user_user_type.user_type_option_id', $option->id);
             }
-        })->with('userTypes')->orderBy('first_name')->orderBy('last_name');
+        })->with(['userTypes' => function ($q) use ($userType) {
+            $q->where('user_types.id', $userType->id);
+        }]);
 
-        $users = $usersQuery->get();
+        $users = $usersQuery->get()->sortBy(function ($u) use ($userType) {
+            $pivot = $u->userTypes->first();
+            $pos = $pivot && isset($pivot->pivot->position) && $pivot->pivot->position !== null
+                ? (int) $pivot->pivot->position
+                : 999999;
+            return [$pos, $u->first_name, $u->last_name];
+        })->values();
         $landingUserTypes = UserType::where('event_id', $event_id)->where('show_on_landing', true)->with('options')->orderBy('name')->get();
 
         return view('ViewEvent.user-type', compact('event', 'userType', 'option', 'pageTitle', 'users', 'landingUserTypes'));
+    }
+
+    /**
+     * Show program page (Coming soon).
+     */
+    public function showEventProgram(Request $request, $event_id)
+    {
+        $event = Event::findOrFail($event_id);
+        $landingUserTypes = UserType::where('event_id', $event_id)->where('show_on_landing', true)->with('options')->orderBy('name')->get();
+
+        return view('ViewEvent.program', compact('event', 'landingUserTypes'));
     }
 
     /**

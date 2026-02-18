@@ -43,13 +43,19 @@
                                                 @endforeach
                                             </select>
                                         @endif
+                                        <span style="margin-left: 20px;">Position (optional):</span>
+                                        <input type="number" name="user_type_position_{{ $ut->id }}" class="form-control input-sm" style="width: 70px; display: inline-block; margin-left: 4px;" min="0" placeholder="#" title="Display order on user type page">
                                     </div>
                                 @endforeach
                                 @if(!isset($userTypesWithOptions) || $userTypesWithOptions->isEmpty())
                                     @foreach($userTypes as $id => $name)
-                                        <label style="display: block; margin-bottom: 4px;">
-                                            <input type="checkbox" name="user_type_ids[]" value="{{ $id }}"> {{ $name }}
-                                        </label>
+                                        <div class="user-type-row" style="margin-bottom: 8px;">
+                                            <label style="display: block; margin-bottom: 2px;">
+                                                <input type="checkbox" name="user_type_ids[]" value="{{ $id }}"> {{ $name }}
+                                            </label>
+                                            <span style="margin-left: 20px;">Position (optional):</span>
+                                            <input type="number" name="user_type_position_{{ $id }}" class="form-control input-sm" style="width: 70px; display: inline-block; margin-left: 4px;" min="0" placeholder="#">
+                                        </div>
                                     @endforeach
                                 @endif
                             </div>

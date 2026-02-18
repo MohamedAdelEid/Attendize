@@ -6,7 +6,7 @@
 <main class="min-h-screen">
     {{-- Header: if nav items > 8 show hamburger from lg; else from md to avoid overflow --}}
     @php
-        $navItemCount = 5 + (isset($landingUserTypes) ? $landingUserTypes->count() : 0);
+        $navItemCount = 4 + (isset($landingUserTypes) ? $landingUserTypes->count() : 0);
         $navBreakpoint = $navItemCount > 5 ? 'lg' : 'md';
     @endphp
     <header id="header" class="fixed top-0 left-0 right-0 z-50 transition-all duration-300 header-sticky py-4 header-scrolled">
@@ -45,8 +45,7 @@
                     @endforeach
                 @endif
                 <button type="button" onclick="document.getElementById('pricing').scrollIntoView({behavior:'smooth'})" class="link-gold font-medium text-foreground">Fees</button>
-                <button type="button" onclick="document.getElementById('registration').scrollIntoView({behavior:'smooth'})" class="link-gold font-medium text-foreground">Registration</button>
-                <button type="button" onclick="document.getElementById('location').scrollIntoView({behavior:'smooth'})" class="link-gold font-medium text-foreground">Location</button>
+                <a href="{{ route('showEventProgram', ['event_id' => $event->id]) }}" class="link-gold font-medium text-foreground">Program</a>
                 <button type="button" onclick="document.getElementById('footer').scrollIntoView({behavior:'smooth'})" class="link-gold font-medium text-foreground">Contact Us</button>
             </nav>
             {{-- Hamburger: show below breakpoint (lg if many items, else md) --}}
@@ -93,8 +92,7 @@
                     @endforeach
                 @endif
                 <button type="button" class="mobile-nav-link block w-full text-left py-3" style="color: hsl(45, 70%, 50%); font-weight: 500; border-bottom: 1px solid hsl(220, 40%, 25%);" data-scroll="pricing">Fees</button>
-                <button type="button" class="mobile-nav-link block w-full text-left py-3" style="color: hsl(45, 70%, 50%); font-weight: 500; border-bottom: 1px solid hsl(220, 40%, 25%);" data-scroll="registration">Registration</button>
-                <button type="button" class="mobile-nav-link block w-full text-left py-3" style="color: hsl(45, 70%, 50%); font-weight: 500; border-bottom: 1px solid hsl(220, 40%, 25%);" data-scroll="location">Location</button>
+                <a href="{{ route('showEventProgram', ['event_id' => $event->id]) }}" class="mobile-nav-link block py-3" style="color: hsl(45, 70%, 50%); font-weight: 500; border-bottom: 1px solid hsl(220, 40%, 25%);">Program</a>
                 <button type="button" class="mobile-nav-link block w-full text-left py-3" style="color: hsl(45, 70%, 50%); font-weight: 500;" data-scroll="footer">Contact Us</button>
             </nav>
             <div style="padding: 1.5rem;">

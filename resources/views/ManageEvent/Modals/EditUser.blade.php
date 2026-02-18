@@ -18,6 +18,7 @@
                 @php
                     $userTypeIds = $user->userTypes ? $user->userTypes->pluck('id')->toArray() : [];
                     $userPivotOptions = $user->userTypes ? $user->userTypes->keyBy('id')->map(function($ut) { return $ut->pivot->user_type_option_id; })->toArray() : [];
+                    $userPivotPositions = $user->userTypes ? $user->userTypes->keyBy('id')->map(function($ut) { return $ut->pivot->position ?? ''; })->toArray() : [];
                 @endphp
                 <div class="row">
                     <div class="col-md-6">
@@ -25,7 +26,7 @@
                             <label class="control-label">User Types</label>
                             <div class="checkbox-group" style="max-height: 200px; overflow-y: auto; border: 1px solid #ccc; padding: 8px; border-radius: 4px;">
                                 @foreach(isset($userTypesWithOptions) ? $userTypesWithOptions : collect() as $ut)
-                                    @php $checked = in_array($ut->id, $userTypeIds); $selectedOpt = $userPivotOptions[$ut->id] ?? null; @endphp
+                                    @php $checked = in_array($ut->id, $userTypeIds); $selectedOpt = $userPivotOptions[$ut->id] ?? null; $pivotPos = $userPivotPositions[$ut->id] ?? ''; @endphp
                                     <div class="user-type-row" style="margin-bottom: 8px;">
                                         <label style="display: block; margin-bottom: 2px;">
                                             <input type="checkbox" name="user_type_ids[]" value="{{ $ut->id }}" class="ut-checkbox" {{ $checked ? 'checked' : '' }}> {{ $ut->name }}
@@ -38,13 +39,20 @@
                                                 @endforeach
                                             </select>
                                         @endif
+                                        <span style="margin-left: 20px;">Position (optional):</span>
+                                        <input type="number" name="user_type_position_{{ $ut->id }}" class="form-control input-sm" style="width: 70px; display: inline-block; margin-left: 4px;" min="0" placeholder="#" value="{{ $pivotPos }}">
                                     </div>
                                 @endforeach
                                 @if(!isset($userTypesWithOptions) || $userTypesWithOptions->isEmpty())
                                     @foreach($userTypes as $id => $name)
-                                        <label style="display: block; margin-bottom: 4px;">
-                                            <input type="checkbox" name="user_type_ids[]" value="{{ $id }}" {{ in_array($id, $userTypeIds) ? 'checked' : '' }}> {{ $name }}
-                                        </label>
+                                        @php $pivotPos = $userPivotPositions[$id] ?? ''; @endphp
+                                        <div class="user-type-row" style="margin-bottom: 8px;">
+                                            <label style="display: block; margin-bottom: 2px;">
+                                                <input type="checkbox" name="user_type_ids[]" value="{{ $id }}" {{ in_array($id, $userTypeIds) ? 'checked' : '' }}> {{ $name }}
+                                            </label>
+                                            <span style="margin-left: 20px;">Position (optional):</span>
+                                            <input type="number" name="user_type_position_{{ $id }}" class="form-control input-sm" style="width: 70px; display: inline-block; margin-left: 4px;" min="0" placeholder="#" value="{{ $pivotPos }}">
+                                        </div>
                                     @endforeach
                                 @endif
                             </div>

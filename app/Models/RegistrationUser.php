@@ -90,7 +90,7 @@ class RegistrationUser extends Model
     public function userTypes()
     {
         return $this->belongsToMany(UserType::class, 'registration_user_user_type', 'registration_user_id', 'user_type_id')
-            ->withPivot('user_type_option_id');
+            ->withPivot('user_type_option_id', 'position');
     }
 
     /**

@@ -269,6 +269,11 @@ Route::group(
                 [EventViewController::class, 'showEventUserType']
             )->name('showEventUserType');
 
+            Route::get(
+                '/{event_id}/program',
+                [EventViewController::class, 'showEventProgram']
+            )->name('showEventProgram');
+
             Route::post(
                 '/{event_id}/api/member-lookup',
                 [EventViewController::class, 'memberLookup']
