@@ -145,8 +145,16 @@
                                     </div>
                                 @endif
                             </div>
-                            <h3 class="text-lg md:text-xl font-bold text-foreground mb-1">{{ $u->first_name }} {{ $u->last_name }}</h3>
-                            <p class="text-sm text-muted-foreground mb-4">{{ $displayTrack }}</p>
+                            <h3 class="text-lg md:text-xl font-bold text-foreground mb-1">
+                                @if($u->title)
+                                    <span class="text-primary text-sm font-medium block mb-1">{{ $u->title }}</span>
+                                @endif
+                                {{ $u->first_name }} {{ $u->last_name }}
+                            </h3>
+                            <p class="text-sm text-muted-foreground mb-2">{{ $displayTrack }}</p>
+                            @if($u->bio)
+                                <p class="text-xs text-muted-foreground mt-2 line-clamp-3" style="max-height: 4.5em; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical;">{{ $u->bio }}</p>
+                            @endif
                             {{-- VIEW PROFILE (disabled: card not clickable, no modal)
                             <span class="text-primary font-medium text-sm hover:underline inline-flex items-center gap-1 view-profile-link">
                                 VIEW PROFILE <span>&gt;</span>

@@ -7,7 +7,7 @@
     {{-- Header: if nav items > 8 show hamburger from lg; else from md to avoid overflow --}}
     @php
         $navItemCount = 4 + (isset($landingUserTypes) ? $landingUserTypes->count() : 0);
-        $navBreakpoint = $navItemCount > 5 ? 'lg' : 'md';
+        $navBreakpoint = $navItemCount > 5 ? 'xl' : 'lg';
     @endphp
     <header id="header" class="fixed top-0 left-0 right-0 z-50 transition-all duration-300 header-sticky py-4 header-scrolled">
         <div class="container mx-auto px-4 flex items-center justify-between">

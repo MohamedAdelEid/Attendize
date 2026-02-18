@@ -96,6 +96,31 @@
                 </div>
 
                 <div class="row">
+                    <div class="col-md-12">
+                        <div class="form-group">
+                            {!! Form::label('title', 'Title', ['class' => 'control-label']) !!}
+                            {!! Form::text('title', $user->title, [
+                                'class' => 'form-control',
+                                'placeholder' => 'e.g., Dr., Prof., CEO, etc.'
+                            ]) !!}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-12">
+                        <div class="form-group">
+                            {!! Form::label('bio', 'Bio', ['class' => 'control-label']) !!}
+                            {!! Form::textarea('bio', $user->bio, [
+                                'class' => 'form-control',
+                                'rows' => 4,
+                                'placeholder' => 'Brief biography or description...'
+                            ]) !!}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
                     <div class="col-md-6">
                         <div class="form-group">
                             {!! Form::label('email', 'Email', ['class' => 'control-label required']) !!}
