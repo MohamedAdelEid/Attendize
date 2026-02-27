@@ -6,37 +6,27 @@
     <style>
         @page { margin: 0; }
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        html, body {
-            margin: 0;
-            padding: 0;
-            background: transparent;
-        }
-        .ticket-page {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
+        html, body { margin: 0; padding: 0; }
+        .ticket-wrap {
             width: 100%;
-            height: 100%;
+            max-height: 148mm;
             overflow: hidden;
+            page-break-after: avoid;
         }
-        .ticket-page img {
+        .ticket-wrap img {
             display: block;
             width: 100%;
-            height: 100%;
-            max-width: 100%;
-            max-height: 100%;
-            object-fit: contain;
-            object-position: top left;
+            height: auto;
+            max-height: 148mm;
+            vertical-align: top;
         }
     </style>
 </head>
 <body>
 @if($ticket_image)
-    <div class="ticket-page">
-        <img src="{{ storage_path('app/public/' . $ticket_image) }}" alt="Ticket">
-    </div>
+<div class="ticket-wrap">
+    <img src="{{ storage_path('app/public/' . $ticket_image) }}" alt="Ticket">
+</div>
 @endif
 </body>
 </html>
