@@ -717,6 +717,14 @@ Route::group(
                     '{event_id}/registration/members/field-mappings',
                     [EventMemberController::class, 'saveFieldMappings']
                 )->name('saveEventMemberFieldMappings');
+                Route::post(
+                    '{event_id}/registration/members/bulk-delete',
+                    [EventMemberController::class, 'bulkDelete']
+                )->name('bulkDeleteEventMembers');
+                Route::post(
+                    '{event_id}/registration/members/delete-all',
+                    [EventMemberController::class, 'deleteAll']
+                )->name('deleteAllEventMembers');
 
                 /*
                  * ----------

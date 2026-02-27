@@ -258,11 +258,14 @@
                 </div>
                 {{-- Members tab --}}
                 <div id="reg-members" class="reg-panel hidden space-y-6" data-members-registration-id="{{ isset($membersRegistration) && $membersRegistration ? $membersRegistration->id : '' }}">
-                    @if(isset($uniqueMemberField) && $uniqueMemberField)
-                    <div id="member-lookup-form" data-event-id="{{ $event->id }}" data-field-key="{{ $uniqueMemberField->field_key }}">
-                        <label class="block text-foreground mb-2 font-medium">{{ $uniqueMemberField->label }}</label>
+                    @if(isset($displaySearchFields) && $displaySearchFields->isNotEmpty())
+                    @php
+                        $searchLabel = $displaySearchFields->pluck('label')->join(' or ');
+                    @endphp
+                    <div id="member-lookup-form" data-event-id="{{ $event->id }}" data-search-label="{{ e($searchLabel) }}">
+                        <label class="block text-foreground mb-2 font-medium">{{ $searchLabel }}</label>
                         <div class="flex gap-3">
-                            <input type="text" id="member-unique-value" class="flex-1 input-navy rounded-lg py-3 px-4" placeholder="{{ $uniqueMemberField->label }}">
+                            <input type="text" id="member-unique-value" class="flex-1 input-navy rounded-lg py-3 px-4" placeholder="{{ $searchLabel }}">
                             <button type="button" id="btn-member-lookup" class="btn-gold py-3 px-6 whitespace-nowrap">Verify</button>
                         </div>
                         <p id="member-lookup-message" class="mt-2 text-sm text-muted-foreground hidden"></p>
@@ -306,7 +309,7 @@
                         </div>
                     </div>
                     @else
-                    <p class="text-muted-foreground text-center py-4">Members lookup is not configured. Add a unique member field in Event → Members.</p>
+                    <p class="text-muted-foreground text-center py-4">Members lookup is not configured. Add at least one &quot;Display &amp; search&quot; member field in Event → Members.</p>
                     @endif
                 </div>
             </div>
@@ -487,7 +490,6 @@
     var memberForm = document.getElementById('member-lookup-form');
     if (memberForm) {
         var eventId = memberForm.getAttribute('data-event-id');
-        var fieldKey = memberForm.getAttribute('data-field-key');
         var baseUrl = '{{ url('/') }}';
         var lookupUrl = baseUrl + '/e/' + eventId + '/api/member-lookup';
         document.getElementById('btn-member-lookup').addEventListener('click', function() {
@@ -509,7 +511,7 @@
             fetch(lookupUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' },
-                body: JSON.stringify({ field_key: fieldKey, value: value })
+                body: JSON.stringify({ value: value })
             }).then(function(r) { return r.json(); }).then(function(data) {
                 btn.disabled = false;
                 btn.textContent = 'Verify';

@@ -35,12 +35,43 @@ class EventMemberController extends MyBaseController
         $registrations = Registration::where('event_id', $event_id)->with('category')->orderBy('name')->get();
         $membersRegistration = Registration::where('event_id', $event_id)->where('is_members_form', true)->with('dynamicFormFields')->first();
 
+        $perPage = $request->get('per_page', 20);
+        if (!in_array((int) $perPage, [10, 15, 25, 50, 100, 300], true)) {
+            $perPage = 20;
+        }
         $members = EventMember::where('event_id', $event_id)
             ->with('data')
             ->orderBy('created_at', 'desc')
-            ->paginate(20);
+            ->paginate($perPage)
+            ->appends($request->except('page'));
 
-        return view('ManageEvent.Members.index', compact('event', 'categories', 'registrations', 'members', 'membersRegistration'));
+        return view('ManageEvent.Members.index', compact('event', 'categories', 'registrations', 'members', 'membersRegistration', 'perPage'));
+    }
+
+    /**
+     * Bulk delete selected members.
+     */
+    public function bulkDelete(Request $request, $event_id)
+    {
+        $event = Event::scope()->findOrFail($event_id);
+        $ids = $request->input('ids', []);
+        if (!is_array($ids)) {
+            $ids = [];
+        }
+        $ids = array_filter(array_map('intval', $ids));
+        $deleted = EventMember::where('event_id', $event_id)->whereIn('id', $ids)->delete();
+        return response()->json(['status' => 'success', 'message' => "Deleted {$deleted} member(s).", 'deleted' => $deleted]);
+    }
+
+    /**
+     * Delete all members for the event.
+     */
+    public function deleteAll(Request $request, $event_id)
+    {
+        $event = Event::scope()->findOrFail($event_id);
+        $count = EventMember::where('event_id', $event_id)->count();
+        EventMember::where('event_id', $event_id)->delete();
+        return response()->json(['status' => 'success', 'message' => "Deleted all {$count} member(s).", 'deleted' => $count]);
     }
 
     /**

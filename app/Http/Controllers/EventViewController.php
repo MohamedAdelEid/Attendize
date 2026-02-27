@@ -1238,11 +1238,11 @@ class EventViewController extends Controller
         $landingRegistration = Registration::where('event_id', $event_id)->where('show_on_landing', true)->with(['dynamicFormFields', 'category.conferences.professions'])->first();
         $membersRegistration = Registration::where('event_id', $event_id)->where('is_members_form', true)->with(['dynamicFormFields', 'category.conferences.professions'])->first();
         $event->load('eventMemberFields');
-        $uniqueMemberField = $event->eventMemberFields->where('is_unique', true)->first();
+        $displaySearchFields = $event->eventMemberFields->where('is_unique', true)->values();
         $countries = Country::all();
         $landingUserTypes = \App\Models\UserType::where('event_id', $event_id)->where('show_on_landing', true)->with('options')->orderBy('name')->get();
 
-        return view('ViewEvent.show-symposium', compact('event', 'landingRegistration', 'membersRegistration', 'uniqueMemberField', 'countries', 'landingUserTypes'));
+        return view('ViewEvent.show-symposium', compact('event', 'landingRegistration', 'membersRegistration', 'displaySearchFields', 'countries', 'landingUserTypes'));
     }
 
     /**
@@ -1303,25 +1303,31 @@ class EventViewController extends Controller
     }
 
     /**
-     * API: Look up member by unique field value (from event_members; not registration_users).
+     * API: Look up member by value. Searches in all "display & search" (is_unique) fields — value can match any of them (OR).
      */
     public function memberLookup(Request $request, $event_id)
     {
         $event = Event::findOrFail($event_id);
-        $fieldKey = $request->input('field_key');
         $value = trim((string) $request->input('value', ''));
-        if ($value === '' || $fieldKey === '') {
-            return response()->json(['status' => 'error', 'message' => 'Field and value are required.'], 422);
-        }
-        $field = EventMemberField::where('event_id', $event_id)->where('field_key', $fieldKey)->where('is_unique', true)->first();
-        if (!$field) {
-            return response()->json(['status' => 'error', 'message' => 'Invalid field.'], 422);
+        if ($value === '') {
+            return response()->json(['status' => 'error', 'message' => 'Value is required.'], 422);
         }
 
-        $memberDataRow = EventMemberData::where('field_key', $fieldKey)->where('value', $value)
-            ->whereHas('eventMember', function ($q) use ($event_id) {
-                $q->where('event_id', $event_id);
-            })->with('eventMember.data')->first();
+        $displaySearchFields = EventMemberField::where('event_id', $event_id)->where('is_unique', true)->get();
+        if ($displaySearchFields->isEmpty()) {
+            return response()->json(['status' => 'error', 'message' => 'No display & search fields configured.'], 422);
+        }
+
+        $memberDataRow = null;
+        foreach ($displaySearchFields as $field) {
+            $memberDataRow = EventMemberData::where('field_key', $field->field_key)->where('value', $value)
+                ->whereHas('eventMember', function ($q) use ($event_id) {
+                    $q->where('event_id', $event_id);
+                })->with('eventMember.data')->first();
+            if ($memberDataRow && $memberDataRow->eventMember) {
+                break;
+            }
+        }
         if (!$memberDataRow || !$memberDataRow->eventMember) {
             return response()->json(['status' => 'not_found', 'message' => 'Member not found.']);
         }

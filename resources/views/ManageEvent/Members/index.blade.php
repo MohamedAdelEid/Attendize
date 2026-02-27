@@ -41,6 +41,7 @@
             <div id="tab-fields" class="tab-pane active">
                 <div class="panel-body">
                     <p class="text-muted">Define the data structure for members in this event. <strong>full_name</strong> is required for import. Add fields like membership_number, expiration_date, etc.</p>
+                    <p class="text-info small"><strong>Display & search:</strong> Fields marked here are shown on the event page and used for member lookup. You can mark more than one — then a single input will search by <em>any</em> of them (e.g. value in Membership number <strong>or</strong> Email).</p>
                     <div class="table-responsive">
                         <table class="table table-striped">
                             <thead>
@@ -49,7 +50,7 @@
                                     <th>Label</th>
                                     <th>Type</th>
                                     <th>Required</th>
-                                    <th>Unique</th>
+                                    <th>Display & search</th>
                                     <th width="100"></th>
                                 </tr>
                             </thead>
@@ -84,7 +85,7 @@
                             <option value="datetime">DateTime</option>
                         </select>
                         <label><input type="checkbox" name="is_required" value="1"> Required</label>
-                        <label><input type="checkbox" name="is_unique" value="1"> Unique</label>
+                        <label><input type="checkbox" name="is_unique" value="1"> Display & search</label>
                         <button type="submit" class="btn btn-success">Add</button>
                     </form>
                 </div>
@@ -96,10 +97,24 @@
                     @if($members->isEmpty())
                         <p class="text-muted">No members yet. Use the Import tab to add members from Excel. Members are stored separately from User Registration.</p>
                     @else
+                        <div class="form-inline mb-3">
+                            <button type="button" id="btn-bulk-delete" class="btn btn-danger btn-sm" disabled title="Delete selected members">
+                                <i class="ico-trash"></i> Delete selected
+                            </button>
+                            <button type="button" id="btn-delete-all" class="btn btn-danger btn-sm ml-2" title="Delete all members in this event">
+                                <i class="ico-trash"></i> Delete all
+                            </button>
+                        </div>
+                        <form id="form-members-list" action="{{ route('showEventMembers', ['event_id' => $event->id]) }}" method="get">
+                            <input type="hidden" name="per_page" id="per-page-input" value="{{ $perPage ?? 20 }}">
+                        </form>
                         <div class="table-responsive">
                             <table class="table table-striped">
                                 <thead>
                                     <tr>
+                                        <th width="40">
+                                            <input type="checkbox" id="select-all-members" title="Select all on this page">
+                                        </th>
                                         <th>Name</th>
                                         <th>Email</th>
                                         @foreach($event->eventMemberFields as $f)
@@ -112,6 +127,7 @@
                                     @foreach($members as $m)
                                     @php $dataByKey = $m->data->pluck('value', 'field_key'); @endphp
                                     <tr>
+                                        <td><input type="checkbox" class="member-row-cb" name="member_ids[]" value="{{ $m->id }}"></td>
                                         <td>{{ $dataByKey->get('full_name') ?? $dataByKey->get('first_name') . ' ' . $dataByKey->get('last_name') ?: '-' }}</td>
                                         <td>{{ $dataByKey->get('email') ?? '-' }}</td>
                                         @foreach($event->eventMemberFields as $f)
@@ -123,7 +139,20 @@
                                 </tbody>
                             </table>
                         </div>
-                        {{ $members->links() }}
+                        <div class="row">
+                            <div class="col-md-6">
+                                {{ $members->appends(request()->except('page'))->links() }}
+                            </div>
+                            <div class="col-md-6 text-right">
+                                <label class="control-label mr-2">Show per page:</label>
+                                <select id="per-page-select" class="form-control input-sm" style="width: auto; display: inline-block;">
+                                    @foreach([10, 15, 25, 50, 100, 300] as $n)
+                                    <option value="{{ $n }}" {{ ($perPage ?? 20) == $n ? 'selected' : '' }}>{{ $n }}</option>
+                                    @endforeach
+                                </select>
+                                <span class="text-muted ml-2">Showing {{ $members->firstItem() }}–{{ $members->lastItem() }} of {{ $members->total() }}</span>
+                            </div>
+                        </div>
                     @endif
                 </div>
             </div>
@@ -397,6 +426,77 @@
             error: function(xhr, textStatus) {
                 var msg = (xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : (textStatus === 'timeout' ? 'Import timed out. Try a smaller file or try again.' : 'Import failed.');
                 hideUploadImportLoading(msg, false);
+            },
+            complete: function() {
+                $btn.prop('disabled', false);
+            }
+        });
+    });
+
+    // --- Members List: bulk actions & per-page ---
+    $('#select-all-members').on('change', function() {
+        $('.member-row-cb').prop('checked', this.checked);
+        $('#btn-bulk-delete').prop('disabled', !$('.member-row-cb:checked').length);
+    });
+    $(document).on('change', '.member-row-cb', function() {
+        var any = $('.member-row-cb:checked').length > 0;
+        $('#btn-bulk-delete').prop('disabled', !any);
+        $('#select-all-members').prop('checked', $('.member-row-cb').length === $('.member-row-cb:checked').length);
+    });
+    $('#per-page-select').on('change', function() {
+        var val = $(this).val();
+        var url = new URL(window.location.href);
+        url.searchParams.set('per_page', val);
+        url.searchParams.delete('page');
+        window.location.href = url.toString();
+    });
+    $('#btn-bulk-delete').on('click', function() {
+        var ids = $('.member-row-cb:checked').map(function() { return $(this).val(); }).get();
+        if (!ids.length) return;
+        if (!confirm('Delete ' + ids.length + ' selected member(s)?')) return;
+        var $btn = $(this);
+        $btn.prop('disabled', true);
+        $.ajax({
+            url: baseUrl + '/event/' + eventId + '/registration/members/bulk-delete',
+            type: 'POST',
+            data: { _token: token, ids: ids },
+            success: function(res) {
+                if (res.status === 'success') {
+                    if (typeof toastr !== 'undefined') toastr.success(res.message);
+                    else alert(res.message);
+                    window.location.reload();
+                }
+            },
+            error: function(xhr) {
+                var msg = (xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : 'Failed to delete.';
+                alert(msg);
+            },
+            complete: function() {
+                $btn.prop('disabled', false);
+            }
+        });
+    });
+    $('#btn-delete-all').on('click', function() {
+        var total = {{ $members->total() ?? 0 }};
+        if (total === 0) return;
+        if (!confirm('Delete ALL ' + total + ' members in this event? This cannot be undone.')) return;
+        if (!confirm('Are you sure? This will remove every member.')) return;
+        var $btn = $(this);
+        $btn.prop('disabled', true);
+        $.ajax({
+            url: baseUrl + '/event/' + eventId + '/registration/members/delete-all',
+            type: 'POST',
+            data: { _token: token },
+            success: function(res) {
+                if (res.status === 'success') {
+                    if (typeof toastr !== 'undefined') toastr.success(res.message);
+                    else alert(res.message);
+                    window.location.reload();
+                }
+            },
+            error: function(xhr) {
+                var msg = (xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : 'Failed to delete.';
+                alert(msg);
             },
             complete: function() {
                 $btn.prop('disabled', false);
