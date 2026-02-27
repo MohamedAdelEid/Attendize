@@ -169,4 +169,88 @@ class TicketController extends Controller
         );
     }
 
+    /**
+     * Delete the current generated ticket for a user (files + path). CR code and token stay;
+     * next Download will regenerate the ticket.
+     *
+     * @param Request $request
+     * @param int $event_id
+     * @param int $user_id
+     * @return \Illuminate\Http\RedirectResponse
+     */
+    public function deleteUserTicket(Request $request, $event_id, $user_id)
+    {
+        $event = Event::findOrFail($event_id);
+        $user = RegistrationUser::findOrFail($user_id);
+
+        if ($user->registration->event_id != $event_id) {
+            return redirect()->back()->with('error', 'User does not belong to this event.');
+        }
+
+        if ($user->status !== 'approved' || !$user->unique_code) {
+            return redirect()->back()->with('error', 'Ticket can only be deleted for approved users with a CR code.');
+        }
+
+        $this->deleteTicketFilesAndPath($user);
+        return redirect()->back()->with('success', 'Ticket deleted. Use Download to generate a new one.');
+    }
+
+    /**
+     * Bulk delete tickets for selected users (same as delete ticket per user).
+     *
+     * @param Request $request
+     * @param int $event_id
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function bulkDeleteUserTickets(Request $request, $event_id)
+    {
+        $request->validate([
+            'user_ids' => 'required|array',
+            'user_ids.*' => 'integer',
+        ]);
+
+        $event = Event::findOrFail($event_id);
+        $userIds = $request->input('user_ids');
+        $users = RegistrationUser::whereIn('id', $userIds)
+            ->whereHas('registration', function ($q) use ($event_id) {
+                $q->where('event_id', $event_id);
+            })
+            ->get();
+
+        $count = 0;
+        foreach ($users as $user) {
+            if ($user->status === 'approved' && $user->unique_code) {
+                $this->deleteTicketFilesAndPath($user);
+                $count++;
+            }
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'message' => $count === 0
+                ? 'No tickets were deleted (selected users have no generated ticket).'
+                : "Ticket(s) deleted for {$count} user(s). Use Download to generate new ones.",
+        ]);
+    }
+
+    /**
+     * Delete ticket PDF + image files and clear path/timestamp. Keeps unique_code and ticket_token.
+     *
+     * @param RegistrationUser $user
+     * @return void
+     */
+    private function deleteTicketFilesAndPath(RegistrationUser $user)
+    {
+        if ($user->ticket_pdf_path && Storage::disk('public')->exists($user->ticket_pdf_path)) {
+            Storage::disk('public')->delete($user->ticket_pdf_path);
+        }
+        $ticketImagePath = 'ticket_images/ticket_' . $user->unique_code . '.png';
+        if (Storage::disk('public')->exists($ticketImagePath)) {
+            Storage::disk('public')->delete($ticketImagePath);
+        }
+        $user->ticket_pdf_path = null;
+        $user->ticket_generated_at = null;
+        $user->save();
+    }
+
 }

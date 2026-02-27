@@ -1044,6 +1044,12 @@ Route::group(
                 Route::get('{event_id}/download-ticket/{user_id}', [App\Http\Controllers\TicketController::class, 'downloadUserTicket'])
                     ->name('downloadUserTicket');
 
+                Route::post('{event_id}/delete-ticket/{user_id}', [App\Http\Controllers\TicketController::class, 'deleteUserTicket'])
+                    ->name('deleteUserTicket');
+
+                Route::post('{event_id}/users/bulk/delete-tickets', [App\Http\Controllers\TicketController::class, 'bulkDeleteUserTickets'])
+                    ->name('bulkDeleteUserTickets');
+
                 Route::post(
                     '{event_id}/customize/design',
                     [EventCustomizeController::class, 'postEditEventDesign']

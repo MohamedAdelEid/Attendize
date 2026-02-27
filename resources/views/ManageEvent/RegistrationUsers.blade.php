@@ -387,6 +387,8 @@
                                             <li><a href="javascript:void(0);" class="bulk-action-open-whatsapp"><i class="fa fa-whatsapp"></i> Send WhatsApp</a></li>
                                             <li role="separator" class="divider"></li>
                                             <li><a href="javascript:void(0);" class="bulk-action" data-action="export-selected"><i class="ico-download"></i> Export Selected</a></li>
+                                            <li role="separator" class="divider"></li>
+                                            <li><a href="javascript:void(0);" class="bulk-action" data-action="delete-tickets"><i class="ico-trash"></i> Delete Tickets</a></li>
                                         </ul>
                                     </div>
                                 </div>
@@ -463,6 +465,16 @@
                                                                class="btn btn-xs btn-success" title="Download Ticket">
                                                                 <i class="ico-download"></i>
                                                             </a>
+                                                            @if($user->ticket_pdf_path)
+                                                            <form action="{{ route('deleteUserTicket', ['event_id' => $event->id, 'user_id' => $user->id]) }}"
+                                                                  method="POST" class="inline-form" style="display:inline;"
+                                                                  onsubmit="return confirm('Delete current ticket? You can generate a new one with Download.');">
+                                                                @csrf
+                                                                <button type="submit" class="btn btn-xs btn-danger" title="Delete Ticket">
+                                                                    <i class="ico-trash"></i>
+                                                                </button>
+                                                            </form>
+                                                            @endif
                                                         @endif
                                                     @else
                                                         <span class="text-muted">-</span>
@@ -695,6 +707,9 @@
                         case 'send-reject-email':
                             confirmMessage = 'Are you sure you want to send rejection emails to the selected users?';
                             break;
+                        case 'delete-tickets':
+                            confirmMessage = 'Delete generated tickets for selected users? They can get a new ticket via Download.';
+                            break;
                         case 'export-selected':
                             exportSelectedUsers();
                             return;
@@ -725,6 +740,9 @@
                         case 'send-reject-email':
                             url = '{{ route('sendRejectionEmails', ['event_id' => $event->id]) }}';
                             break;
+                        case 'delete-tickets':
+                            url = '{{ route('bulkDeleteUserTickets', ['event_id' => $event->id]) }}';
+                            break;
                     }
 
                     $.ajax({
@@ -734,7 +752,7 @@
                         success: function(response) {
                             if (response.status === 'success') {
                                 alert(response.message);
-                                if (action === 'approve' || action === 'reject' || action === 'delete') {
+                                if (action === 'approve' || action === 'reject' || action === 'delete' || action === 'delete-tickets') {
                                     window.location.reload();
                                 }
                             }
