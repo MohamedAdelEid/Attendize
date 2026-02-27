@@ -26,6 +26,8 @@ class RegistrationUser extends Model
         'qr_code_path',
         'is_new',
         'ticket_token',
+        'ticket_pdf_path',
+        'ticket_generated_at',
         'check_in',
         'check_out',
     ];

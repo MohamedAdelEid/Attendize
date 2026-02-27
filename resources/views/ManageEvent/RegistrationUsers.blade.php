@@ -465,16 +465,6 @@
                                                                class="btn btn-xs btn-success" title="Download Ticket">
                                                                 <i class="ico-download"></i>
                                                             </a>
-                                                            @if($user->ticket_pdf_path)
-                                                            <form action="{{ route('deleteUserTicket', ['event_id' => $event->id, 'user_id' => $user->id]) }}"
-                                                                  method="POST" class="inline-form" style="display:inline;"
-                                                                  onsubmit="return confirm('Delete current ticket? You can generate a new one with Download.');">
-                                                                @csrf
-                                                                <button type="submit" class="btn btn-xs btn-danger" title="Delete Ticket">
-                                                                    <i class="ico-trash"></i>
-                                                                </button>
-                                                            </form>
-                                                            @endif
                                                         @endif
                                                     @else
                                                         <span class="text-muted">-</span>
@@ -524,6 +514,14 @@
                                                                         <i class="ico-close"></i> Reject
                                                                     </a>
                                                                 </li>
+                                                            @endif
+                                                            @if($user->status === 'approved' && $user->ticket_pdf_path)
+                                                            <li>
+                                                                <a href="javascript:void(0);" class="delete-ticket"
+                                                                    data-url="{{ route('deleteUserTicket', ['event_id' => $event->id, 'user_id' => $user->id]) }}">
+                                                                    <i class="ico-trash"></i> Delete Ticket
+                                                                </a>
+                                                            </li>
                                                             @endif
                                                             <li class="divider"></li>
                                                             <li>
@@ -848,6 +846,18 @@
                             alert('An error occurred. Please try again.');
                         }
                     });
+                }
+            });
+
+            // Delete ticket (single user)
+            $('.delete-ticket').on('click', function(e) {
+                e.preventDefault();
+                const url = $(this).data('url');
+                if (confirm('Delete current ticket? You can generate a new one with Download.')) {
+                    const form = $('<form>').attr({ method: 'POST', action: url });
+                    form.append($('<input>').attr({ type: 'hidden', name: '_token', value: '{{ csrf_token() }}' }));
+                    $('body').append(form);
+                    form.submit();
                 }
             });
 
