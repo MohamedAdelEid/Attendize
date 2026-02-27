@@ -195,11 +195,14 @@ class TicketService
             $scaleY = $imageHeight / $template->preview_height;
         }
 
+        // Font scale: never scale font DOWN below user's chosen size (min 1.0), so zooming in the preview doesn't shrink text
+        $fontScale = max(1.0, $scaleX);
+
         // Add user name with scaling and Arabic support
         if (isset($template->name_position_x) && isset($template->name_position_y)) {
             $nameX = (int) ($template->name_position_x * $scaleX);
             $nameY = (int) ($template->name_position_y * $scaleY);
-            $fontSize = (int) (($template->name_font_size ?? 24) * $scaleX);
+            $fontSize = (int) (($template->name_font_size ?? 24) * $fontScale);
 
             $fullName = $user->first_name . ' ' . $user->last_name;
             $isArabic = $this->hasArabicText($fullName);
@@ -238,7 +241,7 @@ class TicketService
         if (isset($template->code_position_x) && isset($template->code_position_y)) {
             $codeX = (int) ($template->code_position_x * $scaleX);
             $codeY = (int) ($template->code_position_y * $scaleY);
-            $fontSize = (int) (($template->code_font_size ?? 20) * $scaleX);
+            $fontSize = (int) (($template->code_font_size ?? 20) * $fontScale);
 
             $codeText = $user->unique_code;
             $isArabic = $this->hasArabicText($codeText);
@@ -308,7 +311,7 @@ class TicketService
         if ($template->show_user_type && isset($template->user_type_position_x) && isset($template->user_type_position_y) && $firstUserType) {
             $userTypeX = (int) ($template->user_type_position_x * $scaleX);
             $userTypeY = (int) ($template->user_type_position_y * $scaleY);
-            $fontSize = (int) (($template->user_type_font_size ?? 20) * $scaleX);
+            $fontSize = (int) (($template->user_type_font_size ?? 20) * $fontScale);
 
             $userTypeText = $firstUserType->name;
             $isArabic = $this->hasArabicText($userTypeText);
@@ -345,7 +348,7 @@ class TicketService
         if ($template->show_profession && isset($template->profession_position_x) && isset($template->profession_position_y) && $user->profession) {
             $professionX = (int) ($template->profession_position_x * $scaleX);
             $professionY = (int) ($template->profession_position_y * $scaleY);
-            $fontSize = (int) (($template->profession_font_size ?? 20) * $scaleX);
+            $fontSize = (int) (($template->profession_font_size ?? 20) * $fontScale);
 
             $professionText = $user->profession->name;
             $isArabic = $this->hasArabicText($professionText);
@@ -382,7 +385,7 @@ class TicketService
         if ($template->show_category && isset($template->category_position_x) && isset($template->category_position_y) && $user->category) {
             $categoryX = (int) ($template->category_position_x * $scaleX);
             $categoryY = (int) ($template->category_position_y * $scaleY);
-            $fontSize = (int) (($template->category_font_size ?? 20) * $scaleX);
+            $fontSize = (int) (($template->category_font_size ?? 20) * $fontScale);
 
             $categoryText = $user->category->name;
             $isArabic = $this->hasArabicText($categoryText);
