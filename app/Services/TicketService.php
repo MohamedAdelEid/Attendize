@@ -201,9 +201,8 @@ class TicketService
             $nameY = (int) ($template->name_position_y * $scaleY);
             // DEBUG: use a very large default if not set to verify effect
             $fontSize = (int) ($template->name_font_size ?? 80);
-            // debug: print the font size
-            echo 'Name font size: ' . $fontSize . '<br>';
-
+            dd($fontSize);
+            
             $fullName = $user->first_name . ' ' . $user->last_name;
             $isArabic = $this->hasArabicText($fullName);
 
@@ -243,8 +242,6 @@ class TicketService
             $codeY = (int) ($template->code_position_y * $scaleY);
             // DEBUG: use a very large default if not set to verify effect
             $fontSize = (int) ($template->code_font_size ?? 60);
-            // debug: print the font size
-            echo 'Code font size: ' . $fontSize . '<br>';
 
             $codeText = $user->unique_code;
             $isArabic = $this->hasArabicText($codeText);
