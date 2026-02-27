@@ -2,33 +2,37 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ticket</title>
     <style>
-        * {
+        @page { margin: 0; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body {
             margin: 0;
             padding: 0;
-            box-sizing: border-box;
-        }
-        body {
             width: 100%;
-            height: 100vh; /* Full height */
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            background: #dac681; /* Background color */
+            min-height: 100%;
+            background: transparent;
         }
-        .cover-image {
-            margin-top:80px;
-            width: 100%; /* Cover the full width */
-            height: auto; /* Maintain aspect ratio */
-            flex-grow: 1; /* Fill remaining space */
+        .ticket-page {
+            width: 100%;
+            min-height: 100%;
+            page-break-after: avoid;
+            page-break-inside: avoid;
+        }
+        .ticket-page img {
+            display: block;
+            width: 100%;
+            height: auto;
+            max-width: 100%;
+            vertical-align: top;
         }
     </style>
 </head>
 <body>
-
-	 <img src="{{ storage_path('app/public/' . $ticket_image) }}" class="cover-image" alt="Cover Image">
+@if($ticket_image)
+    <div class="ticket-page">
+        <img src="{{ storage_path('app/public/' . $ticket_image) }}" alt="Ticket">
+    </div>
+@endif
 </body>
 </html>

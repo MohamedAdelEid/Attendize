@@ -767,6 +767,22 @@
                         </div>
                     </div>
 
+                    <div class="form-group">
+                        <label class="control-label">PDF Page Size</label>
+                        <select id="pdfPageSize" name="pdf_page_size" class="form-control">
+                            <option value="a6" {{ ($template && $template->pdf_page_size === 'a6') || !($template && $template->pdf_page_size) ? 'selected' : '' }}>A6</option>
+                            <option value="a5" {{ $template && $template->pdf_page_size === 'a5' ? 'selected' : '' }}>A5</option>
+                            <option value="a4" {{ $template && $template->pdf_page_size === 'a4' ? 'selected' : '' }}>A4</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="control-label">PDF Orientation</label>
+                        <select id="pdfOrientation" name="pdf_orientation" class="form-control">
+                            <option value="portrait" {{ ($template && $template->pdf_orientation === 'portrait') || !($template && $template->pdf_orientation) ? 'selected' : '' }}>Portrait</option>
+                            <option value="landscape" {{ $template && $template->pdf_orientation === 'landscape' ? 'selected' : '' }}>Landscape</option>
+                        </select>
+                    </div>
+
                     <button type="button" id="saveTemplate" class="btn save-button btn-block">
                         <i class="ico-save"></i> Save Template Settings
                     </button>
@@ -1626,6 +1642,8 @@
                 category_font_color: $('#categoryFontColor').val(),
                 preview_width: previewWidth,
                 preview_height: previewHeight,
+                pdf_page_size: $('#pdfPageSize').val() || 'a6',
+                pdf_orientation: $('#pdfOrientation').val() || 'portrait',
                 _token: $('meta[name="_token"]').attr('content') || '{{ csrf_token() }}'
             };
 

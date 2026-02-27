@@ -87,16 +87,20 @@ class TicketService
             $ticketImagePath = $this->createTicketImage($user, $template);
         }
 
-        // Generate PDF
+        // Generate PDF: page size from template or default A6 portrait (طويلة بالطول)
+        $pdfPageSize = ($template && !empty($template->pdf_page_size)) ? $template->pdf_page_size : 'a6';
+        $pdfOrientation = ($template && !empty($template->pdf_orientation)) ? $template->pdf_orientation : 'portrait';
         $pdf_page_name = $user->lang == 'en' ? 'tickets.pdf-template-en' : 'tickets.pdf-template';
-
+        if (!file_exists(resource_path('views/tickets/pdf-template-en.blade.php'))) {
+            $pdf_page_name = 'tickets.pdf-template';
+        }
 
         $pdf = PDF::loadView($pdf_page_name, [
             'user' => $user,
             'event' => $event,
             'ticket_image' => $ticketImagePath ?? null,
             'template' => $template ?? null
-        ])->setPaper('a4', 'landscape');
+        ])->setPaper($pdfPageSize, $pdfOrientation);
 
 
         // Save PDF

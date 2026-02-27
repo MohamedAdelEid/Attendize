@@ -154,6 +154,8 @@ class TicketTemplateController extends MyBaseController
             'category_position_y' => 'nullable|numeric',
             'category_font_size' => 'nullable|numeric|min:8|max:72',
             'category_font_color' => 'nullable|string',
+            'pdf_page_size' => 'nullable|string|in:a4,a5,a6',
+            'pdf_orientation' => 'nullable|string|in:portrait,landscape',
         ]);
 
         if ($validator->fails()) {
@@ -218,6 +220,14 @@ class TicketTemplateController extends MyBaseController
             if ($request->has('preview_width') && $request->has('preview_height')) {
                 $template->preview_width = $request->preview_width;
                 $template->preview_height = $request->preview_height;
+            }
+
+            // PDF page settings (default A6 portrait if not set)
+            if ($request->has('pdf_page_size')) {
+                $template->pdf_page_size = $request->pdf_page_size ?: 'a6';
+            }
+            if ($request->has('pdf_orientation')) {
+                $template->pdf_orientation = $request->pdf_orientation ?: 'portrait';
             }
 
             $template->save();
