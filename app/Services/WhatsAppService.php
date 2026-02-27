@@ -157,7 +157,7 @@ class WhatsAppService
             '@unique_code' => $user->unique_code ?? '',
             '@event_title' => $event ? $event->title : '',
             '@registration_name' => $registration ? $registration->name : '',
-            '@user_type' => $user->userType ? $user->userType->name : '',
+            '@user_type' => optional($user->userTypes->first())->name ?? '',
         ];
 
         foreach ($map as $placeholder => $value) {

@@ -22,7 +22,7 @@ class EventPaymentReportsController extends MyBaseController
             ->whereHas('registrationUser.registration', function ($q) use ($event_id) {
                 return $q->where('event_id', $event_id);
             })
-            ->with(['registrationUser.registration', 'registrationUser.userType']);
+            ->with(['registrationUser.registration', 'registrationUser.userTypes']);
 
         if ($request->filled('registration_id')) {
             $query->whereHas('registrationUser', function ($q) use ($request) {
@@ -65,7 +65,7 @@ class EventPaymentReportsController extends MyBaseController
             ->whereHas('registrationUser', function ($q) use ($registration_id) {
                 return $q->where('registration_id', $registration_id);
             })
-            ->with(['registrationUser.userType']);
+            ->with(['registrationUser.userTypes']);
 
         if ($request->filled('status') && in_array($request->status, ['pending', 'captured', 'failed', 'cancelled'])) {
             $query->where('status', $request->status);

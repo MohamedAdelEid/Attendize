@@ -153,9 +153,9 @@ class TicketService
      */
     private function createTicketImage(RegistrationUser $user, TicketTemplate $template)
     {
-        // Load relationships if needed
-        if (!$user->relationLoaded('userType')) {
-            $user->load('userType');
+        // Load relationships if needed (userTypes = many-to-many; userType attribute = first)
+        if (!$user->relationLoaded('userTypes')) {
+            $user->load('userTypes');
         }
         if (!$user->relationLoaded('profession')) {
             $user->load('profession');
@@ -299,13 +299,14 @@ class TicketService
             }
         }
 
-        // Add UserType with scaling and Arabic support
-        if ($template->show_user_type && isset($template->user_type_position_x) && isset($template->user_type_position_y) && $user->userType) {
+        // Add UserType with scaling and Arabic support (use first user type if multiple)
+        $firstUserType = $user->userTypes->first();
+        if ($template->show_user_type && isset($template->user_type_position_x) && isset($template->user_type_position_y) && $firstUserType) {
             $userTypeX = (int) ($template->user_type_position_x * $scaleX);
             $userTypeY = (int) ($template->user_type_position_y * $scaleY);
             $fontSize = (int) (($template->user_type_font_size ?? 20) * $scaleX);
 
-            $userTypeText = $user->userType->name;
+            $userTypeText = $firstUserType->name;
             $isArabic = $this->hasArabicText($userTypeText);
 
             if ($isArabic) {
