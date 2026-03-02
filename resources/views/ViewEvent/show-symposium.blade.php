@@ -9,10 +9,15 @@
         $navItemCount = 4 + (isset($landingUserTypes) ? $landingUserTypes->count() : 0);
         $navBreakpoint = $navItemCount > 5 ? 'xl' : 'lg';
     @endphp
+    @php
+        $homeUrl = (isset($is_private_form) && $is_private_form && isset($registration))
+            ? route('showPrivateFormByName', ['registration_name' => $registration->name])
+            : route('showEventSymposium', ['event_id' => $event->id]);
+    @endphp
     <header id="header" class="fixed top-0 left-0 right-0 z-50 transition-all duration-300 header-sticky py-4 header-scrolled">
         <div class="container mx-auto px-4 flex items-center justify-between">
             <div class="flex items-center gap-4">
-                <a href="{{ route('showEventSymposium', ['event_id' => $event->id]) }}" class="flex items-center gap-4" aria-label="Home">
+                <a href="{{ $homeUrl }}" class="flex items-center gap-4" aria-label="Home">
                     <img src="{{ asset('images/sgss-logo.png') }}" alt="الجمعية السعودية للجراحة العامة - SGSS" class="bg-white w-12 h-12 md:w-16 md:h-14 object-contain" onerror="this.style.display='none'">
                     <img src="https://cdn4.premiumread.com/?url=https://www.al-madina.com/uploads/images/2020/06/24/1786780.jpg&w=800&q=100&f=jpg" alt="Logo 2" class="h-12 w-12 md:h-14 md:w-14 object-contain" onerror="this.style.display='none'">
                 </a>
@@ -21,7 +26,7 @@
                 @endif
             </div>
             <nav class="hidden {{ $navBreakpoint === 'lg' ? 'lg:flex' : 'md:flex' }} items-center gap-8">
-                <a href="{{ route('showEventSymposium', ['event_id' => $event->id]) }}" class="link-gold font-medium text-foreground">Home</a>
+                <a href="{{ $homeUrl }}" class="link-gold font-medium text-foreground">Home</a>
                 @if(isset($landingUserTypes) && $landingUserTypes->count() > 0)
                     @foreach($landingUserTypes as $ut)
                         @if($ut->options && $ut->options->count() > 0)
@@ -70,7 +75,7 @@
                 </button>
             </div>
             <nav style="padding: 1rem 1.5rem; display: flex; flex-direction: column;">
-                <a href="{{ route('showEventSymposium', ['event_id' => $event->id]) }}" class="mobile-nav-link block py-3" style="color: hsl(45, 70%, 50%); font-weight: 500; border-bottom: 1px solid hsl(220, 40%, 25%);">Home</a>
+                <a href="{{ $homeUrl }}" class="mobile-nav-link block py-3" style="color: hsl(45, 70%, 50%); font-weight: 500; border-bottom: 1px solid hsl(220, 40%, 25%);">Home</a>
                 @if(isset($landingUserTypes) && $landingUserTypes->count() > 0)
                     @foreach($landingUserTypes as $ut)
                         @if($ut->options && $ut->options->count() > 0)
@@ -230,6 +235,37 @@
                 <p class="text-muted-foreground text-lg">Register now to attend the Medicine & Judiciary Symposium</p>
             </div>
             <div class="max-w-2xl mx-auto card-navy rounded-2xl p-6 md:p-8">
+                @if(isset($is_private_form) && $is_private_form && isset($registration))
+                    {{-- Private form only: show this registration form only (no Non-Members / Members tabs). Reuse same ids so existing JS works. --}}
+                    <div id="reg-non-members" class="space-y-6">
+                        @if(isset($registration_expired) && $registration_expired)
+                            <div class="p-6 rounded-xl border border-amber-500/40 bg-amber-500/10 text-amber-800 dark:text-amber-200 text-center">
+                                <p class="font-semibold">Registration period has ended for this form.</p>
+                                <p class="text-sm mt-2 opacity-90">This registration option is no longer available.</p>
+                            </div>
+                        @else
+                        <div id="non-member-form-wrap">
+                            @include('ViewEvent.partials.SymposiumRegistrationForm', ['landingRegistration' => $registration, 'event' => $event, 'countries' => $countries ?? collect()])
+                        </div>
+                        <p id="non-member-register-status" class="text-sm text-muted-foreground hidden"></p>
+                        <div id="non-member-payment-wrap" class="hidden mt-4 rounded-xl border border-primary/30 bg-primary/5 p-6">
+                            <h4 class="text-lg font-semibold text-foreground mb-4">إتمام الدفع</h4>
+                            <p class="text-muted-foreground mb-4">يرجى إدخال بيانات الدفع أدناه.</p>
+                            <form id="non-member-hyperpay-form" action="#" class="paymentWidgets" data-brands="VISA MASTER MADA AMEX"></form>
+                        </div>
+                        <div id="non-member-register-success" class="hidden mt-4 p-4 rounded-xl border border-green-500/40 bg-green-500/10 text-green-800 dark:text-green-200">
+                            <div class="flex items-start gap-3">
+                                <svg class="w-6 h-6 flex-shrink-0 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                <div>
+                                    <p class="font-semibold">Registration Successful</p>
+                                    <p class="text-sm mt-1 opacity-90">Your registration request has been received. It will be reviewed by our team.</p>
+                                    <p class="text-sm mt-1 opacity-90">Please check your email (including spam/junk folder) for confirmation.</p>
+                                </div>
+                            </div>
+                        </div>
+                        @endif
+                    </div>
+                @else
                 <div class="flex rounded-xl overflow-hidden mb-8" role="tablist">
                     <button type="button" data-tab="non-members" class="reg-tab flex-1 py-3 px-4 font-bold transition-all duration-300 tab-active">Non-Members</button>
                     <button type="button" data-tab="members" class="reg-tab flex-1 py-3 px-4 font-bold transition-all duration-300 tab-inactive">Members</button>
@@ -312,6 +348,7 @@
                     <p class="text-muted-foreground text-center py-4">Members lookup is not configured. Add at least one &quot;Display &amp; search&quot; member field in Event → Members.</p>
                     @endif
                 </div>
+                @endif
             </div>
         </div>
     </section>

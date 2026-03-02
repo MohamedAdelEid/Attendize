@@ -406,6 +406,7 @@
                                         {!! Html::sortable_link('Approval Status', $sort_by, 'approval_status', $sort_order, ['q' => $q]) !!}
                                     </th>
                                     <th>Registrations</th>
+                                    <th>Private link</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
@@ -423,6 +424,9 @@
                                                     class="registration-image">
                                             @endif
                                             <span class="ml-2">{{ $reg->name }}</span>
+                                            @if($reg->is_private)
+                                                <span class="badge" style="background:#6c757d;margin-left:4px;">Private</span>
+                                            @endif
                                         </td>
                                         <td>
                                             <span class="badge">{{ $reg->category->name }}</span>
@@ -450,6 +454,17 @@
                                                     <span class="badge-notification">{{ $reg->new_users_count }}</span>
                                                 @endif
                                             </a>
+                                        </td>
+                                        <td>
+                                            @if($reg->is_private && $reg->private_slug)
+                                                @php $privateUrl = route('showPrivateFormByName', ['registration_name' => $reg->name]); @endphp
+                                                <input type="text" class="form-control input-sm" value="{{ $privateUrl }}" readonly style="width:220px;display:inline-block;font-size:11px;" id="private-url-{{ $reg->id }}">
+                                                <button type="button" class="btn btn-xs btn-default copy-private-link" data-url="{{ $privateUrl }}" title="Copy link">
+                                                    <i class="ico-download"></i> Copy
+                                                </button>
+                                            @else
+                                                <span class="text-muted">—</span>
+                                            @endif
                                         </td>
                                         <td>
                                             <!-- View button -->
@@ -658,6 +673,30 @@
             $('#filter-form select').change(function() {
                 $('#filter-form').submit();
             });
+
+            // Copy private registration link to clipboard
+            $(document).on('click', '.copy-private-link, .copy-private-link-edit', function() {
+                var url = $(this).data('url');
+                if (!url) return;
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(url).then(function() {
+                        alert('Link copied to clipboard.');
+                    }).catch(function() { fallbackCopy(url); });
+                } else {
+                    fallbackCopy(url);
+                }
+            });
+            function fallbackCopy(text) {
+                var ta = document.createElement('textarea');
+                ta.value = text;
+                document.body.appendChild(ta);
+                ta.select();
+                try {
+                    document.execCommand('copy');
+                    alert('Link copied to clipboard.');
+                } catch (e) {}
+                document.body.removeChild(ta);
+            }
         });
     </script>
 @stop

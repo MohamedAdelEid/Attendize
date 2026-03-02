@@ -238,6 +238,93 @@ class EventViewController extends Controller
     }
 
     /**
+     * Show the private registration form by name. URL: /{registration_name} (e.g. /registration%20name)
+     *
+     * @param Request $request
+     * @param string $registration_name Registration form name (URL-decoded)
+     * @return mixed
+     */
+    public function showPrivateRegistrationFormByName(Request $request, $registration_name)
+    {
+        $registration = \App\Models\Registration::where('is_private', true)
+            ->where('name', $registration_name)
+            ->with(['event', 'dynamicFormFields'])
+            ->firstOrFail();
+
+        $event = $registration->event;
+
+        if ($registration->category) {
+            $registration->category->load([
+                'conferences' => function ($query) {
+                    $query->withPivot('price');
+                },
+                'conferences.professions'
+            ]);
+        }
+
+        $countries = Country::all();
+        if (!$event->is_live) {
+            return view('Public.ViewEvent.EventNotLivePage');
+        }
+
+        $data = [
+            'event' => $event,
+            'registration' => $registration,
+            'countries' => $countries,
+            'tickets' => $event->tickets()->orderBy('sort_order', 'asc')->get(),
+            'is_embedded' => 0,
+            'is_private_form' => true,
+            'registration_expired' => $registration->end_date < now() || $registration->status == 'inactive',
+        ];
+
+        return view('ViewEvent.show-symposium', $data);
+    }
+
+    /**
+     * Show the private (secret link) registration form. URL: /r/{registration_slug}/private/{private_slug}
+     *
+     * @param Request $request
+     * @param string $registration_slug Name slug for readability (e.g. name-registration-form)
+     * @param string $private_slug Secret token to resolve the form
+     * @return mixed
+     */
+    public function showPrivateRegistrationForm(Request $request, $registration_slug, $private_slug)
+    {
+        $registration = \App\Models\Registration::where('is_private', true)
+            ->where('private_slug', $private_slug)
+            ->with(['event', 'dynamicFormFields'])
+            ->firstOrFail();
+
+        $event = $registration->event;
+
+        if ($registration->category) {
+            $registration->category->load([
+                'conferences' => function ($query) {
+                    $query->withPivot('price');
+                },
+                'conferences.professions'
+            ]);
+        }
+
+        $countries = Country::all();
+        if (!$event->is_live) {
+            return view('Public.ViewEvent.EventNotLivePage');
+        }
+
+        $data = [
+            'event' => $event,
+            'registration' => $registration,
+            'countries' => $countries,
+            'tickets' => $event->tickets()->orderBy('sort_order', 'asc')->get(),
+            'is_embedded' => 0,
+            'is_private_form' => true,
+            'registration_expired' => $registration->end_date < now() || $registration->status == 'inactive',
+        ];
+
+        return view('ViewEvent.show-symposium', $data);
+    }
+
+    /**
      * Show the registration form for an event
      *
      * @param Request $request

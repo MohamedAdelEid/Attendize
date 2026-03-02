@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Str;
 
 class Registration extends MyBaseModel
 {
@@ -16,6 +17,8 @@ class Registration extends MyBaseModel
         'max_participants',
         'show_on_landing',
         'is_members_form',
+        'is_private',
+        'private_slug',
     ];
 
 
@@ -82,7 +85,28 @@ class Registration extends MyBaseModel
         'end_date' => 'datetime',
         'show_on_landing' => 'boolean',
         'is_members_form' => 'boolean',
+        'is_private' => 'boolean',
     ];
+
+    /**
+     * Scope to only public (non-private) registrations for event landing.
+     */
+    public function scopePublic($query)
+    {
+        return $query->where('is_private', false);
+    }
+
+    /**
+     * Get the full URL for the private registration form (only valid when is_private and private_slug are set).
+     * Format: /{registration_name} (e.g. /registration%20name)
+     */
+    public function getPrivateFormUrlAttribute()
+    {
+        if (!$this->is_private || !$this->private_slug) {
+            return null;
+        }
+        return route('showPrivateFormByName', ['registration_name' => $this->name]);
+    }
 
         /**
      * Parse start_date to a Carbon instance

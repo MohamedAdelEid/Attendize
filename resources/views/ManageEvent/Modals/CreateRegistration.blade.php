@@ -171,6 +171,15 @@
                                             </div>
                                             <p class="help-block text-muted">Show this form in the Members tab on the landing page. Only one form per event can be the members form.</p>
                                         </div>
+                                        <div class="form-group">
+                                            <div class="checkbox">
+                                                <label>
+                                                    {!! Form::checkbox('is_private', 1, false) !!}
+                                                    <strong>Private form (secret link only)</strong>
+                                                </label>
+                                            </div>
+                                            <p class="help-block text-muted">This form will not appear on the event page. Only people who have the private link can register. You can customize the fields in the Custom Fields tab.</p>
+                                        </div>
                                     </div>
                                 </div>
                             </div>

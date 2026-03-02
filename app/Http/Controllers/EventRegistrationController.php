@@ -154,6 +154,14 @@ class EventRegistrationController extends Controller
                 $registration->is_members_form = false;
             }
 
+            if ($request->boolean('is_private')) {
+                $registration->is_private = true;
+                $registration->private_slug = Str::random(32);
+            } else {
+                $registration->is_private = false;
+                $registration->private_slug = null;
+            }
+
             // Handle image upload
             if ($request->hasFile('image')) {
                 $imagePath = $request->file('image')->store('registrations', 'public');
@@ -254,6 +262,7 @@ class EventRegistrationController extends Controller
      */
     public function showEditRegistration($event_id, $registration_id)
     {
+        $event = Event::scope()->find($event_id);
         $registration = Registration::where('event_id', $event_id)
             ->where('id', $registration_id)
             ->firstOrFail();
@@ -262,7 +271,12 @@ class EventRegistrationController extends Controller
             ->pluck('name', 'id')
             ->toArray();
 
-        return view('ManageEvent.Modals.EditRegistration', compact('registration', 'categories', 'event_id'));
+        $privateFormUrl = null;
+        if ($registration->is_private && $registration->private_slug) {
+            $privateFormUrl = route('showPrivateFormByName', ['registration_name' => $registration->name]);
+        }
+
+        return view('ManageEvent.Modals.EditRegistration', compact('registration', 'categories', 'event_id', 'event', 'privateFormUrl'));
     }
 
     /**
@@ -356,6 +370,16 @@ class EventRegistrationController extends Controller
                 $registration->is_members_form = true;
             } else {
                 $registration->is_members_form = false;
+            }
+
+            if ($request->boolean('is_private')) {
+                $registration->is_private = true;
+                if (empty($registration->private_slug)) {
+                    $registration->private_slug = Str::random(32);
+                }
+            } else {
+                $registration->is_private = false;
+                $registration->private_slug = null;
             }
 
             // Handle image upload

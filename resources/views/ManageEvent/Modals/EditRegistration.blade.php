@@ -176,6 +176,23 @@
                                             </div>
                                             <p class="help-block text-muted">Show this form in the Members tab on the landing page. Only one per event.</p>
                                         </div>
+                                        <div class="form-group">
+                                            <div class="checkbox">
+                                                <label>
+                                                    {!! Form::checkbox('is_private', 1, $registration->is_private) !!}
+                                                    <strong>Private form (secret link only)</strong>
+                                                </label>
+                                            </div>
+                                            <p class="help-block text-muted">Form will not appear on the event page. Only people with the link can register.</p>
+                                            @if(!empty($privateFormUrl))
+                                                <div class="input-group" style="margin-top:8px;">
+                                                    <input type="text" class="form-control" value="{{ $privateFormUrl }}" readonly id="edit-private-url">
+                                                    <span class="input-group-btn">
+                                                        <button type="button" class="btn btn-default copy-private-link-edit" data-url="{{ $privateFormUrl }}" title="Copy link">Copy</button>
+                                                    </span>
+                                                </div>
+                                            @endif
+                                        </div>
                                     </div>
                                 </div>
                             </div>

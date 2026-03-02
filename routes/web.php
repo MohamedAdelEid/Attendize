@@ -165,6 +165,19 @@ Route::group(
         /*
          * Public event page routes
          */
+        // Private registration form by name: /{registration_name} (e.g. /registration%20name) — no "f", reserved words excluded
+        Route::get(
+            '{registration_name}',
+            [EventViewController::class, 'showPrivateRegistrationFormByName']
+        )->name('showPrivateFormByName')
+        ->where('registration_name', '^(?!e$|r$|o$|login|signup|install|upgrade|account|organiser|events|event|user|api|index|favicon|speakers|language).*');
+
+        // Private registration form by slug+token: /r/{registration_slug}/private/{private_slug}
+        Route::get(
+            'r/{registration_slug}/private/{private_slug}',
+            [EventViewController::class, 'showPrivateRegistrationForm']
+        )->name('showPrivateRegistrationForm');
+
         Route::group(['prefix' => 'e'], function () {
             /*
              * Embedded events
@@ -178,6 +191,17 @@ Route::group(
                 '/{event_id}/calendar.ics',
                 [EventViewController::class, 'showCalendarIcs']
             )->name('downloadCalendarIcs');
+
+            // Symposium: route alone so /e/2/symposium is not caught by /{event_id}/{event_slug?}/ss
+            Route::get(
+                '/{event_id}/symposium',
+                [EventViewController::class, 'showSymposium']
+            )->name('showEventSymposium');
+
+            Route::get(
+                '/{event_id}/speakers',
+                [EventViewController::class, 'showSpeakers']
+            )->name('showEventSpeakers');
 
             Route::get(
                 '/{event_id}/{event_slug?}/ss',
@@ -253,16 +277,6 @@ Route::group(
                 '/{event_id}/preview',
                 [EventViewController::class, 'showEventHomePreview']
             )->name('showEventPagePreview');
-
-            Route::get(
-                '/{event_id}/symposium',
-                [EventViewController::class, 'showSymposium']
-            )->name('showEventSymposium');
-
-            Route::get(
-                '/{event_id}/speakers',
-                [EventViewController::class, 'showSpeakers']
-            )->name('showEventSpeakers');
 
             Route::get(
                 '/{event_id}/type/{user_type_slug}/{option_slug?}',

@@ -8,8 +8,9 @@
     </div>
 
     <div class="row g-4">
-        @if ($event->registrations->count() > 0 && $event->end_date->isPast() == false)
-            @foreach ($event->registrations as $registration)
+        @php $publicRegistrations = $event->registrations->where('is_private', false); @endphp
+        @if ($publicRegistrations->count() > 0 && $event->end_date->isPast() == false)
+            @foreach ($publicRegistrations as $registration)
                 @if($registration->end_date > now())
                     <div class="col-12 col-md-6 col-lg-4">
                         <div class="card registration-card h-100 border-0 shadow-sm">
