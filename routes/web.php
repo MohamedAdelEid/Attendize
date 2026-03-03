@@ -150,6 +150,16 @@ Route::group(
                 'signup/confirm_email/{confirmation_code}',
                 [UserSignupController::class, 'confirmEmail']
             )->name('confirmEmail')->middleware('throttle:3,1');
+
+            /*
+             * Public ticket routes (with locale prefix so /en/ticket/download/{token} works)
+             */
+            Route::get('ticket/download/{token}', [App\Http\Controllers\TicketController::class, 'downloadTicket'])
+                ->name('downloadTicket');
+            Route::get('ticket/view/{token}', [App\Http\Controllers\TicketController::class, 'viewTicket'])
+                ->name('viewTicket');
+            Route::get('ticket/print-view/{token}', [App\Http\Controllers\TicketController::class, 'viewTicketTemplate'])
+                ->name('viewTicketTemplate');
         });
 
         /*
@@ -1273,14 +1283,6 @@ Route::post('/contact-us/{event}', [ContactUsController::class, 'postContactUs']
 Route::get('/contact-us/{event}', [ContactUsController::class, 'index'])->name('events.contact-us');
 Route::delete('/contact-us/{event}/delete/{message_id}', [ContactUsController::class, 'deleteMessage'])->name('events.contact-us.delete');
 Route::delete('/contact-us/{event}/delete-selected', [ContactUsController::class, 'deleteSelectedMessages'])->name('events.contact-us.delete-selected');
-
-// Public ticket routes
-Route::get('/ticket/download/{token}', [App\Http\Controllers\TicketController::class, 'downloadTicket'])
-    ->name('downloadTicket');
-Route::get('/ticket/view/{token}', [App\Http\Controllers\TicketController::class, 'viewTicket'])
-    ->name('viewTicket');
-Route::get('/ticket/print-view/{token}', [App\Http\Controllers\TicketController::class, 'viewTicketTemplate'])
-    ->name('viewTicketTemplate');
 
 Route::get('/events/{event_id}/registration-confirmation', [EventViewController::class, 'showRegistrationConfirmation'])->name('showRegistrationConfirmation');
 Route::get('/events/{event_id}/kiosk', [EventCheckInController::class, 'showGuestKiosk'])->name('showGuestKiosk');
