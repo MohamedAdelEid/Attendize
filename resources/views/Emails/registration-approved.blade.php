@@ -39,7 +39,8 @@
                     <h3>Event details</h3>
                     <ul>
                         <li><strong>Event:</strong> {{ $event->title }}</li>
-                        <li><strong>Date:</strong> {{ \Carbon\Carbon::parse($event->start_date)->format('F j, Y') }}</li>
+                        {{-- <li><strong>Date:</strong> {{ \Carbon\Carbon::parse($event->start_date)->format('F j, Y') }}</li> --}}
+                        <li><strong>Date:</strong> May 2, 2026</li>
                         @if($event->venue_name)
                         <li><strong>Venue:</strong> {{ $event->venue_name }}</li>
                         @endif
