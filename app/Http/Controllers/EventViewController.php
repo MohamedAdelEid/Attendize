@@ -240,11 +240,10 @@ class EventViewController extends Controller
     /**
      * Show the private registration form by name. URL: /{registration_name} (e.g. /registration%20name)
      *
-     * @param Request $request
      * @param string $registration_name Registration form name (URL-decoded)
      * @return mixed
      */
-    public function showPrivateRegistrationFormByName(Request $request, $registration_name)
+    public function showPrivateRegistrationFormByName($registration_name)
     {
         $registration = \App\Models\Registration::where('is_private', true)
             ->where('name', $registration_name)
