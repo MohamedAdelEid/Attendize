@@ -49,7 +49,9 @@
                         @endif
                     @endforeach
                 @endif
+                @if(!isset($is_private_form) || !$is_private_form)
                 <button type="button" onclick="document.getElementById('pricing').scrollIntoView({behavior:'smooth'})" class="link-gold font-medium text-foreground">Fees</button>
+                @endif
                 <a href="{{ route('showEventProgram', ['event_id' => $event->id]) }}" class="link-gold font-medium text-foreground">Program</a>
                 <button type="button" onclick="document.getElementById('footer').scrollIntoView({behavior:'smooth'})" class="link-gold font-medium text-foreground">Contact Us</button>
             </nav>
@@ -96,7 +98,9 @@
                         @endif
                     @endforeach
                 @endif
+                @if(!isset($is_private_form) || !$is_private_form)
                 <button type="button" class="mobile-nav-link block w-full text-left py-3" style="color: hsl(45, 70%, 50%); font-weight: 500; border-bottom: 1px solid hsl(220, 40%, 25%);" data-scroll="pricing">Fees</button>
+                @endif
                 <a href="{{ route('showEventProgram', ['event_id' => $event->id]) }}" class="mobile-nav-link block py-3" style="color: hsl(45, 70%, 50%); font-weight: 500; border-bottom: 1px solid hsl(220, 40%, 25%);">Program</a>
                 <button type="button" class="mobile-nav-link block w-full text-left py-3" style="color: hsl(45, 70%, 50%); font-weight: 500;" data-scroll="footer">Contact Us</button>
             </nav>
@@ -150,7 +154,8 @@
         <div class="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-background to-transparent"></div>
     </section>
 
-    {{-- Pricing Section --}}
+    {{-- Pricing Section (hidden on private form – registration is free) --}}
+    @if(!isset($is_private_form) || !$is_private_form)
     <section id="pricing" class="py-20 bg-secondary/30 relative">
         <div class="container mx-auto px-4">
             <div class="text-center mb-12">
@@ -226,6 +231,7 @@
         </div>
         <div class="section-divider absolute bottom-0 left-0 right-0"></div>
     </section>
+    @endif
 
     {{-- Registration Section --}}
     <section id="registration" class="py-20 hero-bg-custom relative">
@@ -238,6 +244,7 @@
                 @if(isset($is_private_form) && $is_private_form && isset($registration))
                     {{-- Private form only: show this registration form only (no Non-Members / Members tabs). Reuse same ids so existing JS works. --}}
                     <div id="reg-non-members" class="space-y-6">
+                        <p class="text-center text-primary font-semibold text-lg mb-4">Free registration – التسجيل مجاني</p>
                         @if(isset($registration_expired) && $registration_expired)
                             <div class="p-6 rounded-xl border border-amber-500/40 bg-amber-500/10 text-amber-800 dark:text-amber-200 text-center">
                                 <p class="font-semibold">Registration period has ended for this form.</p>
