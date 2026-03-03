@@ -175,12 +175,12 @@ Route::group(
         /*
          * Public event page routes
          */
-        // Private registration form by name: /{registration_name} (e.g. /registration%20name) — no "f", reserved words excluded
+        // Private registration form by name: /{registration_name} (e.g. /registration%20name) — no "f", reserved words excluded; require at least 1 char so "/" does not match
         Route::get(
             '{registration_name}',
             [EventViewController::class, 'showPrivateRegistrationFormByName']
         )->name('showPrivateFormByName')
-        ->where('registration_name', '^(?!e$|r$|o$|login|signup|install|upgrade|account|organiser|events|event|user|api|index|favicon|speakers|language).*');
+        ->where('registration_name', '^(?!e$|r$|o$|login|signup|install|upgrade|account|organiser|events|event|user|api|index|favicon|speakers|language).+');
 
         // Private registration form by slug+token: /r/{registration_slug}/private/{private_slug}
         Route::get(
