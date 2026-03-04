@@ -78,6 +78,30 @@
                     @endforeach
                 @endif
             </select>
+            @elseif($field->type == 'radio')
+            <div class="space-y-2">
+                @if(is_array($field->options))
+                    @foreach($field->options as $opt)
+                    @php $optVal = trim(is_string($opt) ? $opt : ''); @endphp
+                    <label class="flex items-center gap-3 cursor-pointer">
+                        <input type="radio" name="fields[{{ $field->id }}]" id="field_{{ $field->id }}_{{ $loop->index }}" value="{{ $optVal }}" {{ old('fields.'.$field->id) == $optVal ? 'checked' : '' }} {{ $field->is_required ? 'required' : '' }} class="w-4 h-4 text-primary border-border focus:ring-primary">
+                        <span class="text-foreground">{{ $optVal }}</span>
+                    </label>
+                    @endforeach
+                @endif
+            </div>
+            @elseif($field->type == 'checkbox')
+            <div class="space-y-2">
+                @if(is_array($field->options))
+                    @foreach($field->options as $opt)
+                    @php $optVal = trim(is_string($opt) ? $opt : ''); @endphp
+                    <label class="flex items-center gap-3 cursor-pointer">
+                        <input type="checkbox" name="fields[{{ $field->id }}][]" id="field_{{ $field->id }}_{{ $loop->index }}" value="{{ $optVal }}" {{ in_array($optVal, (array)old('fields.'.$field->id, [])) ? 'checked' : '' }} class="w-4 h-4 rounded border-border text-primary focus:ring-primary">
+                        <span class="text-foreground">{{ $optVal }}</span>
+                    </label>
+                    @endforeach
+                @endif
+            </div>
             @elseif($field->type == 'profession')
             <select id="field_{{ $field->id }}" name="fields[{{ $field->id }}]" {{ $field->is_required ? 'required' : '' }} class="w-full input-navy rounded-lg py-3 px-4 symposium-profession-select">
                 <option value="" data-price="0">-- Select profession --</option>

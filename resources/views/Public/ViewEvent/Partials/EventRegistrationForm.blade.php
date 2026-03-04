@@ -306,17 +306,17 @@
                         </div>
                                             @elseif($field->type == 'radio')
                                                 <div class="mt-1 space-y-2">
-                                                    @foreach (explode(',', $field->options) as $option)
+                                                    @foreach (is_array($field->options) ? $field->options : [] as $option)
+                                                        @php $optVal = trim(is_string($option) ? $option : ''); @endphp
                                                         <div class="flex items-center">
                                                             <input class="h-4 w-4 text-primary-600 border border-gray-300 focus:ring-primary-500" type="radio"
-                                        name="fields[{{ $field->id }}]"
-                                        id="field_{{ $field->id }}_{{ $loop->index }}"
-                                        value="{{ trim($option) }}" {{ $field->is_required ? 'required' : '' }}>
-                                    <label class="ml-3 block text-sm font-medium text-gray-700"
-                                        for="field_{{ $field->id }}_{{ $loop->index }}">{{ trim($option) }}</label>
-                                </div>
-                            @endforeach
-                        </div>
+                                                                name="fields[{{ $field->id }}]"
+                                                                id="field_{{ $field->id }}_{{ $loop->index }}"
+                                                                value="{{ $optVal }}" {{ old('fields.'.$field->id) == $optVal ? 'checked' : '' }} {{ $field->is_required ? 'required' : '' }}>
+                                                            <label class="ml-3 block text-sm font-medium text-gray-700" for="field_{{ $field->id }}_{{ $loop->index }}">{{ $optVal }}</label>
+                                                        </div>
+                                                    @endforeach
+                                                </div>
                                             @elseif($field->type == 'date')
                                                 <input type="date" class="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500" id="field_{{ $field->id }}"
                             name="fields[{{ $field->id }}]" {{ $field->is_required ? 'required' : '' }}>
