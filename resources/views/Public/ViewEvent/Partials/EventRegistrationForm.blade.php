@@ -234,6 +234,9 @@
                                         <div>
                                             <label for="field_{{ $field->id }}"
                                                 class="block text-sm font-medium text-gray-700 {{ $field->is_required ? 'after:content-[\'*\'] after:ml-0.5 after:text-red-500' : '' }}">{{ $field->label }}</label>
+                                            @if(!empty($field->description))
+                                            <p class="mt-1 text-sm text-gray-500"><small>{{ $field->description }}</small></p>
+                                            @endif
 
                                             @if ($field->type == 'text')
                                                 <input type="text" 

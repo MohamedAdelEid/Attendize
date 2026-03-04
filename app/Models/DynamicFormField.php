@@ -9,6 +9,7 @@ class DynamicFormField extends Model
     protected $fillable = [
         'registration_id',
         'label',
+        'description',
         'name',
         'type',
         'options',

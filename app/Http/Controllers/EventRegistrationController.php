@@ -186,6 +186,7 @@ class EventRegistrationController extends Controller
                     $formField = new DynamicFormField();
                     $formField->registration_id = $registration->id;
                     $formField->label = $field['label'];
+                    $formField->description = isset($field['description']) ? trim($field['description']) : null;
                     $formField->name = Str::slug($field['label'], '_');
                     $formField->type = $field['type'];
                     $formField->is_required = isset($field['is_required']) ? true : false;
@@ -403,6 +404,7 @@ class EventRegistrationController extends Controller
                         $field = DynamicFormField::find($fieldData['id']);
                         if ($field) {
                             $field->label = $fieldData['label'];
+                            $field->description = isset($fieldData['description']) ? trim($fieldData['description']) : null;
                             $field->name = Str::slug($fieldData['label'], '_');
                             $field->type = $fieldData['type'];
                             $field->options = $this->normalizeFieldOptions($fieldData);
@@ -418,6 +420,7 @@ class EventRegistrationController extends Controller
                         DynamicFormField::create([
                             'registration_id' => $registration->id,
                             'label' => $fieldData['label'],
+                            'description' => isset($fieldData['description']) ? trim($fieldData['description']) : null,
                             'name' => Str::slug($fieldData['label'], '_'),
                             'type' => $fieldData['type'],
                             'options' => $this->normalizeFieldOptions($fieldData),

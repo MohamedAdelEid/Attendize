@@ -57,6 +57,9 @@
         @endif
         <div>
             <label for="field_{{ $field->id }}" class="block text-foreground mb-2 font-medium">{{ $field->label }}{{ $field->is_required ? ' *' : '' }}</label>
+            @if(!empty($field->description))
+            <p class="text-sm text-muted-foreground mb-2"><small>{{ $field->description }}</small></p>
+            @endif
             @if($field->type == 'text' || $field->type == 'email' || $field->type == 'tel' || $field->type == 'number')
             <input type="{{ $field->type }}" id="field_{{ $field->id }}" name="fields[{{ $field->id }}]" value="{{ old('fields.'.$field->id) }}" {{ $field->is_required ? 'required' : '' }} class="w-full input-navy rounded-lg py-3 px-4">
             @elseif($field->type == 'textarea')

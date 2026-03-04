@@ -297,6 +297,16 @@
 
             <div class="row">
                 <div class="col-md-12">
+                    <div class="form-group">
+                        <label class="control-label">Description / help text</label>
+                        <input type="text" name="dynamic_fields[{INDEX}][description]" class="form-control field-description" placeholder="Optional text shown under the field (e.g. hint or instructions)">
+                        <p class="help-block"><small>Shown in a small label under the field on the registration form. Leave empty to hide.</small></p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-12">
                     <div class="form-group field-options" style="display: none;">
                         <label class="control-label required">Options</label>
                         <textarea name="dynamic_fields[{INDEX}][options]" class="form-control" rows="3"
