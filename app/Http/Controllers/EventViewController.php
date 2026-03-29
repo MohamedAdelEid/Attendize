@@ -547,7 +547,7 @@ class EventViewController extends Controller
 
             // Check if external payment field exists - if yes, skip online payment and register directly
             $hasExternalPaymentField = $registration->dynamicFormFields->where('type', 'external_payment')->isNotEmpty();
-            
+
             // If payment is required and NO external payment field, store data in session and redirect to payment
             if ($totalPrice > 0 && !$hasExternalPaymentField) {
                 // Store registration data in session
@@ -1374,9 +1374,11 @@ class EventViewController extends Controller
             if ($option !== null) {
                 $q->where('registration_user_user_type.user_type_option_id', $option->id);
             }
-        })->with(['userTypes' => function ($q) use ($userType) {
-            $q->where('user_types.id', $userType->id);
-        }]);
+        })->with([
+                    'userTypes' => function ($q) use ($userType) {
+                        $q->where('user_types.id', $userType->id);
+                    }
+                ]);
 
         $users = $usersQuery->get()->sortBy(function ($u) use ($userType) {
             $pivot = $u->userTypes->first();

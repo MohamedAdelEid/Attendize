@@ -51,6 +51,20 @@ use App\Http\Controllers\UserSignupController;
 use App\Models\Event;
 use Illuminate\Support\Facades\Route;
 
+/*
+ * Public event URLs under /e/{event_id}
+ */
+Route::prefix('e')->group(function () {
+    Route::get('/__ping', function () {
+        return response('e-ok', 200)->header('Content-Type', 'text/plain; charset=UTF-8');
+    });
+    Route::get('/{event_id}/symposium', [EventViewController::class, 'showSymposium'])->name('showEventSymposium');
+    Route::get('/{event_id}/speakers', [EventViewController::class, 'showSpeakers'])->name('showEventSpeakers');
+    Route::get('/{event_id}/preview', [EventViewController::class, 'showEventHomePreview'])->name('showEventPagePreview');
+    Route::get('/{event_id}/type/{user_type_slug}/{option_slug?}', [EventViewController::class, 'showEventUserType'])->name('showEventUserType');
+    Route::get('/{event_id}/program', [EventViewController::class, 'showEventProgram'])->name('showEventProgram');
+});
+
 Route::group(
     [
         'prefix' => LaravelLocalization::setLocale(),
@@ -180,7 +194,7 @@ Route::group(
             '{registration_name}',
             [EventViewController::class, 'showPrivateRegistrationFormByName']
         )->name('showPrivateFormByName')
-        ->where('registration_name', '^(?!e$|r$|o$|login|signup|install|upgrade|account|organiser|events|event|user|api|index|favicon|speakers|language).+');
+            ->where('registration_name', '^(?!e$|r$|o$|login|signup|install|upgrade|account|organiser|events|event|user|api|index|favicon|speakers|language).+');
 
         // Private registration form by slug+token: /r/{registration_slug}/private/{private_slug}
         Route::get(
@@ -201,17 +215,6 @@ Route::group(
                 '/{event_id}/calendar.ics',
                 [EventViewController::class, 'showCalendarIcs']
             )->name('downloadCalendarIcs');
-
-            // Symposium: route alone so /e/2/symposium is not caught by /{event_id}/{event_slug?}/ss
-            Route::get(
-                '/{event_id}/symposium',
-                [EventViewController::class, 'showSymposium']
-            )->name('showEventSymposium');
-
-            Route::get(
-                '/{event_id}/speakers',
-                [EventViewController::class, 'showSpeakers']
-            )->name('showEventSpeakers');
 
             Route::get(
                 '/{event_id}/{event_slug?}/ss',
@@ -279,24 +282,6 @@ Route::group(
                 '/{event_id}/{event_slug?}/registration/{registration_id}',
                 [EventRegistrationController::class, 'showRegistrationForm']
             )->name('showEventRegistrationForm');
-
-            /*
-             * Used for previewing designs in the backend. Doesn't log page views etc.
-             */
-            Route::get(
-                '/{event_id}/preview',
-                [EventViewController::class, 'showEventHomePreview']
-            )->name('showEventPagePreview');
-
-            Route::get(
-                '/{event_id}/type/{user_type_slug}/{option_slug?}',
-                [EventViewController::class, 'showEventUserType']
-            )->name('showEventUserType');
-
-            Route::get(
-                '/{event_id}/program',
-                [EventViewController::class, 'showEventProgram']
-            )->name('showEventProgram');
 
             Route::post(
                 '/{event_id}/api/member-lookup',
@@ -1262,16 +1247,16 @@ Route::get('/home', 'HomeController@index')->name('home');
 
 // Language switcher route
 Route::get('language/{locale}', [\App\Http\Controllers\LanguageController::class, 'switch'])
- ->name('language.switch');
+    ->name('language.switch');
 
 // Your other routes
 Route::get('/events/{event}', [\App\Http\Controllers\EventController::class, 'show'])
- ->name('events.show');
+    ->name('events.show');
 
 
 // about us
 Route::get('/about-us/{event}', [\App\Http\Controllers\EventController::class, 'aboutUs'])
- ->name('events.about-us');
+    ->name('events.about-us');
 
 Route::post('/contact-us/{event}', [ContactUsController::class, 'postContactUs'])->name('events.contact-us.post');
 Route::get('/contact-us/{event}', [ContactUsController::class, 'index'])->name('events.contact-us');
