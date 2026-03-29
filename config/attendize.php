@@ -68,6 +68,9 @@ return [
     'default_datetime_format'       => env('DEFAULT_DATETIME_FORMAT', 'Y-m-d H:i'),
     'default_query_cache'           => 120, #Minutes
     'default_locale'                => 'en',
+
+    /** Event id for public symposium on `/` and `showSymposiumRoot` */
+    'default_symposium_event_id'    => (int) env('DEFAULT_SYMPOSIUM_EVENT_ID', 2),
     'default_payment_gateway'       => 1, #Stripe=1 Paypal=2
 
     'cdn_url_user_assets'   => '',

@@ -1261,24 +1261,18 @@ Route::group(
 Route::get('/home', 'HomeController@index')->name('home');
 
 // Language switcher route
-Route::get('language/{locale}', function ($locale) {
-    if (in_array($locale, ['en', 'ar'])) {
-        session()->put('locale', $locale);
-        app()->setLocale($locale);
-    }
-    return redirect()->back();
-})->name('language.switch');
+Route::get('language/{locale}', [\App\Http\Controllers\LanguageController::class, 'switch'])
+ ->name('language.switch');
 
 // Your other routes
-Route::get('/events/{event}', function () {
-    return view('ViewEvent.show');
-})->name('events.show');
+Route::get('/events/{event}', [\App\Http\Controllers\EventController::class, 'show'])
+ ->name('events.show');
+
 
 // about us
-Route::get('/about-us/{event}', function () {
-    $event = Event::find(request('event'));
-    return view('ViewEvent.about-us', compact('event'));
-})->name('events.about-us');
+Route::get('/about-us/{event}', [\App\Http\Controllers\EventController::class, 'aboutUs'])
+ ->name('events.about-us');
+
 Route::post('/contact-us/{event}', [ContactUsController::class, 'postContactUs'])->name('events.contact-us.post');
 Route::get('/contact-us/{event}', [ContactUsController::class, 'index'])->name('events.contact-us');
 Route::delete('/contact-us/{event}/delete/{message_id}', [ContactUsController::class, 'deleteMessage'])->name('events.contact-us.delete');
@@ -1292,6 +1286,4 @@ Route::post('/events/{event_id}/bulk-check-out', [EventCheckInController::class,
 Route::get('/events/{event_id}/fetch-registration-users', [EventCheckInController::class, 'fetchRegistrationUsers'])->name('fetchRegistrationUsers');
 Route::get('/events/{event_id}/registration-user/{user_id}/logs', [EventCheckInController::class, 'getUserLogs'])->name('getUserLogs');
 
-Route::get('/symposium-preview', function () {
-    return view('ViewEvent.show-symposium');
-});
+Route::get('/symposium-preview', [\App\Http\Controllers\EventController::class, 'symposiumPreview']);

@@ -10,9 +10,14 @@
         $navBreakpoint = $navItemCount > 5 ? 'xl' : 'lg';
     @endphp
     @php
+        $defaultSymposiumEventId = config('attendize.default_symposium_event_id', 2);
         $homeUrl = (isset($is_private_form) && $is_private_form && isset($registration))
             ? route('showPrivateFormByName', ['registration_name' => $registration->name])
-            : route('showEventSymposium', ['event_id' => $event->id]);
+            : (
+                isset($event) && (int) $event->id === (int) $defaultSymposiumEventId
+                    ? route('showSymposiumRoot')
+                    : route('showEventSymposium', ['event_id' => $event->id])
+              );
     @endphp
     <header id="header" class="fixed top-0 left-0 right-0 z-50 transition-all duration-300 header-sticky py-4 header-scrolled">
         <div class="container mx-auto px-4 flex items-center justify-between">

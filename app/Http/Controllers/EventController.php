@@ -15,6 +15,24 @@ use Spatie\GoogleCalendar\Event as GCEvent;
 
 class EventController extends MyBaseController
 {
+
+    public function show($event)
+    {
+        return view('ViewEvent.show', compact('event'));
+    }
+    
+    public function aboutUs($event)
+    {
+        $event = Event::find($event);
+        return view('ViewEvent.about-us', compact('event'));
+    }
+
+    public function symposiumPreview()
+    {
+        return view('ViewEvent.show-symposium');
+    }
+
+
     /**
      * Show the 'Create Event' Modal
      *

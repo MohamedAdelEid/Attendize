@@ -13,9 +13,8 @@ use Illuminate\Http\Request;
 |
 */
 
-Route::middleware('auth:api')->get('/user', function (Request $request) {
-    return $request->user();
-});
+Route::middleware('auth:api')->get('/user', [\App\Http\Controllers\Api\UserController::class, 'me']);
+
 
 /*
  * ---------------
@@ -29,7 +28,7 @@ Route::middleware('auth:api')->get('/user', function (Request $request) {
  * Events
  * ---------------
  */
-Route::resource('events', API\EventsApiController::class);
+Route::resource('events', \App\Http\Controllers\API\EventsApiController::class);
 
 
 /*
@@ -37,7 +36,7 @@ Route::resource('events', API\EventsApiController::class);
  * Attendees
  * ---------------
  */
-Route::resource('attendees', API\AttendeesApiController::class);
+Route::resource('attendees', \App\Http\Controllers\API\AttendeesApiController::class);
 
 
 /*

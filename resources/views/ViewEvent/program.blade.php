@@ -7,17 +7,21 @@
     @php
         $navItemCount = 4 + (isset($landingUserTypes) ? $landingUserTypes->count() : 0);
         $navBreakpoint = $navItemCount > 5 ? 'lg' : 'md';
+        $defaultSymposiumEventId = config('attendize.default_symposium_event_id', 2);
+        $symposiumHomeUrl = isset($event) && (int) $event->id === (int) $defaultSymposiumEventId
+            ? route('showSymposiumRoot')
+            : route('showEventSymposium', ['event_id' => $event->id]);
     @endphp
     <header id="header" class="fixed top-0 left-0 right-0 z-50 transition-all duration-300 header-sticky py-4 header-scrolled">
         <div class="container mx-auto px-4 flex items-center justify-between">
             <div class="flex items-center gap-4">
-                <a href="{{ route('showEventSymposium', ['event_id' => $event->id]) }}" class="flex items-center gap-4" aria-label="Home">
+                <a href="{{ $symposiumHomeUrl }}" class="flex items-center gap-4" aria-label="Home">
                     <img src="{{ asset('images/sgss-logo.png') }}" alt="SGSS" class="bg-white w-12 h-12 md:w-16 md:h-14 object-contain" onerror="this.style.display='none'">
                     <img src="https://cdn4.premiumread.com/?url=https://www.al-madina.com/uploads/images/2020/06/24/1786780.jpg&w=800&q=100&f=jpg" alt="Logo 2" class="h-12 w-12 md:h-14 md:w-14 object-contain" onerror="this.style.display='none'">
                 </a>
             </div>
             <nav class="hidden {{ $navBreakpoint === 'lg' ? 'lg:flex' : 'md:flex' }} items-center gap-8">
-                <a href="{{ route('showEventSymposium', ['event_id' => $event->id]) }}" class="link-gold font-medium text-foreground">Home</a>
+                <a href="{{ $symposiumHomeUrl }}" class="link-gold font-medium text-foreground">Home</a>
                 @if(isset($landingUserTypes) && $landingUserTypes->count() > 0)
                     @foreach($landingUserTypes as $ut)
                         @if($ut->options && $ut->options->count() > 0)
@@ -40,16 +44,16 @@
                         @endif
                     @endforeach
                 @endif
-                <a href="{{ route('showEventSymposium', ['event_id' => $event->id]) }}#pricing" class="link-gold font-medium text-foreground">Fees</a>
+                <a href="{{ $symposiumHomeUrl }}#pricing" class="link-gold font-medium text-foreground">Fees</a>
                 <span class="link-gold font-medium text-foreground border-b-2 border-primary pb-1">Program</span>
-                <a href="{{ route('showEventSymposium', ['event_id' => $event->id]) }}#footer" class="link-gold font-medium text-foreground">Contact Us</a>
+                <a href="{{ $symposiumHomeUrl }}#footer" class="link-gold font-medium text-foreground">Contact Us</a>
             </nav>
             <div class="flex items-center gap-2 {{ $navBreakpoint === 'lg' ? 'lg:hidden' : 'md:hidden' }}">
                 <button type="button" id="mobile-menu-toggle" class="p-2 rounded-lg text-foreground hover:bg-secondary/50" aria-expanded="false" aria-label="Open menu">
                     <svg id="mobile-menu-icon-open" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
                     <svg id="mobile-menu-icon-close" class="w-6 h-6 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                 </button>
-                <a href="{{ route('showEventSymposium', ['event_id' => $event->id]) }}#registration" class="btn-gold text-sm font-bold px-4 py-2">Register Now</a>
+                <a href="{{ $symposiumHomeUrl }}#registration" class="btn-gold text-sm font-bold px-4 py-2">Register Now</a>
             </div>
         </div>
     </header>
@@ -64,7 +68,7 @@
                 </button>
             </div>
             <nav style="padding: 1rem 1.5rem; display: flex; flex-direction: column;">
-                <a href="{{ route('showEventSymposium', ['event_id' => $event->id]) }}" class="mobile-nav-link block py-3" style="color: hsl(45, 70%, 50%); font-weight: 500; border-bottom: 1px solid hsl(220, 40%, 25%);">Home</a>
+                <a href="{{ $symposiumHomeUrl }}" class="mobile-nav-link block py-3" style="color: hsl(45, 70%, 50%); font-weight: 500; border-bottom: 1px solid hsl(220, 40%, 25%);">Home</a>
                 @if(isset($landingUserTypes) && $landingUserTypes->count() > 0)
                     @foreach($landingUserTypes as $ut)
                         @if($ut->options && $ut->options->count() > 0)
@@ -85,12 +89,12 @@
                         @endif
                     @endforeach
                 @endif
-                <a href="{{ route('showEventSymposium', ['event_id' => $event->id]) }}#pricing" class="mobile-nav-link block py-3" style="color: hsl(45, 70%, 50%); font-weight: 500; border-bottom: 1px solid hsl(220, 40%, 25%);">Fees</a>
+                <a href="{{ $symposiumHomeUrl }}#pricing" class="mobile-nav-link block py-3" style="color: hsl(45, 70%, 50%); font-weight: 500; border-bottom: 1px solid hsl(220, 40%, 25%);">Fees</a>
                 <span class="block py-3" style="color: hsl(45, 70%, 50%); font-weight: 600; border-bottom: 1px solid hsl(220, 40%, 25%);">Program</span>
-                <a href="{{ route('showEventSymposium', ['event_id' => $event->id]) }}#footer" class="mobile-nav-link block py-3" style="color: hsl(45, 70%, 50%); font-weight: 500;">Contact Us</a>
+                <a href="{{ $symposiumHomeUrl }}#footer" class="mobile-nav-link block py-3" style="color: hsl(45, 70%, 50%); font-weight: 500;">Contact Us</a>
             </nav>
             <div style="padding: 1.5rem;">
-                <a href="{{ route('showEventSymposium', ['event_id' => $event->id]) }}#registration" class="mobile-nav-link w-full text-center font-bold py-3 rounded-lg block" style="background: linear-gradient(135deg, hsl(45, 75%, 45%) 0%, hsl(45, 70%, 55%) 100%); color: hsl(220, 60%, 8%);">Register Now</a>
+                <a href="{{ $symposiumHomeUrl }}#registration" class="mobile-nav-link w-full text-center font-bold py-3 rounded-lg block" style="background: linear-gradient(135deg, hsl(45, 75%, 45%) 0%, hsl(45, 70%, 55%) 100%); color: hsl(220, 60%, 8%);">Register Now</a>
             </div>
         </div>
     </div>
@@ -112,8 +116,8 @@
                     The event program will be published here soon. Stay tuned for updates!
                 </p>
                 <div class="flex flex-col sm:flex-row items-center justify-center gap-4 opacity-0 animate-fade-up delay-300">
-                    <a href="{{ route('showEventSymposium', ['event_id' => $event->id]) }}" class="btn-gold text-lg px-8 py-4">Back to Home</a>
-                    <a href="{{ route('showEventSymposium', ['event_id' => $event->id]) }}#registration" class="px-8 py-4 rounded-lg font-bold bg-secondary border border-border text-foreground hover:bg-secondary/80 transition-colors">Register Now</a>
+                    <a href="{{ $symposiumHomeUrl }}" class="btn-gold text-lg px-8 py-4">Back to Home</a>
+                    <a href="{{ $symposiumHomeUrl }}#registration" class="px-8 py-4 rounded-lg font-bold bg-secondary border border-border text-foreground hover:bg-secondary/80 transition-colors">Register Now</a>
                 </div>
             </div>
         </div>
