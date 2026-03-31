@@ -702,6 +702,46 @@ Route::group(
                     '{event_id}/registration/members',
                     [EventMemberController::class, 'index']
                 )->name('showEventMembers');
+                Route::get(
+                    '{event_id}/registration/members/fields',
+                    [EventMemberController::class, 'fieldsPage']
+                )->name('showEventMembersFields');
+                Route::get(
+                    '{event_id}/registration/members/list',
+                    [EventMemberController::class, 'membersListPage']
+                )->name('showEventMembersList');
+                Route::get(
+                    '{event_id}/registration/members/import',
+                    [EventMemberController::class, 'importPage']
+                )->name('showEventMembersImport');
+                Route::get(
+                    '{event_id}/registration/members/mapping',
+                    [EventMemberController::class, 'mappingPage']
+                )->name('showEventMembersMapping');
+                Route::get(
+                    '{event_id}/registration/members/create',
+                    [EventMemberController::class, 'create']
+                )->name('showCreateEventMember');
+                Route::post(
+                    '{event_id}/registration/members/create',
+                    [EventMemberController::class, 'store']
+                )->name('postCreateEventMember');
+                Route::get(
+                    '{event_id}/registration/members/{member_id}',
+                    [EventMemberController::class, 'show']
+                )->where('member_id', '[0-9]+')->name('showEventMember');
+                Route::get(
+                    '{event_id}/registration/members/{member_id}/edit',
+                    [EventMemberController::class, 'edit']
+                )->where('member_id', '[0-9]+')->name('showEditEventMember');
+                Route::put(
+                    '{event_id}/registration/members/{member_id}',
+                    [EventMemberController::class, 'update']
+                )->where('member_id', '[0-9]+')->name('postEditEventMember');
+                Route::delete(
+                    '{event_id}/registration/members/{member_id}',
+                    [EventMemberController::class, 'destroy']
+                )->where('member_id', '[0-9]+')->name('postDeleteEventMember');
                 Route::post(
                     '{event_id}/registration/members/fields',
                     [EventMemberController::class, 'storeField']

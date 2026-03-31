@@ -13,6 +13,7 @@ use App\Models\RegistrationUserMemberData;
 use App\Models\Category;
 use App\Services\TicketService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 
 class EventMemberController extends MyBaseController
@@ -24,10 +25,32 @@ class EventMemberController extends MyBaseController
         $this->ticketService = $ticketService;
     }
 
-    /**
-     * Members hub: fields config, list, import.
-     */
     public function index(Request $request, $event_id)
+    {
+        return redirect()->route('showEventMembersList', ['event_id' => $event_id]);
+    }
+
+    public function fieldsPage(Request $request, $event_id)
+    {
+        return $this->renderMembersHub($request, $event_id, 'fields');
+    }
+
+    public function membersListPage(Request $request, $event_id)
+    {
+        return $this->renderMembersHub($request, $event_id, 'list');
+    }
+
+    public function importPage(Request $request, $event_id)
+    {
+        return $this->renderMembersHub($request, $event_id, 'import');
+    }
+
+    public function mappingPage(Request $request, $event_id)
+    {
+        return $this->renderMembersHub($request, $event_id, 'mapping');
+    }
+
+    protected function renderMembersHub(Request $request, $event_id, string $activeTab)
     {
         $event = Event::scope()->findOrFail($event_id);
         $event->load(['eventMemberFields', 'eventMemberFieldMappings']);
@@ -39,13 +62,176 @@ class EventMemberController extends MyBaseController
         if (!in_array((int) $perPage, [10, 15, 25, 50, 100, 300], true)) {
             $perPage = 20;
         }
-        $members = EventMember::where('event_id', $event_id)
-            ->with('data')
-            ->orderBy('created_at', 'desc')
-            ->paginate($perPage)
-            ->appends($request->except('page'));
 
-        return view('ManageEvent.Members.index', compact('event', 'categories', 'registrations', 'members', 'membersRegistration', 'perPage'));
+        $search = trim((string) $request->get('q', ''));
+        $memberIds = null;
+        if ($search !== '') {
+            $fieldKeys = $event->eventMemberFields->pluck('field_key')->all();
+            $fieldKeys = array_values(array_unique(array_merge($fieldKeys, ['full_name', 'first_name', 'last_name', 'email', 'phone'])));
+            $memberIds = EventMemberData::whereIn('field_key', $fieldKeys)
+                ->where('value', 'like', '%' . $search . '%')
+                ->pluck('event_member_id')
+                ->unique()
+                ->values()
+                ->all();
+            if (empty($memberIds)) {
+                $memberIds = [0];
+            }
+        }
+
+        $membersQuery = EventMember::where('event_id', $event_id)->with('data')->orderBy('created_at', 'desc');
+        if (is_array($memberIds)) {
+            $membersQuery->whereIn('id', $memberIds);
+        }
+
+        $members = $membersQuery->paginate($perPage)->appends($request->except('page'));
+
+        return view('ManageEvent.Members.index', compact(
+            'event',
+            'categories',
+            'registrations',
+            'members',
+            'membersRegistration',
+            'perPage',
+            'activeTab',
+            'search'
+        ));
+    }
+
+    public function create(Request $request, $event_id)
+    {
+        $event = Event::scope()->findOrFail($event_id);
+        $event->load('eventMemberFields');
+        $fields = $event->eventMemberFields()->orderBy('sort_order')->get();
+        return view('ManageEvent.Members.create', compact('event', 'fields'));
+    }
+
+    public function store(Request $request, $event_id)
+    {
+        $event = Event::scope()->findOrFail($event_id);
+        $fields = $event->eventMemberFields()->orderBy('sort_order')->get();
+        [$payload, $rules] = $this->buildMemberValidationRules($fields);
+        $data = $request->validate($rules);
+
+        DB::transaction(function () use ($event_id, $fields, $payload, $data) {
+            $member = EventMember::create([
+                'event_id' => $event_id,
+                'status' => $data['status'] ?? 'approved',
+            ]);
+
+            $this->syncMemberData($member, $fields, $payload, $data);
+        });
+
+        return redirect()->route('showEventMembersList', ['event_id' => $event_id])->with('message', 'Member created successfully.');
+    }
+
+    public function show(Request $request, $event_id, $member_id)
+    {
+        $event = Event::scope()->findOrFail($event_id);
+        $member = EventMember::where('event_id', $event_id)->with('data')->findOrFail($member_id);
+        $fields = $event->eventMemberFields()->orderBy('sort_order')->get();
+        return view('ManageEvent.Members.show', compact('event', 'member', 'fields'));
+    }
+
+    public function edit(Request $request, $event_id, $member_id)
+    {
+        $event = Event::scope()->findOrFail($event_id);
+        $member = EventMember::where('event_id', $event_id)->with('data')->findOrFail($member_id);
+        $fields = $event->eventMemberFields()->orderBy('sort_order')->get();
+        return view('ManageEvent.Members.edit', compact('event', 'member', 'fields'));
+    }
+
+    public function update(Request $request, $event_id, $member_id)
+    {
+        $event = Event::scope()->findOrFail($event_id);
+        $member = EventMember::where('event_id', $event_id)->with('data')->findOrFail($member_id);
+        $fields = $event->eventMemberFields()->orderBy('sort_order')->get();
+
+        [$payload, $rules] = $this->buildMemberValidationRules($fields);
+        $rules['status'] = 'required|in:approved,pending,rejected';
+        $data = $request->validate($rules);
+
+        DB::transaction(function () use ($member, $fields, $payload, $data) {
+            $member->update(['status' => $data['status']]);
+            $this->syncMemberData($member, $fields, $payload, $data);
+        });
+
+        return redirect()->route('showEventMembersList', ['event_id' => $event_id])->with('message', 'Member updated successfully.');
+    }
+
+    public function destroy(Request $request, $event_id, $member_id)
+    {
+        $event = Event::scope()->findOrFail($event_id);
+        $member = EventMember::where('event_id', $event_id)->findOrFail($member_id);
+        $member->delete();
+
+        return redirect()->route('showEventMembersList', ['event_id' => $event_id])->with('message', 'Member deleted successfully.');
+    }
+
+    protected function buildMemberValidationRules($fields): array
+    {
+        $rules = [
+            'status' => 'nullable|in:approved,pending,rejected',
+        ];
+        $payload = [];
+
+        foreach ($fields as $field) {
+            $input = 'member_data.' . $field->field_key;
+            $payload[] = $field->field_key;
+            $fieldRules = [];
+
+            if ($field->is_required) {
+                $fieldRules[] = 'required';
+            } else {
+                $fieldRules[] = 'nullable';
+            }
+
+            switch ($field->type) {
+                case 'number':
+                    $fieldRules[] = 'numeric';
+                    break;
+                case 'date':
+                    $fieldRules[] = 'date';
+                    break;
+                case 'datetime':
+                    $fieldRules[] = 'date';
+                    break;
+                default:
+                    $fieldRules[] = 'string';
+                    $fieldRules[] = 'max:5000';
+                    break;
+            }
+
+            $rules[$input] = implode('|', $fieldRules);
+        }
+
+        return [$payload, $rules];
+    }
+
+    protected function syncMemberData(EventMember $member, $fields, array $payloadKeys, array $validated): void
+    {
+        $incoming = $validated['member_data'] ?? [];
+        foreach ($fields as $field) {
+            $value = isset($incoming[$field->field_key]) ? trim((string) $incoming[$field->field_key]) : '';
+            $existing = $member->data->firstWhere('field_key', $field->field_key);
+
+            if ($value === '') {
+                if ($existing) {
+                    $existing->delete();
+                }
+                continue;
+            }
+
+            if ($existing) {
+                $existing->update(['value' => $value]);
+            } else {
+                EventMemberData::create([
+                    'event_member_id' => $member->id,
+                    'field_key' => $field->field_key,
+                    'value' => $value,
+                ]);
+            }
+        }
     }
 
     /**

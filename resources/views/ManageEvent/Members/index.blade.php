@@ -30,15 +30,23 @@
 <div class="row">
     <div class="col-md-12">
         <ul class="nav nav-tabs">
-            <li class="active"><a data-toggle="tab" href="#tab-fields">Member Fields</a></li>
-            <li><a data-toggle="tab" href="#tab-list">Members List</a></li>
-            <li><a data-toggle="tab" href="#tab-import">Import from Excel</a></li>
-            <li><a data-toggle="tab" href="#tab-mapping">Field Mapping</a></li>
+            <li class="{{ ($activeTab ?? 'list') === 'fields' ? 'active' : '' }}">
+                <a href="{{ route('showEventMembersFields', ['event_id' => $event->id]) }}">Member Fields</a>
+            </li>
+            <li class="{{ ($activeTab ?? 'list') === 'list' ? 'active' : '' }}">
+                <a href="{{ route('showEventMembersList', ['event_id' => $event->id]) }}">Members List</a>
+            </li>
+            <li class="{{ ($activeTab ?? 'list') === 'import' ? 'active' : '' }}">
+                <a href="{{ route('showEventMembersImport', ['event_id' => $event->id]) }}">Import from Excel</a>
+            </li>
+            <li class="{{ ($activeTab ?? 'list') === 'mapping' ? 'active' : '' }}">
+                <a href="{{ route('showEventMembersMapping', ['event_id' => $event->id]) }}">Field Mapping</a>
+            </li>
         </ul>
 
         <div class="tab-content panel panel-default" style="border-top: none;">
             <!-- Tab 1: Member Fields -->
-            <div id="tab-fields" class="tab-pane active">
+            <div id="tab-fields" class="tab-pane {{ ($activeTab ?? 'list') === 'fields' ? 'active' : '' }}">
                 <div class="panel-body">
                     <p class="text-muted">Define the data structure for members in this event. <strong>full_name</strong> is required for import. Add fields like membership_number, expiration_date, etc.</p>
                     <p class="text-info small"><strong>Display & search:</strong> Fields marked here are shown on the event page and used for member lookup. You can mark more than one — then a single input will search by <em>any</em> of them (e.g. value in Membership number <strong>or</strong> Email).</p>
@@ -58,11 +66,12 @@
                                 @forelse($event->eventMemberFields as $f)
                                 <tr data-id="{{ $f->id }}">
                                     <td><code>{{ $f->field_key }}</code></td>
-                                    <td>{{ $f->label }}</td>
-                                    <td>{{ $f->type }}</td>
-                                    <td>{{ $f->is_required ? 'Yes' : 'No' }}</td>
-                                    <td>{{ $f->is_unique ? 'Yes' : 'No' }}</td>
+                                    <td class="field-label">{{ $f->label }}</td>
+                                    <td class="field-type">{{ $f->type }}</td>
+                                    <td class="field-required" data-value="{{ $f->is_required ? 1 : 0 }}">{{ $f->is_required ? 'Yes' : 'No' }}</td>
+                                    <td class="field-unique" data-value="{{ $f->is_unique ? 1 : 0 }}">{{ $f->is_unique ? 'Yes' : 'No' }}</td>
                                     <td>
+                                        <button type="button" class="btn btn-xs btn-primary btn-edit-field" data-id="{{ $f->id }}">Edit</button>
                                         <button type="button" class="btn btn-xs btn-danger btn-delete-field" data-id="{{ $f->id }}">Delete</button>
                                     </td>
                                 </tr>
@@ -92,8 +101,25 @@
             </div>
 
             <!-- Tab 2: Members List (from event_members only; not registration_users) -->
-            <div id="tab-list" class="tab-pane">
+            <div id="tab-list" class="tab-pane {{ ($activeTab ?? 'list') === 'list' ? 'active' : '' }}">
                 <div class="panel-body">
+                    <div class="row mb-3">
+                        <div class="col-md-8">
+                            <form method="get" action="{{ route('showEventMembersList', ['event_id' => $event->id]) }}" class="form-inline">
+                                <input type="hidden" name="per_page" value="{{ $perPage ?? 20 }}">
+                                <input type="text" class="form-control" name="q" value="{{ $search ?? '' }}" placeholder="Search members by any field..." style="min-width: 320px;">
+                                <button type="submit" class="btn btn-primary">Search</button>
+                                @if(!empty($search))
+                                <a href="{{ route('showEventMembersList', ['event_id' => $event->id]) }}" class="btn btn-default">Clear</a>
+                                @endif
+                            </form>
+                        </div>
+                        <div class="col-md-4 text-right">
+                            <a href="{{ route('showCreateEventMember', ['event_id' => $event->id]) }}" class="btn btn-success">
+                                <i class="ico-plus"></i> Add Member
+                            </a>
+                        </div>
+                    </div>
                     @if($members->isEmpty())
                         <p class="text-muted">No members yet. Use the Import tab to add members from Excel. Members are stored separately from User Registration.</p>
                     @else
@@ -121,6 +147,7 @@
                                         <th>{{ $f->label }}</th>
                                         @endforeach
                                         <th>Status</th>
+                                        <th width="180">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -134,6 +161,15 @@
                                         <td>{{ $dataByKey->get($f->field_key) ?? '-' }}</td>
                                         @endforeach
                                         <td>{{ $m->status }}</td>
+                                        <td>
+                                            <a href="{{ route('showEventMember', ['event_id' => $event->id, 'member_id' => $m->id]) }}" class="btn btn-xs btn-default">Show</a>
+                                            <a href="{{ route('showEditEventMember', ['event_id' => $event->id, 'member_id' => $m->id]) }}" class="btn btn-xs btn-primary">Edit</a>
+                                            <form method="post" action="{{ route('postDeleteEventMember', ['event_id' => $event->id, 'member_id' => $m->id]) }}" style="display:inline;">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="btn btn-xs btn-danger" onclick="return confirm('Delete this member?')">Delete</button>
+                                            </form>
+                                        </td>
                                     </tr>
                                     @endforeach
                                 </tbody>
@@ -158,7 +194,7 @@
             </div>
 
             <!-- Tab 3: Import from Excel (saves to event_members only; no registration_users) -->
-            <div id="tab-import" class="tab-pane">
+            <div id="tab-import" class="tab-pane {{ ($activeTab ?? 'list') === 'import' ? 'active' : '' }}">
                 <div class="panel-body">
                     @if($event->eventMemberFields->isEmpty())
                         <p class="text-warning">Define member fields in the first tab before importing. You need at least <strong>full_name</strong>.</p>
@@ -193,7 +229,7 @@
             </div>
 
             <!-- Tab 4: Field Mapping (member field -> registration field for Members form) -->
-            <div id="tab-mapping" class="tab-pane">
+            <div id="tab-mapping" class="tab-pane {{ ($activeTab ?? 'list') === 'mapping' ? 'active' : '' }}">
                 <div class="panel-body">
                     @if(!$membersRegistration)
                         <p class="text-warning">Set one registration as &quot;Members form&quot; in Event → Registrations (edit registration, check &quot;Members form&quot;) so we know where to map member data when a member registers.</p>
@@ -245,6 +281,50 @@
                     @endif
                 </div>
             </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="edit-field-modal" tabindex="-1" role="dialog" aria-labelledby="editFieldModalLabel">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <form id="form-edit-field">
+                @csrf
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                    <h4 class="modal-title" id="editFieldModalLabel">Edit Member Field</h4>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="edit-field-id" value="">
+                    <div class="form-group">
+                        <label for="edit-field-label">Label</label>
+                        <input type="text" id="edit-field-label" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-field-type">Type</label>
+                        <select id="edit-field-type" class="form-control">
+                            <option value="text">Text</option>
+                            <option value="number">Number</option>
+                            <option value="date">Date</option>
+                            <option value="datetime">DateTime</option>
+                        </select>
+                    </div>
+                    <div class="checkbox">
+                        <label>
+                            <input type="checkbox" id="edit-field-required" value="1"> Required
+                        </label>
+                    </div>
+                    <div class="checkbox">
+                        <label>
+                            <input type="checkbox" id="edit-field-unique" value="1"> Display &amp; search
+                        </label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save changes</button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
@@ -301,6 +381,59 @@
                     $('tr[data-id="' + id + '"]').remove();
                     if (typeof toastr !== 'undefined') toastr.success(res.message);
                 }
+            }
+        });
+    });
+
+    $(document).on('click', '.btn-edit-field', function() {
+        var id = $(this).data('id');
+        var $row = $('tr[data-id="' + id + '"]');
+        if (!$row.length) return;
+
+        $('#edit-field-id').val(id);
+        $('#edit-field-label').val($.trim($row.find('.field-label').text()));
+        $('#edit-field-type').val($.trim($row.find('.field-type').text()).toLowerCase());
+        $('#edit-field-required').prop('checked', parseInt($row.find('.field-required').data('value') || 0, 10) === 1);
+        $('#edit-field-unique').prop('checked', parseInt($row.find('.field-unique').data('value') || 0, 10) === 1);
+        $('#edit-field-modal').modal('show');
+    });
+
+    $('#form-edit-field').on('submit', function(e) {
+        e.preventDefault();
+        var id = $('#edit-field-id').val();
+        var newLabel = $.trim($('#edit-field-label').val());
+        var newType = $.trim($('#edit-field-type').val()).toLowerCase();
+        var isRequired = $('#edit-field-required').is(':checked') ? 1 : 0;
+        var isUnique = $('#edit-field-unique').is(':checked') ? 1 : 0;
+
+        if (!newLabel) {
+            alert('Label is required.');
+            return;
+        }
+
+        $.ajax({
+            url: baseUrl + '/event/' + eventId + '/registration/members/fields/' + id,
+            type: 'PUT',
+            data: {
+                _token: token,
+                label: newLabel,
+                type: newType,
+                is_required: isRequired,
+                is_unique: isUnique
+            },
+            success: function(res) {
+                if (res.status === 'success') {
+                    $('#edit-field-modal').modal('hide');
+                    if (typeof toastr !== 'undefined') toastr.success(res.message);
+                    else alert(res.message);
+                    window.location.reload();
+                } else {
+                    alert(res.message || 'Failed to update field.');
+                }
+            },
+            error: function(xhr) {
+                var msg = (xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : 'Failed to update field.';
+                alert(msg);
             }
         });
     });
