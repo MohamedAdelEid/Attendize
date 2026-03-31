@@ -702,6 +702,9 @@
 </div>
 
 <script>
+    const updateStatusBaseUrl = '{{ route('updateUserStatus', ['event_id' => $event->id, 'user_id' => '__USER_ID__']) }}';
+    const deleteUserBaseUrl = '{{ route('deleteUser', ['event_id' => $event->id, 'user_id' => '__USER_ID__']) }}';
+
     // Handle status update from modal
     $('.update-status-modal').on('click', function(e) {
         e.preventDefault();
@@ -720,7 +723,7 @@
                 break;
         }
 
-        let url = `/event/{{ $user->registration->event_id }}/registrations/users/${userId}/status`;
+        let url = updateStatusBaseUrl.replace('__USER_ID__', userId);
         if (confirm(confirmMessage)) {
             $.ajax({
                 url: url,
@@ -759,8 +762,9 @@
         const userId = $(this).data('user-id');
 
         if (confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
+            let url = deleteUserBaseUrl.replace('__USER_ID__', userId);
             $.ajax({
-                url: `${deleteUserBaseUrl}/${userId}`,
+                url: url,
                 type: 'DELETE',
                 data: {
                     _token: '{{ csrf_token() }}'
