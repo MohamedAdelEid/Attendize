@@ -47,6 +47,12 @@
                     <span class="text">@lang("basic.customize")</span>
                 </a>
             </li>
+            <li class="{{ Request::is('*landing-page*') ? 'active' : '' }}">
+                <a href="{{ route('showEventLandingPage', ['event_id' => $event->id]) }}">
+                    <span class="figure"><i class="ico-home2"></i></span>
+                    <span class="text">Landing Page</span>
+                </a>
+            </li>
             {{-- <li class="{{ Request::is('*contact-us*') ? 'active' : '' }}">
                 <a href="{{route('events.contact-us', array('event' => $event))}}">
                     <span class="figure"><i class="ico-envelope"></i></span>

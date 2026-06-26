@@ -18,6 +18,82 @@ class EventCheckInController extends MyBaseController
     {
         $this->middleware('auth')->except(['showGuestKiosk']);
     }
+    
+    public function PrintScanTicket(Request $request, $event_id)
+    {
+        $eventId = $event_id;
+        $event = Event::find($eventId);
+        if (!$event) {
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json(['status' => 'error', 'message' => 'Event not found.'], 404);
+            }
+            return redirect()->back()->with('error', 'Event not found.');
+        }
+
+        $input = trim($request->unique_code ?? $request->input('unique_code_or_email', ''));
+        if ($input === '') {
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Please enter a unique code or email.'
+                ]);
+            }
+            return redirect()->back()->with('error', 'Please enter a unique code or email.');
+        }
+
+        // Look up by email or unique code (scoped to this event)
+        if (strpos($input, '@') !== false) {
+            $uniqueCodeFromDb = RegistrationUser::whereHas('registration', function ($q) use ($eventId) {
+                $q->where('event_id', $eventId);
+            })->where('email', $input)->first();
+        } else {
+            $uniqueCodeFromDb = RegistrationUser::whereHas('registration', function ($q) use ($eventId) {
+                $q->where('event_id', $eventId);
+            })->where('unique_code', $input)->first();
+        }
+
+        if (is_null($uniqueCodeFromDb)) {
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Invalid ticket code or email. Please check and try again.'
+                ]);
+            }
+            return redirect()->back()->with('error', 'Invalid QR Code or email');
+        }
+
+        // Get the latest log entry to determine current status 'registration_user_id', $uniqueCodeFromDb->id
+
+
+        if ($request->ajax() || $request->wantsJson()) {
+            $userPayload = [
+                'id' => $uniqueCodeFromDb->id,
+                'first_name' => $uniqueCodeFromDb->first_name,
+                'last_name' => $uniqueCodeFromDb->last_name,
+                'email' => $uniqueCodeFromDb->email,
+                'unique_code' => $uniqueCodeFromDb->unique_code,
+                'check_in' => $uniqueCodeFromDb->check_in,
+                'check_out' => $uniqueCodeFromDb->check_out,
+            ];
+            if ($uniqueCodeFromDb->ticket_token) {
+                $userPayload['ticket_token'] = $uniqueCodeFromDb->ticket_token;
+            }
+            return response()->json([
+                'status' => 'success',
+                'action' => $action,
+                'message' => $message,
+                'user' => $userPayload,
+            ]);
+        }
+
+        return redirect()->back()->with([
+            'success' => $successMessage,
+            'action' => $action,
+            'user' => $uniqueCodeFromDb,
+            'unique_code_input' => $input,
+        ]);
+    }
+    
 
     public function PostScanTicket(Request $request, $event_id)
     {
@@ -62,6 +138,14 @@ class EventCheckInController extends MyBaseController
             return redirect()->back()->with('error', 'Invalid QR Code or email');
         }
 
+        if ($uniqueCodeFromDb->status !== 'approved') {
+            $message = 'This registration is not approved yet.';
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json(['status' => 'error', 'message' => $message]);
+            }
+            return redirect()->back()->with('error', $message);
+        }
+
         // Get the latest log entry to determine current status
         $latestLog = CheckInCheckOutLog::where('registration_user_id', $uniqueCodeFromDb->id)
             ->where('event_id', $event->id)
@@ -75,7 +159,7 @@ class EventCheckInController extends MyBaseController
 
         // Determine action based on latest log entry
         // If no log exists or last action was check_out, then check_in
-        // If last action was check_in, then check_out
+        // If last action was check_in, then check_out (only if a check-in exists)
         if (is_null($latestLog) || $latestLog->action === 'check_out') {
             // Perform Check-in
             $uniqueCodeFromDb->update([
@@ -86,7 +170,15 @@ class EventCheckInController extends MyBaseController
             $action = 'check_in';
             $message = 'Successfully checked in!';
             $successMessage = 'User Checked In Successfully';
-        } else {
+        } elseif ($latestLog->action === 'check_in') {
+            if (is_null($uniqueCodeFromDb->check_in)) {
+                $message = 'Cannot check out before checking in.';
+                if ($request->ajax() || $request->wantsJson()) {
+                    return response()->json(['status' => 'error', 'message' => $message]);
+                }
+                return redirect()->back()->with('error', $message);
+            }
+
             // Perform Check-out
             $uniqueCodeFromDb->update([
                 'check_out' => $actionTime
@@ -95,6 +187,12 @@ class EventCheckInController extends MyBaseController
             $action = 'check_out';
             $message = 'Successfully checked out!';
             $successMessage = 'User Checked Out Successfully';
+        } else {
+            $message = 'Unable to determine attendance status. Please try again.';
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json(['status' => 'error', 'message' => $message]);
+            }
+            return redirect()->back()->with('error', $message);
         }
 
         // Log the action
@@ -207,10 +305,25 @@ class EventCheckInController extends MyBaseController
     public function bulkCheckOut(Request $request, $event_id)
     {
         $event = Event::findOrFail($event_id);
+
+        // Only users whose latest log for this event is check_in (currently inside)
+        $currentlyInsideUserIds = CheckInCheckOutLog::query()
+            ->select('registration_user_id')
+            ->where('event_id', $event->id)
+            ->where('action', 'check_in')
+            ->whereIn('id', function ($query) use ($event) {
+                $query->select(DB::raw('MAX(id)'))
+                    ->from('check_in_check_out_logs')
+                    ->where('event_id', $event->id)
+                    ->groupBy('registration_user_id');
+            })
+            ->pluck('registration_user_id');
+
         $users = RegistrationUser::whereHas('registration', function ($q) use ($event_id) {
             $q->where('event_id', $event_id);
         })
             ->where('status', 'approved')
+            ->whereIn('id', $currentlyInsideUserIds)
             ->whereNotNull('check_in')
             ->whereNull('check_out')
             ->get();
@@ -229,9 +342,9 @@ class EventCheckInController extends MyBaseController
         }
 
         if ($request->ajax() || $request->wantsJson()) {
-            return response()->json(['status' => 'success', 'message' => $count . ' attendee(s) checked out.', 'count' => $count]);
+            return response()->json(['status' => 'success', 'message' => $count . ' attendee(s) currently inside were checked out.', 'count' => $count]);
         }
-        return redirect()->back()->with('success', $count . ' attendee(s) checked out.');
+        return redirect()->back()->with('success', $count . ' attendee(s) currently inside were checked out.');
     }
 
     /**
@@ -249,6 +362,9 @@ class EventCheckInController extends MyBaseController
 
         return view('tickets.scanner', $data);
     }
+    
+    
+    
 
     /**
      * Show the Guest / Self-Service Kiosk page (no auth required).
@@ -260,7 +376,7 @@ class EventCheckInController extends MyBaseController
     public function showGuestKiosk($event_id)
     {
         $event = Event::findOrFail($event_id);
-        return view('tickets.guest-kiosk', ['event' => $event]);
+        return view('tickets.guest-kiosk-print', ['event' => $event]);
     }
 
     public function showCheckInDashboard($event_id)

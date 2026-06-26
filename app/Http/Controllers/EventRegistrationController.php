@@ -138,9 +138,6 @@ class EventRegistrationController extends Controller
             $registration->category_id = $request->get('category_id');
 
             if ($request->boolean('show_on_landing')) {
-                if (Registration::where('event_id', $event_id)->where('show_on_landing', true)->exists()) {
-                    return response()->json(['status' => 'error', 'message' => 'Another registration form is already set as the landing page form. Only one per event is allowed.']);
-                }
                 $registration->show_on_landing = true;
             } else {
                 $registration->show_on_landing = false;
@@ -167,9 +164,12 @@ class EventRegistrationController extends Controller
                 $imagePath = $request->file('image')->store('registrations', 'public');
                 $registration->image = $imagePath;
             }
+            
+            
 
             $registration->save();
-
+            
+            
             // Create default form fields if no dynamic fields are provided
             if (!$request->has('dynamic_fields')) {
                 // $this->createDefaultFormFields($registration);
@@ -357,9 +357,6 @@ class EventRegistrationController extends Controller
             $registration->status = $request->input('status');
 
             if ($request->boolean('show_on_landing')) {
-                if (Registration::where('event_id', $event_id)->where('show_on_landing', true)->where('id', '!=', $registration->id)->exists()) {
-                    return response()->json(['status' => 'error', 'message' => 'Another registration form is already set as the landing page form. Only one per event is allowed.']);
-                }
                 $registration->show_on_landing = true;
             } else {
                 $registration->show_on_landing = false;

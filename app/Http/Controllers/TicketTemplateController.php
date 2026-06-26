@@ -3,7 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\Event;
+use App\Models\RegistrationUser;
 use App\Models\TicketTemplate;
+use App\Services\TicketService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
@@ -18,9 +20,18 @@ class TicketTemplateController extends MyBaseController
         $event = Event::scope()->findOrFail($event_id);
         $template = TicketTemplate::where('event_id', $event_id)->first();
 
+        $ticketService = app(TicketService::class);
+        $eligibleQuery = $ticketService->approvedUsersQueryForEvent($event_id);
+        $ticketStats = [
+            'eligible' => (clone $eligibleQuery)->count(),
+            'rendered' => (clone $eligibleQuery)->whereNotNull('ticket_pdf_path')->count(),
+        ];
+        $ticketStats['pending'] = max(0, $ticketStats['eligible'] - $ticketStats['rendered']);
+
         $data = [
             'event' => $event,
             'template' => $template,
+            'ticketStats' => $ticketStats,
             'page_title' => 'Ticket Template',
         ];
 
@@ -39,15 +50,18 @@ class TicketTemplateController extends MyBaseController
             'background_image' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif,svg', 'max:2048'], // Max 2MB
             'name_position_x' => ['nullable', 'string', 'max:10'],
             'name_position_y' => ['nullable', 'string', 'max:10'],
+            'name_width' => ['nullable', 'string', 'max:10'],
             'name_font_size' => ['nullable', 'string', 'max:10'],
             'name_font_color' => ['nullable', 'string', 'max:10'],
             'code_position_x' => ['nullable', 'string', 'max:10'],
             'code_position_y' => ['nullable', 'string', 'max:10'],
             'code_font_size' => ['nullable', 'string', 'max:10'],
             'code_font_color' => ['nullable', 'string', 'max:10'],
+            'show_registration_code' => ['nullable', 'boolean'],
             'qr_position_x' => ['nullable', 'string', 'max:10'],
             'qr_position_y' => ['nullable', 'string', 'max:10'],
             'qr_size' => ['nullable', 'string', 'max:10'],
+            'show_qr_code' => ['nullable', 'boolean'],
             'show_user_type' => ['nullable', 'boolean'],
             'user_type_position_x' => ['nullable', 'string', 'max:10'],
             'user_type_position_y' => ['nullable', 'string', 'max:10'],
@@ -86,15 +100,18 @@ class TicketTemplateController extends MyBaseController
         $ticketTemplate->fill($request->only([
             'name_position_x',
             'name_position_y',
+            'name_width',
             'name_font_size',
             'name_font_color',
             'code_position_x',
             'code_position_y',
             'code_font_size',
             'code_font_color',
+            'show_registration_code',
             'qr_position_x',
             'qr_position_y',
             'qr_size',
+            'show_qr_code',
             'show_user_type',
             'user_type_position_x',
             'user_type_position_y',
@@ -128,6 +145,7 @@ class TicketTemplateController extends MyBaseController
         $validator = Validator::make($request->all(), [
             'name_position_x' => 'required|numeric',
             'name_position_y' => 'required|numeric',
+            'name_width' => 'nullable|numeric|min:50|max:5000',
             'code_position_x' => 'required|numeric',
             'code_position_y' => 'required|numeric',
             'qr_position_x' => 'required|numeric',
@@ -136,7 +154,9 @@ class TicketTemplateController extends MyBaseController
             'name_font_color' => 'nullable|string',
             'code_font_size' => 'nullable|numeric|min:8|max:72',
             'code_font_color' => 'nullable|string',
+            'show_registration_code' => 'nullable|boolean',
             'qr_size' => 'nullable|numeric|min:50|max:300',
+            'show_qr_code' => 'nullable|boolean',
             'preview_width' => 'nullable|numeric',
             'preview_height' => 'nullable|numeric',
             'show_user_type' => 'nullable|boolean',
@@ -171,6 +191,7 @@ class TicketTemplateController extends MyBaseController
             // Save positions
             $template->name_position_x = $request->name_position_x;
             $template->name_position_y = $request->name_position_y;
+            $template->name_width = $request->filled('name_width') ? $request->name_width : null;
             $template->code_position_x = $request->code_position_x;
             $template->code_position_y = $request->code_position_y;
             $template->qr_position_x = $request->qr_position_x;
@@ -181,7 +202,9 @@ class TicketTemplateController extends MyBaseController
             $template->name_font_color = $request->name_font_color ?? '#000000';
             $template->code_font_size = $request->code_font_size ?? 20;
             $template->code_font_color = $request->code_font_color ?? '#000000';
+            $template->show_registration_code = $request->has('show_registration_code') ? (bool) $request->show_registration_code : true;
             $template->qr_size = $request->qr_size ?? 100;
+            $template->show_qr_code = $request->has('show_qr_code') ? (bool) $request->show_qr_code : true;
 
             // Save UserType settings
             $template->show_user_type = $request->has('show_user_type') ? (bool) $request->show_user_type : false;

@@ -146,6 +146,8 @@
     </div>
 
     <script>
+        
+         document.getElementById('uniqueCode').focus();
         (function() {
             var eventId = document.querySelector('meta[name="event-id"]').getAttribute('content');
             var csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
@@ -212,6 +214,8 @@
                 var el = document.getElementById('kioskResult');
                 el.innerHTML = html;
                 el.classList.remove('hidden');
+                
+                document.getElementById('uniqueCode').value = '';
             }
 
             function kioskSubmit(value) {
@@ -279,6 +283,8 @@
                 .finally(function() {
                     btn.disabled = false;
                     btnText.textContent = 'Check In / Out';
+                    
+                     
                 });
             }
 

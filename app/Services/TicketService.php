@@ -117,6 +117,62 @@ class TicketService
     }
 
     /**
+     * Pre-render ticket PDF (and template image) for an approved user.
+     */
+    public function renderTicketForUser(RegistrationUser $user): string
+    {
+        $this->deleteRenderedTicketFiles($user, false);
+
+        $pdfPath = $this->generateTicketPDF($user);
+        $user->ticket_pdf_path = $pdfPath;
+        $user->ticket_generated_at = now();
+        $user->save();
+
+        return $pdfPath;
+    }
+
+    /**
+     * Delete rendered ticket files. Optionally clear DB path/timestamp.
+     */
+    public function deleteRenderedTicketFiles(RegistrationUser $user, bool $clearDb = true): void
+    {
+        if ($user->ticket_pdf_path && Storage::disk('public')->exists($user->ticket_pdf_path)) {
+            Storage::disk('public')->delete($user->ticket_pdf_path);
+        }
+
+        if ($user->unique_code) {
+            $ticketImagePath = 'ticket_images/ticket_' . $user->unique_code . '.png';
+            if (Storage::disk('public')->exists($ticketImagePath)) {
+                Storage::disk('public')->delete($ticketImagePath);
+            }
+        }
+
+        if ($clearDb) {
+            $user->ticket_pdf_path = null;
+            $user->ticket_generated_at = null;
+            $user->save();
+        }
+    }
+
+    /**
+     * Approved registration users eligible for ticket rendering on an event.
+     */
+    public function approvedUsersQueryForEvent(int $eventId, ?array $userIds = null)
+    {
+        $query = RegistrationUser::whereHas('registration', function ($q) use ($eventId) {
+            $q->where('event_id', $eventId);
+        })
+            ->where('status', 'approved')
+            ->whereNotNull('unique_code');
+
+        if (is_array($userIds) && count($userIds) > 0) {
+            $query->whereIn('id', $userIds);
+        }
+
+        return $query->orderBy('id');
+    }
+
+    /**
      * Get or create the template-based ticket image path for a user.
      * Returns the storage path (e.g. ticket_images/ticket_XXX.png) or null if no template.
      *
@@ -195,30 +251,28 @@ class TicketService
             $scaleY = $imageHeight / $template->preview_height;
         }
 
-        // Add user name (positions scaled, font size taken directly from template)
+        // name_position_x / name_position_y = center anchor of the attendee name on the ticket
         if (isset($template->name_position_x) && isset($template->name_position_y)) {
-            $nameX = (int) ($template->name_position_x * $scaleX);
+            $centerX = (int) ($template->name_position_x * $scaleX);
             $nameY = (int) ($template->name_position_y * $scaleY);
             $fontSize = (int) ($template->name_font_size ?? 80);
-            
-            $fullName = $user->first_name . ' ' . $user->last_name;
+
+            $fullName = trim($user->first_name . ' ' . $user->last_name);
             $isArabic = $this->hasArabicText($fullName);
 
             if ($isArabic) {
-                // Use I18N_Arabic for proper Arabic text rendering
-                $this->renderArabicText(
+                $this->renderArabicTextCentered(
                     $image,
                     $fullName,
-                    $nameX,
+                    $centerX,
                     $nameY,
                     $fontSize,
                     $template->name_font_color ?? '#000000'
                 );
             } else {
-                // Use standard text rendering for non-Arabic text
                 $image->text(
                     $fullName,
-                    $nameX,
+                    $centerX,
                     $nameY,
                     function ($font) use ($fontSize, $template) {
                         $defaultFontPath = public_path('fonts/ARIAL.ttf');
@@ -227,7 +281,7 @@ class TicketService
                         }
                         $font->size($fontSize);
                         $font->color($template->name_font_color ?? '#000000');
-                        $font->align('left');
+                        $font->align('center');
                         $font->valign('top');
                     }
                 );
@@ -235,7 +289,8 @@ class TicketService
         }
 
         // Add unique code (positions scaled, font size taken directly from template)
-        if (isset($template->code_position_x) && isset($template->code_position_y)) {
+        $showRegistrationCode = $template->show_registration_code ?? true;
+        if ($showRegistrationCode && isset($template->code_position_x) && isset($template->code_position_y)) {
             $codeX = (int) ($template->code_position_x * $scaleX);
             $codeY = (int) ($template->code_position_y * $scaleY);
             $fontSize = (int) ($template->code_font_size ?? 60);
@@ -244,14 +299,15 @@ class TicketService
             $isArabic = $this->hasArabicText($codeText);
 
             if ($isArabic) {
-                // Use I18N_Arabic for proper Arabic text rendering
                 $this->renderArabicText(
                     $image,
                     $codeText,
                     $codeX,
                     $codeY,
                     $fontSize,
-                    $template->code_font_color ?? '#000000'
+                    $template->code_font_color ?? '#000000',
+                    null,
+                    false
                 );
             } else {
                 // Use standard text rendering for non-Arabic text
@@ -274,32 +330,35 @@ class TicketService
         }
 
         // Add QR code with scaling and rounded corners
-        if (!isset($user->qr_code_path)) {
-            $qrCodePath = $this->generateQRCode($user, $user->unique_code);
-            $user->qr_code_path = $qrCodePath;
-            $user->save();
-        }
+        $showQrCode = $template->show_qr_code ?? true;
+        if ($showQrCode) {
+            if (!isset($user->qr_code_path)) {
+                $qrCodePath = $this->generateQRCode($user, $user->unique_code);
+                $user->qr_code_path = $qrCodePath;
+                $user->save();
+            }
 
-        if (isset($template->qr_position_x) && isset($template->qr_position_y) && $user->qr_code_path) {
-            $qrX = (int) ($template->qr_position_x * $scaleX);
-            $qrY = (int) ($template->qr_position_y * $scaleY);
-            $qrSize = (int) (($template->qr_size ?? 100) * $scaleX);
+            if (isset($template->qr_position_x) && isset($template->qr_position_y) && $user->qr_code_path) {
+                $qrX = (int) ($template->qr_position_x * $scaleX);
+                $qrY = (int) ($template->qr_position_y * $scaleY);
+                $qrSize = (int) (($template->qr_size ?? 100) * $scaleX);
 
-            $qrCodePath = storage_path('app/public/' . $user->qr_code_path);
-            if (file_exists($qrCodePath)) {
-                $qrImage = Image::make($qrCodePath);
-                $qrImage->resize($qrSize, $qrSize);
+                $qrCodePath = storage_path('app/public/' . $user->qr_code_path);
+                if (file_exists($qrCodePath)) {
+                    $qrImage = Image::make($qrCodePath);
+                    $qrImage->resize($qrSize, $qrSize);
 
-                // Add rounded corners to QR code
-                $cornerRadius = min($qrSize * 0.1, 10); // 10% of size or max 10px
-                $qrImage = $this->addRoundedCorners($qrImage, $cornerRadius);
+                    // Add rounded corners to QR code
+                    $cornerRadius = min($qrSize * 0.1, 10); // 10% of size or max 10px
+                    $qrImage = $this->addRoundedCorners($qrImage, $cornerRadius);
 
-                $image->insert(
-                    $qrImage,
-                    'top-left',
-                    $qrX,
-                    $qrY
-                );
+                    $image->insert(
+                        $qrImage,
+                        'top-left',
+                        $qrX,
+                        $qrY
+                    );
+                }
             }
         }
 
@@ -429,88 +488,132 @@ class TicketService
     }
 
     /**
-     * Render Arabic text on image using I18N_Arabic library
-     *
-     * @param \Intervention\Image\Image $image
-     * @param string $text
-     * @param int $x
-     * @param int $y
-     * @param int $fontSize
-     * @param string $color
-     * @return void
+     * Render Arabic name centered on a horizontal point.
      */
-    private function renderArabicText($image, $text, $x, $y, $fontSize, $color)
+    private function renderArabicTextCentered($image, $text, $centerX, $y, $fontSize, $color)
     {
-        // Check if I18N_Arabic is available
+        $fontPath = public_path('fonts/NotoNaskhArabic-Regular.ttf');
         $arabicLibPath = base_path('vendor/khaled.alshamaa/ar-php/src/Arabic.php');
 
         if (!file_exists($arabicLibPath)) {
-            // Fallback to standard text rendering if library not available
             $image->text(
                 $text,
-                $x,
+                $centerX,
                 $y,
-                function ($font) use ($fontSize, $color) {
-                    $arabicFontPath = public_path('fonts/NotoNaskhArabic-Regular.ttf');
-                    if (file_exists($arabicFontPath)) {
-                        $font->file($arabicFontPath);
+                function ($font) use ($fontSize, $color, $fontPath) {
+                    if (file_exists($fontPath)) {
+                        $font->file($fontPath);
                     }
                     $font->size($fontSize);
                     $font->color($color);
-                    $font->align('right');
+                    $font->align('center');
                     $font->valign('top');
                 }
             );
             return;
         }
 
-        // Include the Arabic library
         require_once $arabicLibPath;
 
-        // Initialize Arabic object
         $Arabic = new \ArPHP\I18N\Arabic();
-
-        // Process text for proper glyph rendering
         $text = $Arabic->utf8Glyphs($text);
 
-        // Convert hex color to RGB
+        if (!file_exists($fontPath)) {
+            return;
+        }
+
         $hexColor = ltrim($color, '#');
         $r = hexdec(substr($hexColor, 0, 2));
         $g = hexdec(substr($hexColor, 2, 2));
         $b = hexdec(substr($hexColor, 4, 2));
 
-        // Get image resource
         $imageResource = $image->getCore();
-
-        // Create color resource
         $colorResource = imagecolorallocate($imageResource, $r, $g, $b);
 
-        // Font path
-        $fontPath = public_path('fonts/NotoNaskhArabic-Regular.ttf');
-
-        // Calculate text width for RTL positioning
         $box = imagettfbbox($fontSize, 0, $fontPath, $text);
         $textWidth = abs($box[2] - $box[0]);
+        $drawX = $centerX - (int) ($textWidth / 2);
 
-        // Adjust X position for RTL text
-        $adjustedX = $x;
-        $BoxLength = 755;
-        $ShiftSpace = $BoxLength - $textWidth;
-
-        $adjustedX = $x + $ShiftSpace;
-        // Render text
         imagettftext(
             $imageResource,
             $fontSize,
             0,
-            $adjustedX,
+            $drawX,
             $y + $fontSize,
-            16777215,
+            $colorResource,
             $fontPath,
             $text
         );
 
-        // Update the image with the modified resource
+        $image->setCore($imageResource);
+    }
+
+    /**
+     * Render Arabic text (left-aligned within optional area — used for codes etc.)
+     */
+    private function renderArabicText($image, $text, $x, $y, $fontSize, $color, $areaWidth = null, $centerInArea = false)
+    {
+        $fontPath = public_path('fonts/NotoNaskhArabic-Regular.ttf');
+
+        if ($areaWidth === null || $areaWidth <= 0) {
+            $areaWidth = 755;
+        }
+
+        $arabicLibPath = base_path('vendor/khaled.alshamaa/ar-php/src/Arabic.php');
+
+        if (!file_exists($arabicLibPath)) {
+            $anchorX = $centerInArea ? ($x + (int) ($areaWidth / 2)) : $x;
+            $image->text(
+                $text,
+                $anchorX,
+                $y,
+                function ($font) use ($fontSize, $color, $fontPath, $centerInArea) {
+                    if (file_exists($fontPath)) {
+                        $font->file($fontPath);
+                    }
+                    $font->size($fontSize);
+                    $font->color($color);
+                    $font->align($centerInArea ? 'center' : 'right');
+                    $font->valign('top');
+                }
+            );
+            return;
+        }
+
+        require_once $arabicLibPath;
+
+        $Arabic = new \ArPHP\I18N\Arabic();
+        $text = $Arabic->utf8Glyphs($text);
+
+        $hexColor = ltrim($color, '#');
+        $r = hexdec(substr($hexColor, 0, 2));
+        $g = hexdec(substr($hexColor, 2, 2));
+        $b = hexdec(substr($hexColor, 4, 2));
+
+        $imageResource = $image->getCore();
+        $colorResource = imagecolorallocate($imageResource, $r, $g, $b);
+
+        if (!file_exists($fontPath)) {
+            return;
+        }
+
+        $box = imagettfbbox($fontSize, 0, $fontPath, $text);
+        $textWidth = abs($box[2] - $box[0]);
+        $drawX = $centerInArea
+            ? ($x + (int) max(0, ($areaWidth - $textWidth) / 2))
+            : ($x + max(0, $areaWidth - $textWidth));
+
+        imagettftext(
+            $imageResource,
+            $fontSize,
+            0,
+            $drawX,
+            $y + $fontSize,
+            $colorResource,
+            $fontPath,
+            $text
+        );
+
         $image->setCore($imageResource);
     }
 

@@ -5,8 +5,11 @@ namespace App\Http\Controllers;
 use App\Models\Event;
 use App\Models\RegistrationUser;
 use App\Services\TicketService;
+use App\Models\CheckInCheckOutLog;
+
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use PDF;
 
 class TicketController extends Controller
 {
@@ -40,19 +43,12 @@ class TicketController extends Controller
 
         // Generate PDF ticket if not already generated
         if (!$user->ticket_pdf_path) {
-            $pdfPath = $this->ticketService->generateTicketPDF($user);
-            $user->ticket_pdf_path = $pdfPath;
-            $user->ticket_generated_at = now();
-            $user->save();
+            $this->ticketService->renderTicketForUser($user);
         }
 
         // Check if file exists
         if (!Storage::disk('public')->exists($user->ticket_pdf_path)) {
-            // Regenerate if file is missing
-            $pdfPath = $this->ticketService->generateTicketPDF($user);
-            $user->ticket_pdf_path = $pdfPath;
-            $user->ticket_generated_at = now();
-            $user->save();
+            $this->ticketService->renderTicketForUser($user);
         }
 
         // Return the file for download
@@ -61,6 +57,74 @@ class TicketController extends Controller
             'ticket_' . $user->unique_code . '.pdf',
             ['Content-Type' => 'application/pdf']
         );
+    }
+	
+	
+	public function downloadCertificate(Request $request, $token)
+    {
+        // Find user by token
+		
+		
+		$event = Event::scope()->findOrFail(2);
+
+        $user = RegistrationUser::where('ticket_token', $token)->first();
+
+        if (!$user) {
+           
+			$data = [
+				'event' => $event,
+				'code' => 'Link is not working',
+				'description' => 'Invalid or expired ticket link.',
+			];
+
+			
+			return view('tickets.result', $data);
+        }
+
+        // Check if user is approved
+        if ($user->status !== 'approved') {
+           
+			$data = [
+				'event' => $event,
+				'code' => 'Link is not working',
+				'description' => 'Your registration has not been approved yet.',
+			];
+
+			
+			return view('tickets.result', $data);
+        }
+
+		$attendance = CheckInCheckOutLog::where('registration_user_id', $user->id)->get();
+		
+		
+		if(count($attendance) == 0){
+			$data = [
+				'event' => $event,
+				'code' => 'Dear '.$user->first_name . ' '.$user->last_name,
+				'description' => 'Our records indicate that you did not attend the event.',
+			];
+
+			
+			return view('tickets.result', $data);
+		}
+		//dd($user->first_name.' '.$user->last_name);
+
+		$data =[
+			'attendee_name' => $user->first_name.' '.$user->last_name,
+        ];
+		
+
+
+		//return view('frontend.ticket', $data);
+		$html = view('tickets.certificate', $data)->render();
+		
+		$pdf= PDF::loadHTML($html);
+		$pdf->setPaper('A4', 'landscape');
+		
+	
+					
+        return  $pdf->stream('SGSS2026-Certificate.pdf'); // download pdf file*/
+		
     }
 
     /**
@@ -134,6 +198,40 @@ class TicketController extends Controller
      * @param int $user_id
      * @return mixed
      */
+     
+    public function printUserTicket(Request $request, $event_id, $user_id)
+    {
+
+        $event = Event::findOrFail($event_id);
+        $user = RegistrationUser::findOrFail($user_id);
+
+        // Check if user belongs to this event
+        if ($user->registration->event_id != $event_id) {
+            return redirect()->back()->with('error', 'User does not belong to this event.');
+        }
+
+        
+       // return view('admin.passport.approve_card',compact('passport','proffession_name','redirect'));
+
+
+        // Check if user is approved
+        if ($user->status !== 'approved') {
+            return redirect()->route('home')->with('error', 'Your registration has not been approved yet.');
+        }
+        
+
+        $event = $user->registration->event;
+		$url = $request->url != null ? $request->url : url()->previous();
+		
+
+        return view('tickets.print', [
+            'user' => $user,
+            'event' => $event,
+			'url' => $url,
+        ]);
+        
+        
+    }
     public function downloadUserTicket(Request $request, $event_id, $user_id)
     {
         $event = Event::findOrFail($event_id);
@@ -146,19 +244,12 @@ class TicketController extends Controller
 
         // Generate PDF ticket if not already generated
         if (!$user->ticket_pdf_path) {
-            $pdfPath = $this->ticketService->generateTicketPDF($user);
-            $user->ticket_pdf_path = $pdfPath;
-            $user->ticket_generated_at = now();
-            $user->save();
+            $this->ticketService->renderTicketForUser($user);
         }
 
         // Check if file exists
         if (!Storage::disk('public')->exists($user->ticket_pdf_path)) {
-            // Regenerate if file is missing
-            $pdfPath = $this->ticketService->generateTicketPDF($user);
-            $user->ticket_pdf_path = $pdfPath;
-            $user->ticket_generated_at = now();
-            $user->save();
+            $this->ticketService->renderTicketForUser($user);
         }
 
         // Return the file for download
@@ -191,7 +282,7 @@ class TicketController extends Controller
             return redirect()->back()->with('error', 'Ticket can only be deleted for approved users with a CR code.');
         }
 
-        $this->deleteTicketFilesAndPath($user);
+        $this->ticketService->deleteRenderedTicketFiles($user);
         return redirect()->back()->with('success', 'Ticket deleted. Use Download to generate a new one.');
     }
 
@@ -220,7 +311,7 @@ class TicketController extends Controller
         $count = 0;
         foreach ($users as $user) {
             if ($user->status === 'approved' && $user->unique_code) {
-                $this->deleteTicketFilesAndPath($user);
+                $this->ticketService->deleteRenderedTicketFiles($user);
                 $count++;
             }
         }
@@ -234,23 +325,131 @@ class TicketController extends Controller
     }
 
     /**
+     * Render tickets in batches (all approved users or a selected subset).
+     */
+    public function renderEventTickets(Request $request, $event_id)
+    {
+        $request->validate([
+            'user_ids' => 'nullable|array',
+            'user_ids.*' => 'integer',
+            'offset' => 'nullable|integer|min:0',
+            'limit' => 'nullable|integer|min:1|max:50',
+        ]);
+
+        Event::findOrFail($event_id);
+
+        $userIds = $request->input('user_ids');
+        $query = $this->ticketService->approvedUsersQueryForEvent($event_id, $userIds);
+        $total = (clone $query)->count();
+        $offset = (int) $request->input('offset', 0);
+        $limit = (int) $request->input('limit', 20);
+
+        $users = $query->offset($offset)->limit($limit)->get();
+
+        $generated = 0;
+        $failed = 0;
+        $errors = [];
+
+        foreach ($users as $user) {
+            try {
+                $this->ticketService->renderTicketForUser($user);
+                $generated++;
+            } catch (\Exception $e) {
+                $failed++;
+                $errors[] = [
+                    'user_id' => $user->id,
+                    'email' => $user->email,
+                    'message' => $e->getMessage(),
+                ];
+            }
+        }
+
+        $processed = $offset + $users->count();
+
+        return response()->json([
+            'status' => 'success',
+            'generated' => $generated,
+            'failed' => $failed,
+            'total' => $total,
+            'processed' => $processed,
+            'done' => $processed >= $total,
+            'next_offset' => $processed,
+            'errors' => $errors,
+            'message' => $generated . ' ticket(s) rendered in this batch.',
+        ]);
+    }
+
+    /**
+     * Delete rendered tickets in batches (all approved users or a selected subset).
+     */
+    public function deleteEventTickets(Request $request, $event_id)
+    {
+        $request->validate([
+            'user_ids' => 'nullable|array',
+            'user_ids.*' => 'integer',
+            'offset' => 'nullable|integer|min:0',
+            'limit' => 'nullable|integer|min:1|max:100',
+        ]);
+
+        Event::findOrFail($event_id);
+
+        $userIds = $request->input('user_ids');
+        $query = $this->ticketService->approvedUsersQueryForEvent($event_id, $userIds);
+        $total = (clone $query)->count();
+        $offset = (int) $request->input('offset', 0);
+        $limit = (int) $request->input('limit', 50);
+
+        $users = $query->offset($offset)->limit($limit)->get();
+
+        $deleted = 0;
+        foreach ($users as $user) {
+            if ($user->ticket_pdf_path || ($user->unique_code && Storage::disk('public')->exists('ticket_images/ticket_' . $user->unique_code . '.png'))) {
+                $this->ticketService->deleteRenderedTicketFiles($user);
+                $deleted++;
+            }
+        }
+
+        $processed = $offset + $users->count();
+
+        return response()->json([
+            'status' => 'success',
+            'deleted' => $deleted,
+            'total' => $total,
+            'processed' => $processed,
+            'done' => $processed >= $total,
+            'next_offset' => $processed,
+            'message' => $deleted . ' ticket(s) deleted in this batch.',
+        ]);
+    }
+
+    /**
+     * Ticket render stats for an event.
+     */
+    public function eventTicketStats($event_id)
+    {
+        Event::findOrFail($event_id);
+
+        $baseQuery = $this->ticketService->approvedUsersQueryForEvent($event_id);
+        $eligible = (clone $baseQuery)->count();
+        $rendered = (clone $baseQuery)->whereNotNull('ticket_pdf_path')->count();
+
+        return response()->json([
+            'status' => 'success',
+            'eligible' => $eligible,
+            'rendered' => $rendered,
+            'pending' => max(0, $eligible - $rendered),
+        ]);
+    }
+
+    /**
      * Delete ticket PDF + image files and clear path/timestamp. Keeps unique_code and ticket_token.
      *
      * @param RegistrationUser $user
      * @return void
+     * @deprecated Use TicketService::deleteRenderedTicketFiles()
      */
     private function deleteTicketFilesAndPath(RegistrationUser $user)
     {
-        if ($user->ticket_pdf_path && Storage::disk('public')->exists($user->ticket_pdf_path)) {
-            Storage::disk('public')->delete($user->ticket_pdf_path);
-        }
-        $ticketImagePath = 'ticket_images/ticket_' . $user->unique_code . '.png';
-        if (Storage::disk('public')->exists($ticketImagePath)) {
-            Storage::disk('public')->delete($ticketImagePath);
-        }
-        $user->ticket_pdf_path = null;
-        $user->ticket_generated_at = null;
-        $user->save();
+        $this->ticketService->deleteRenderedTicketFiles($user);
     }
-
 }

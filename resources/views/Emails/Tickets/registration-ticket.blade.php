@@ -114,10 +114,13 @@
             <p><strong>Location:</strong> {{ $event->venue_name_full }}</p>
         </div>
 
+        @if($event->ticketTemplate && ($event->ticketTemplate->show_registration_code ?? true))
         <div class="unique-code unique-code-placeholder">
             Unique Code: {{ $registrationUser->unique_code }}
         </div>
+        @endif
 
+        @if($event->ticketTemplate && ($event->ticketTemplate->show_qr_code ?? true))
         <div class="qr-code qr-code-placeholder">
             @if(isset($qrCodeUrl) && $qrCodeUrl)
                 <img src="{{ $qrCodeUrl }}" alt="QR Code">
@@ -125,6 +128,7 @@
                 <p>QR Code not available.</p>
             @endif
         </div>
+        @endif
 
         <!-- You can add more event details or organizer information here -->
 

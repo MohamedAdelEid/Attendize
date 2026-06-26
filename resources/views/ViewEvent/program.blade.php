@@ -110,14 +110,49 @@
                     <span class="px-4 py-2 rounded-full border border-primary/30 bg-secondary/50 text-primary text-sm font-medium">Program</span>
                 </div>
                 <h1 class="text-5xl md:text-7xl lg:text-8xl font-bold mb-6 opacity-0 animate-fade-up delay-100">
-                    <span class="text-gold-gradient">Coming Soon</span>
+                    <span class="text-gold-gradient">Agenda</span>
                 </h1>
+               
+               <style>
+                    #loader {
+                      position:absolute;
+                      top:50%;
+                      left:50%;
+                      transform:translate(-50%, -50%);
+                      font-size:18px;
+                    }
+                    
+                    #viewer-frame {
+                      width:100%;
+                      height:600px;
+                      border:none;
+                    }
+                    </style>
+                    
+                    <div style="position:relative; width:100%; height:600px;">
+
+                      <!-- Loading text or spinner -->
+                      <div id="loader">Loading PDF...</div>
+                    
+                      <!-- Google Docs Viewer -->
+                      <iframe
+                        id="viewer-frame"
+                        src="https://docs.google.com/gview?url=https://sgss.four-links.com/storage/program/agenda4.pdf&embedded=true"
+                        onload="document.getElementById('loader').style.display='none';">
+                      </iframe>
+                    
+                    </div>
+               
                 <p class="text-xl md:text-2xl text-muted-foreground mb-8 opacity-0 animate-fade-up delay-200 font-serif max-w-2xl mx-auto">
-                    The event program will be published here soon. Stay tuned for updates!
                 </p>
                 <div class="flex flex-col sm:flex-row items-center justify-center gap-4 opacity-0 animate-fade-up delay-300">
-                    <a href="{{ $symposiumHomeUrl }}" class="btn-gold text-lg px-8 py-4">Back to Home</a>
+                   <a href="https://sgss.four-links.com/storage/program/agenda4.pdf" class="btn-gold text-lg px-8 py-4" target="_blank">Download Agenda</a>
+                    
+                    
                     <a href="{{ $symposiumHomeUrl }}#registration" class="px-8 py-4 rounded-lg font-bold bg-secondary border border-border text-foreground hover:bg-secondary/80 transition-colors">Register Now</a>
+                    <a href="{{ $symposiumHomeUrl }}" class="btn-gold text-lg px-8 py-4">Back to Home</a>
+                    
+                    
                 </div>
             </div>
         </div>

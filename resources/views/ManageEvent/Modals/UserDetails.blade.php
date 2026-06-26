@@ -671,6 +671,12 @@
                     <!-- Action Buttons -->
                     <div class="actions-container">
                         <div>
+                            <div style="margin-bottom: 10px;">
+                                <label class="checkbox-inline">
+                                    <input type="checkbox" id="send-email-on-status-change-modal" value="1" checked>
+                                    Send email when approving/rejecting
+                                </label>
+                            </div>
                             @if ($user->status !== 'approved')
                                 <button type="button" class="btn-custom btn-green update-status-modal"
                                     data-user-id="{{ $user->id }}" data-status="approved">
@@ -730,7 +736,8 @@
                 type: 'POST',
                 data: {
                     _token: '{{ csrf_token() }}',
-                    status: status
+                    status: status,
+                    send_email: $('#send-email-on-status-change-modal').is(':checked') ? 1 : 0
                 },
                 success: function(response) {
                     if (response.status === 'success') {

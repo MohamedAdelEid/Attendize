@@ -77,9 +77,42 @@
             z-index: 1000 !important;
         }
 
-        .element-name {
-            border-color: #e74c3c !important;
-            color: #e74c3c !important;
+        /* Name preview: plain text at print font size — no box/border */
+        .ticket-preview-name {
+            position: absolute !important;
+            cursor: move !important;
+            z-index: 100 !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            border: none !important;
+            border-radius: 0 !important;
+            background: transparent !important;
+            box-shadow: none !important;
+            font-weight: normal !important;
+            user-select: none !important;
+            white-space: nowrap !important;
+            line-height: 1 !important;
+            font-family: Arial, sans-serif !important;
+            display: block !important;
+            min-width: 0 !important;
+            min-height: 0 !important;
+        }
+
+        .ticket-preview-name:hover {
+            transform: none !important;
+            box-shadow: none !important;
+        }
+
+        .ticket-preview-name.ui-draggable-dragging {
+            transform: none !important;
+            opacity: 0.85 !important;
+            z-index: 1000 !important;
+            outline: 1px dashed rgba(231, 76, 60, 0.45) !important;
+            outline-offset: 2px !important;
+        }
+
+        .element-name-legacy {
+            display: none !important;
         }
 
         .element-code {
@@ -160,6 +193,10 @@
 
         .element-settings.show {
             display: block;
+        }
+
+        .ticket-preview-container .preview-element-hidden {
+            display: none !important;
         }
 
         .qr-placeholder {
@@ -423,16 +460,16 @@
                             <div class="form-group">
                                 <label>Font Size (px)</label>
                                 <input type="number" id="nameFontSize" class="form-control"
-                                    value="{{ $template->name_font_size ?? 24 }}" min="8" max="72">
+                                    value="{{ $template->name_font_size ?? 24 }}" min="8" max="200">
                             </div>
                             <div class="form-group">
                                 <label>Font Color</label>
                                 <input type="text" id="nameFontColor" class="form-control"
                                     value="{{ $template->name_font_color ?? '#000000' }}">
                             </div>
+                            <p class="help-block text-muted">Drag the sample name to set where the <strong>center</strong> of the printed name will be. Preview size matches Font Size on the ticket.</p>
                             <div class="coordinate-display">
-                                Position: <span id="nameCoords">x: {{ $template->name_position_x ?? 50 }}, y:
-                                    {{ $template->name_position_y ?? 50 }}</span>
+                                Name center: <span id="nameCoords">x: {{ $template->name_position_x ?? 50 }}, y: {{ $template->name_position_y ?? 50 }}</span>
                             </div>
 
                             <!-- Manual Position Controls for Name -->
@@ -441,12 +478,12 @@
                                 <div class="row">
                                     <div class="col-md-6">
                                         <div class="position-input-group">
-                                            <label>X:</label>
+                                            <label>Center X:</label>
                                             <input type="number" id="namePositionX" class="form-control position-input"
                                                 value="{{ $template->name_position_x ?? 50 }}" min="0">
                                         </div>
                                         <div class="position-input-group">
-                                            <label>Y:</label>
+                                            <label>Top Y:</label>
                                             <input type="number" id="namePositionY" class="form-control position-input"
                                                 value="{{ $template->name_position_y ?? 50 }}" min="0">
                                         </div>
@@ -473,9 +510,15 @@
                         <div class="panel-heading">
                             <h5 class="panel-title">
                                 <span style="color: #3498db;">■</span> Registration Code
+                                <label class="toggle-switch" style="float: right; margin: 0;">
+                                    <input type="checkbox" id="showRegistrationCode"
+                                        {{ (!$template || ($template->show_registration_code ?? true)) ? 'checked' : '' }}>
+                                    <span class="toggle-slider"></span>
+                                </label>
                             </h5>
                         </div>
-                        <div class="panel-body">
+                        <div class="panel-body element-settings {{ (!$template || ($template->show_registration_code ?? true)) ? 'show' : '' }}"
+                            id="registrationCodeSettings">
                             <div class="form-group">
                                 <label>Font Size (px)</label>
                                 <input type="number" id="codeFontSize" class="form-control"
@@ -529,9 +572,15 @@
                         <div class="panel-heading">
                             <h5 class="panel-title">
                                 <span style="color: #27ae60;">■</span> QR Code
+                                <label class="toggle-switch" style="float: right; margin: 0;">
+                                    <input type="checkbox" id="showQrCode"
+                                        {{ (!$template || ($template->show_qr_code ?? true)) ? 'checked' : '' }}>
+                                    <span class="toggle-slider"></span>
+                                </label>
                             </h5>
                         </div>
-                        <div class="panel-body">
+                        <div class="panel-body element-settings {{ (!$template || ($template->show_qr_code ?? true)) ? 'show' : '' }}"
+                            id="qrCodeSettings">
                             <div class="form-group">
                                 <label>Size (px)</label>
                                 <input type="number" id="qrSize" class="form-control"
@@ -786,6 +835,38 @@
                     <button type="button" id="saveTemplate" class="btn save-button btn-block">
                         <i class="ico-save"></i> Save Template Settings
                     </button>
+
+                    <hr>
+                    <h5><i class="ico-ticket"></i> Bulk Ticket Generation</h5>
+                    <p class="text-muted" style="font-size: 12px; margin-bottom: 8px;">
+                        Pre-generate all tickets so downloads are instant. After changing the template, delete all then render again.
+                    </p>
+                    <p id="ticket-bulk-stats" class="text-info" style="font-size: 13px;">
+                        <strong>{{ $ticketStats['rendered'] ?? 0 }}</strong> rendered /
+                        <strong>{{ $ticketStats['eligible'] ?? 0 }}</strong> approved users
+                        @if(($ticketStats['pending'] ?? 0) > 0)
+                            ({{ $ticketStats['pending'] }} pending)
+                        @endif
+                    </p>
+                    <div id="ticket-bulk-progress" style="display: none; margin-bottom: 10px;">
+                        <div class="progress">
+                            <div id="ticket-bulk-progress-bar" class="progress-bar progress-bar-striped active" role="progressbar"
+                                style="width: 0%; min-width: 2em;">0%</div>
+                        </div>
+                        <small id="ticket-bulk-progress-label" class="text-muted">Starting...</small>
+                    </div>
+                    <div class="btn-group btn-group-justified" style="margin-bottom: 8px;">
+                        <div class="btn-group">
+                            <button type="button" class="btn btn-success ticket-bulk-btn" id="render-all-tickets-btn">
+                                <i class="ico-ticket"></i> Render All
+                            </button>
+                        </div>
+                        <div class="btn-group">
+                            <button type="button" class="btn btn-warning ticket-bulk-btn" id="delete-all-tickets-btn">
+                                <i class="ico-trash"></i> Delete All
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -807,15 +888,14 @@
                         @endif
 
                         <!-- Draggable Elements -->
-                        <div id="nameElement" class="draggable-element element-name"
-                            style="left: {{ $template->name_position_x ?? 50 }}px;
-                                top: {{ $template->name_position_y ?? 50 }}px;
-                                font-size: {{ $template->name_font_size ?? 24 }}px;
-                                color: {{ $template->name_font_color ?? '#000000' }};">
-                            Full Name
+                        <div id="nameElement" class="ticket-preview-name"
+                            style="left: 0; top: {{ $template->name_position_y ?? 50 }}px;
+                                color: {{ $template->name_font_color ?? '#000000' }};"
+                            data-preview-sample="Mohamed Adel Eid">
+                            Mohamed Adel Eid
                         </div>
 
-                        <div id="codeElement" class="draggable-element element-code"
+                        <div id="codeElement" class="draggable-element element-code{{ ($template && !($template->show_registration_code ?? true)) ? ' preview-element-hidden' : '' }}"
                             style="left: {{ $template->code_position_x ?? 50 }}px;
                                 top: {{ $template->code_position_y ?? 100 }}px;
                                 font-size: {{ $template->code_font_size ?? 20 }}px;
@@ -823,7 +903,7 @@
                             ABC123
                         </div>
 
-                        <div id="qrElement" class="draggable-element element-qr"
+                        <div id="qrElement" class="draggable-element element-qr{{ ($template && !($template->show_qr_code ?? true)) ? ' preview-element-hidden' : '' }}"
                             style="left: {{ $template->qr_position_x ?? 50 }}px;
                                 top: {{ $template->qr_position_y ?? 150 }}px;">
                             <div class="qr-placeholder"
@@ -882,6 +962,7 @@
 @stop
 
 @section('foot')
+    @include('ManageEvent.Partials.TicketBulkActionsScript')
     <script>
         // Add this at the beginning of the document ready function
         // Wrap the ticket preview container in a form for hidden fields
@@ -904,31 +985,29 @@
         function initializeTicketEditor() {
             console.log('Initializing ticket editor...');
 
-            // Initialize color pickers
             setTimeout(function() {
                 initializeColorPickers();
-            }, 100);
-
-            // Initialize toggle switches
-            setTimeout(function() {
                 initializeToggleSwitches();
-            }, 150);
-
-            // Initialize draggable elements
-            setTimeout(function() {
+                syncCodeQrPreviewVisibility();
+                initializeVisibleOptionalElements();
                 initializeDraggableElements();
-            }, 200);
-
-            // Set up event handlers
-            setTimeout(function() {
                 setupEventHandlers();
                 updateCoordinateDisplays();
-
-                // Initialize elements if they should be visible
-                initializeVisibleOptionalElements();
-            }, 300);
+                positionNameFromCenter();
+            }, 200);
 
             console.log('Ticket editor initialization complete');
+        }
+
+        function syncCodeQrPreviewVisibility() {
+            const showCode = $('#showRegistrationCode').prop('checked');
+            const showQr = $('#showQrCode').prop('checked');
+
+            $('#registrationCodeSettings').toggleClass('show', showCode);
+            $('#codeElement').toggleClass('preview-element-hidden', !showCode);
+
+            $('#qrCodeSettings').toggleClass('show', showQr);
+            $('#qrElement').toggleClass('preview-element-hidden', !showQr);
         }
 
         function initializeVisibleOptionalElements() {
@@ -992,6 +1071,17 @@
 
         function initializeToggleSwitches() {
             console.log('Initializing toggle switches...');
+
+            $('#showRegistrationCode, #showQrCode').off('change').on('change', function() {
+                syncCodeQrPreviewVisibility();
+                if ($(this).is(':checked')) {
+                    setTimeout(function() {
+                        initializeDraggableElements();
+                        updateCoordinateDisplays();
+                    }, 50);
+                }
+                updateElementStyles();
+            });
 
             // UserType toggle
             $('#showUserType').off('change').on('change', function() {
@@ -1071,6 +1161,97 @@
             console.log('Toggle switches initialized');
         }
 
+        function getPreviewScaleFactor() {
+            const img = document.getElementById('templateBackground');
+            if (!img || !img.naturalWidth) {
+                return 1;
+            }
+            return img.width / img.naturalWidth;
+        }
+
+        function getNamePrintFontSize() {
+            return parseInt($('#nameFontSize').val(), 10) || 24;
+        }
+
+        function getNameCenterX() {
+            return parseInt($('#namePositionX').val(), 10) || 0;
+        }
+
+        function getNameCenterY() {
+            return parseInt($('#namePositionY').val(), 10) || 0;
+        }
+
+        function updateNameCoordinateDisplay() {
+            $('#nameCoords').text('x: ' + getNameCenterX() + ', y: ' + getNameCenterY());
+        }
+
+        /** Place name so its horizontal center matches namePositionX (saved center anchor). */
+        function positionNameFromCenter() {
+            const $name = $('#nameElement');
+            if (!$name.length) {
+                return;
+            }
+
+            const centerX = getNameCenterX();
+            const centerY = getNameCenterY();
+            const printFontSize = getNamePrintFontSize();
+            const previewFontSize = Math.max(8, Math.round(printFontSize * getPreviewScaleFactor()));
+            const nameColor = $('#nameFontColor').val() || '#000000';
+
+            $name.css({
+                fontSize: previewFontSize + 'px',
+                color: nameColor,
+                top: centerY + 'px'
+            });
+
+            const halfWidth = $name.outerWidth() / 2;
+            $name.css('left', Math.round(centerX - halfWidth) + 'px');
+            updateNameCoordinateDisplay();
+        }
+
+        function syncNameCenterFromElementPosition() {
+            const $name = $('#nameElement');
+            const pos = $name.position();
+            const centerX = Math.round(pos.left + ($name.outerWidth() / 2));
+            const centerY = Math.round(pos.top);
+            $('#namePositionX').val(centerX);
+            $('#namePositionY').val(centerY);
+            updateNameCoordinateDisplay();
+        }
+
+        function initializeNamePreviewDrag() {
+            const $name = $('#nameElement');
+            if (!$name.length || typeof $.fn.draggable !== 'function') {
+                return;
+            }
+
+            if ($name.hasClass('ui-draggable')) {
+                $name.draggable('destroy');
+            }
+
+            $name.draggable({
+                containment: '#ticketPreview',
+                scroll: false,
+                cursor: 'move',
+                opacity: 1,
+                zIndex: 1000,
+                start: function() {
+                    $(this).addClass('ui-draggable-dragging');
+                },
+                drag: function(event, ui) {
+                    const centerX = Math.round(ui.position.left + ($(this).outerWidth() / 2));
+                    $('#namePositionX').val(centerX);
+                    $('#namePositionY').val(Math.round(ui.position.top));
+                    updateNameCoordinateDisplay();
+                },
+                stop: function(event, ui) {
+                    $(this).removeClass('ui-draggable-dragging');
+                    syncNameCenterFromElementPosition();
+                    positionNameFromCenter();
+                }
+            });
+        }
+
         function createDraggableElement(type, x, y, fontSize, color) {
             const elements = {
                 'user-type': {
@@ -1112,14 +1293,20 @@
             console.log('Initializing draggable elements...');
 
             // Destroy existing draggable instances
+            if ($('#nameElement').hasClass('ui-draggable')) {
+                $('#nameElement').draggable('destroy');
+            }
             $('.draggable-element').each(function() {
                 if ($(this).hasClass('ui-draggable')) {
                     $(this).draggable('destroy');
                 }
+                if ($(this).hasClass('ui-resizable')) {
+                    $(this).resizable('destroy');
+                }
             });
 
-            // Make elements draggable
-            $('.draggable-element').draggable({
+            // Make elements draggable (name has its own handler — center anchor)
+            $('.draggable-element:visible').not('#nameElement').draggable({
                 containment: '#ticketPreview',
                 scroll: false,
                 cursor: 'move',
@@ -1140,6 +1327,9 @@
                     updatePositionInputs();
                 }
             });
+
+            initializeNamePreviewDrag();
+            positionNameFromCenter();
 
             console.log('Draggable elements initialized');
         }
@@ -1218,15 +1408,7 @@
         }
 
         function updateElementPositionsFromInputs() {
-            // Update name element position
-            const nameX = parseInt($('#namePositionX').val()) || 0;
-            const nameY = parseInt($('#namePositionY').val()) || 0;
-            $('#nameElement').css({
-                left: nameX + 'px',
-                top: nameY + 'px'
-            });
-
-            // Update code element position
+            positionNameFromCenter();
             const codeX = parseInt($('#codePositionX').val()) || 0;
             const codeY = parseInt($('#codePositionY').val()) || 0;
             $('#codeElement').css({
@@ -1278,9 +1460,8 @@
             const professionPos = $('#professionElement').position();
             const categoryPos = $('#categoryElement').position();
 
-            if (namePos) {
-                $('#namePositionX').val(Math.round(namePos.left));
-                $('#namePositionY').val(Math.round(namePos.top));
+            if (namePos && $('#nameElement').length) {
+                syncNameCenterFromElementPosition();
             }
             if (codePos) {
                 $('#codePositionX').val(Math.round(codePos.left));
@@ -1368,11 +1549,14 @@
             xInput.val(currentX);
             yInput.val(currentY);
 
-            // Update element position
-            element.css({
-                left: currentX + 'px',
-                top: currentY + 'px'
-            });
+            if (elementType === 'name') {
+                positionNameFromCenter();
+            } else {
+                element.css({
+                    left: currentX + 'px',
+                    top: currentY + 'px'
+                });
+            }
 
             updateCoordinateDisplays();
         }
@@ -1462,6 +1646,7 @@
             // Reinitialize draggable elements
             setTimeout(function() {
                 initializeDraggableElements();
+                positionNameFromCenter();
             }, 100);
 
             console.log('Template image displayed');
@@ -1470,28 +1655,27 @@
         function updateElementStyles() {
             console.log('Updating element styles...');
 
-            // Update name element
-            const nameSize = $('#nameFontSize').val();
-            const nameColor = $('#nameFontColor').val();
-            $('#nameElement').css({
-                'font-size': nameSize + 'px',
-                'color': nameColor
-            });
+            // Update name preview (scaled to match print size on background)
+            positionNameFromCenter();
 
             // Update code element
-            const codeSize = $('#codeFontSize').val();
-            const codeColor = $('#codeFontColor').val();
-            $('#codeElement').css({
-                'font-size': codeSize + 'px',
-                'color': codeColor
-            });
+            if ($('#showRegistrationCode').is(':checked')) {
+                const codeSize = $('#codeFontSize').val();
+                const codeColor = $('#codeFontColor').val();
+                $('#codeElement').css({
+                    'font-size': codeSize + 'px',
+                    'color': codeColor
+                });
+            }
 
             // Update QR element
-            const qrSize = $('#qrSize').val();
-            $('#qrElement .qr-placeholder').css({
-                'width': qrSize + 'px',
-                'height': qrSize + 'px'
-            });
+            if ($('#showQrCode').is(':checked')) {
+                const qrSize = $('#qrSize').val();
+                $('#qrElement .qr-placeholder').css({
+                    'width': qrSize + 'px',
+                    'height': qrSize + 'px'
+                });
+            }
 
             // Update UserType element
             if ($('#userTypeElement').is(':visible')) {
@@ -1534,13 +1718,13 @@
             const professionPos = $('#professionElement').position();
             const categoryPos = $('#categoryElement').position();
 
-            if (namePos) {
-                $('#nameCoords').text('x: ' + Math.round(namePos.left) + ', y: ' + Math.round(namePos.top));
+            if ($('#nameElement').length) {
+                updateNameCoordinateDisplay();
             }
-            if (codePos) {
+            if (codePos && $('#showRegistrationCode').is(':checked')) {
                 $('#codeCoords').text('x: ' + Math.round(codePos.left) + ', y: ' + Math.round(codePos.top));
             }
-            if (qrPos) {
+            if (qrPos && $('#showQrCode').is(':checked')) {
                 $('#qrCoords').text('x: ' + Math.round(qrPos.left) + ', y: ' + Math.round(qrPos.top));
             }
             if (userTypePos && $('#userTypeElement').is(':visible')) {
@@ -1559,6 +1743,7 @@
         $(document).on('load', '#templateBackground', function() {
             console.log('Template background image loaded, storing dimensions');
             storePreviewDimensions();
+            positionNameFromCenter();
         });
 
         // Store preview dimensions when saving template
@@ -1624,7 +1809,9 @@
                 name_font_color: $('#nameFontColor').val(),
                 code_font_size: $('#codeFontSize').val(),
                 code_font_color: $('#codeFontColor').val(),
+                show_registration_code: $('#showRegistrationCode').is(':checked') ? 1 : 0,
                 qr_size: $('#qrSize').val(),
+                show_qr_code: $('#showQrCode').is(':checked') ? 1 : 0,
                 show_user_type: $('#showUserType').is(':checked') ? 1 : 0,
                 user_type_position_x: $('#userTypePositionX').val() || null,
                 user_type_position_y: $('#userTypePositionY').val() || null,
@@ -1681,7 +1868,10 @@
 
         // Store dimensions when window is resized
         $(window).on('resize', function() {
-            setTimeout(storePreviewDimensions, 500);
+            setTimeout(function() {
+                storePreviewDimensions();
+                positionNameFromCenter();
+            }, 200);
         });
 
         function showLoadingOverlay() {
@@ -1692,5 +1882,33 @@
         function hideLoadingOverlay() {
             $('.loading-overlay').remove();
         }
+
+        $('#render-all-tickets-btn').on('click', function() {
+            if (!confirm('Generate tickets for all approved users? This may take several minutes.')) {
+                return;
+            }
+            TicketBulkActions.runBatched({
+                action: 'render',
+                $progress: $('#ticket-bulk-progress'),
+                $bar: $('#ticket-bulk-progress-bar'),
+                $label: $('#ticket-bulk-progress-label'),
+                $buttons: $('.ticket-bulk-btn'),
+                $stats: $('#ticket-bulk-stats')
+            });
+        });
+
+        $('#delete-all-tickets-btn').on('click', function() {
+            if (!confirm('Delete all generated tickets for this event? Users can download new tickets later.')) {
+                return;
+            }
+            TicketBulkActions.runBatched({
+                action: 'delete',
+                $progress: $('#ticket-bulk-progress'),
+                $bar: $('#ticket-bulk-progress-bar'),
+                $label: $('#ticket-bulk-progress-label'),
+                $buttons: $('.ticket-bulk-btn'),
+                $stats: $('#ticket-bulk-stats')
+            });
+        });
     </script>
 @stop

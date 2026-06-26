@@ -164,6 +164,14 @@ class Event extends MyBaseModel
     }
 
     /**
+     * Landing page configuration for this event.
+     */
+    public function landingPage()
+    {
+        return $this->hasOne(EventLandingPage::class);
+    }
+
+    /**
      * The tickets associated with the event.
      *
      * @return HasMany

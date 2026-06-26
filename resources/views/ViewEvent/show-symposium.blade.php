@@ -1,249 +1,22 @@
 @extends('ViewEvent.layouts.symposium-layout')
 
-@section('title', isset($event) ? $event->title : 'Medicine & Judiciary Symposium')
+@section('title', isset($event) ? $event->title : 'Event')
 
 @section('content')
 <main class="min-h-screen">
-    {{-- Header: if nav items > 8 show hamburger from lg; else from md to avoid overflow --}}
-    @php
-        $navItemCount = 4 + (isset($landingUserTypes) ? $landingUserTypes->count() : 0);
-        $navBreakpoint = $navItemCount > 5 ? 'xl' : 'lg';
-    @endphp
-    @php
-        $defaultSymposiumEventId = config('attendize.default_symposium_event_id', 2);
-        $homeUrl = (isset($is_private_form) && $is_private_form && isset($registration))
-            ? route('showPrivateFormByName', ['registration_name' => $registration->name])
-            : (
-                isset($event) && (int) $event->id === (int) $defaultSymposiumEventId
-                    ? route('showSymposiumRoot')
-                    : route('showEventSymposium', ['event_id' => $event->id])
-              );
-    @endphp
-    <header id="header" class="fixed top-0 left-0 right-0 z-50 transition-all duration-300 header-sticky py-4 header-scrolled">
-        <div class="container mx-auto px-4 flex items-center justify-between">
-            <div class="flex items-center gap-4">
-                <a href="{{ $homeUrl }}" class="flex items-center gap-4" aria-label="Home">
-                    <img src="{{ asset('images/sgss-logo.png') }}" alt="الجمعية السعودية للجراحة العامة - SGSS" class="bg-white w-12 h-12 md:w-16 md:h-14 object-contain" onerror="this.style.display='none'">
-                    <img src="https://cdn4.premiumread.com/?url=https://www.al-madina.com/uploads/images/2020/06/24/1786780.jpg&w=800&q=100&f=jpg" alt="Logo 2" class="h-12 w-12 md:h-14 md:w-14 object-contain" onerror="this.style.display='none'">
-                </a>
-                @if(!isset($event))
-                <span class="text-lg font-semibold">Event</span>
-                @endif
-            </div>
-            <nav class="hidden {{ $navBreakpoint === 'lg' ? 'lg:flex' : 'md:flex' }} items-center gap-8">
-                <a href="{{ $homeUrl }}" class="link-gold font-medium text-foreground">Home</a>
-                @if(isset($landingUserTypes) && $landingUserTypes->count() > 0)
-                    @foreach($landingUserTypes as $ut)
-                        @if($ut->options && $ut->options->count() > 0)
-                            <div class="relative group inline-block committee-dropdown">
-                                <a href="{{ route('showEventUserType', ['event_id' => $event->id, 'user_type_slug' => $ut->slug]) }}" class="link-gold font-medium text-foreground inline-flex items-center gap-1">
-                                    {{ $ut->name }}
-                                    <svg class="w-4 h-4 transition-transform group-hover:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
-                                </a>
-                                <div class="absolute left-0 top-full pt-1 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 min-w-[180px]">
-                                    <div class="rounded-lg shadow-xl border border-border overflow-hidden" style="background: linear-gradient(145deg, hsl(220, 55%, 14%) 0%, hsl(220, 55%, 10%) 100%);">
-                                        <a href="{{ route('showEventUserType', ['event_id' => $event->id, 'user_type_slug' => $ut->slug]) }}" class="block px-4 py-3 text-left font-medium hover:bg-primary/20 transition-colors" style="color: hsl(45, 70%, 50%); border-bottom: 1px solid hsl(220, 40%, 25%);">{{ $ut->name }} (All)</a>
-                                        @foreach($ut->options as $opt)
-                                            <a href="{{ route('showEventUserType', ['event_id' => $event->id, 'user_type_slug' => $ut->slug, 'option_slug' => $opt->slug]) }}" class="block px-4 py-3 text-left hover:bg-primary/20 transition-colors text-foreground">{{ $opt->name }}</a>
-                                        @endforeach
-                                    </div>
-                                </div>
-                            </div>
-                        @else
-                            <a href="{{ route('showEventUserType', ['event_id' => $event->id, 'user_type_slug' => $ut->slug]) }}" class="link-gold font-medium text-foreground">{{ $ut->name }}</a>
-                        @endif
-                    @endforeach
-                @endif
-                @if(!isset($is_private_form) || !$is_private_form)
-                <button type="button" onclick="document.getElementById('pricing').scrollIntoView({behavior:'smooth'})" class="link-gold font-medium text-foreground">Fees</button>
-                @endif
-                <a href="{{ route('showEventProgram', ['event_id' => $event->id]) }}" class="link-gold font-medium text-foreground">Program</a>
-                <button type="button" onclick="document.getElementById('footer').scrollIntoView({behavior:'smooth'})" class="link-gold font-medium text-foreground">Contact Us</button>
-            </nav>
-            {{-- Hamburger: show below breakpoint (lg if many items, else md) --}}
-            <div class="flex items-center gap-2 {{ $navBreakpoint === 'lg' ? 'lg:hidden' : 'md:hidden' }}">
-                <button type="button" id="mobile-menu-toggle" class="p-2 rounded-lg text-foreground hover:bg-secondary/50" aria-expanded="false" aria-label="Open menu">
-                    <svg id="mobile-menu-icon-open" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
-                    <svg id="mobile-menu-icon-close" class="w-6 h-6 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-                </button>
-                <button type="button" onclick="document.getElementById('registration').scrollIntoView({behavior:'smooth'})" class="btn-gold text-sm font-bold px-4 py-2">Register Now</button>
-            </div>
-        </div>
-    </header>
+    @include('ViewEvent.partials.landing.header')
+    @include('ViewEvent.partials.landing.hero')
+    @include('ViewEvent.partials.landing.pricing')
 
-    {{-- Mobile menu overlay: visible below same breakpoint as hamburger --}}
-    <div id="mobile-menu" class="{{ $navBreakpoint === 'lg' ? 'lg:hidden' : 'md:hidden' }} hidden" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; min-height: 100vh; min-height: 100dvh; z-index: 9999;">
-        <div id="mobile-menu-backdrop" role="button" tabindex="0" aria-label="Close menu" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(19, 28, 46, 0.92); backdrop-filter: blur(8px); cursor: pointer;"></div>
-        <div id="mobile-menu-panel" style="position: absolute; top: 0; right: 0; width: 280px; max-width: 85vw; height: 100%; min-height: 100vh; background: linear-gradient(145deg, hsl(220, 55%, 14%) 0%, hsl(220, 55%, 10%) 100%); border-left: 1px solid hsl(220, 40%, 25%); box-shadow: -8px 0 32px rgba(0,0,0,0.4); overflow-y: auto;">
-            <div style="padding: 1.25rem 1.5rem; border-bottom: 1px solid hsl(220, 40%, 25%); display: flex; align-items: center; justify-content: space-between;">
-                <span style="font-size: 1.125rem; font-weight: 600; color: hsl(0, 0%, 98%);">Menu</span>
-                <button type="button" id="mobile-menu-close" class="p-2 rounded-lg hover:opacity-80" style="color: hsl(0, 0%, 98%);" aria-label="Close menu">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-                </button>
-            </div>
-            <nav style="padding: 1rem 1.5rem; display: flex; flex-direction: column;">
-                <a href="{{ $homeUrl }}" class="mobile-nav-link block py-3" style="color: hsl(45, 70%, 50%); font-weight: 500; border-bottom: 1px solid hsl(220, 40%, 25%);">Home</a>
-                @if(isset($landingUserTypes) && $landingUserTypes->count() > 0)
-                    @foreach($landingUserTypes as $ut)
-                        @if($ut->options && $ut->options->count() > 0)
-                            <div class="mobile-committee-wrap" style="border-bottom: 1px solid hsl(220, 40%, 25%);">
-                                <button type="button" class="mobile-nav-link block w-full text-left py-3 flex items-center justify-between" style="color: hsl(45, 70%, 50%); font-weight: 500;" data-committee-toggle="{{ $ut->id }}">
-                                    {{ $ut->name }}
-                                    <svg class="committee-arrow w-4 h-4 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
-                                </button>
-                                <div class="mobile-committee-sub hidden" data-committee-panel="{{ $ut->id }}" style="padding-left: 1rem; padding-bottom: 0.5rem;">
-                                    <a href="{{ route('showEventUserType', ['event_id' => $event->id, 'user_type_slug' => $ut->slug]) }}" class="block py-2 text-sm" style="color: hsl(0, 0%, 90%);">{{ $ut->name }} (All)</a>
-                                    @foreach($ut->options as $opt)
-                                        <a href="{{ route('showEventUserType', ['event_id' => $event->id, 'user_type_slug' => $ut->slug, 'option_slug' => $opt->slug]) }}" class="block py-2 text-sm" style="color: hsl(0, 0%, 90%);">{{ $opt->name }}</a>
-                                    @endforeach
-                                </div>
-                            </div>
-                        @else
-                            <a href="{{ route('showEventUserType', ['event_id' => $event->id, 'user_type_slug' => $ut->slug]) }}" class="mobile-nav-link block py-3" style="color: hsl(45, 70%, 50%); font-weight: 500; border-bottom: 1px solid hsl(220, 40%, 25%);">{{ $ut->name }}</a>
-                        @endif
-                    @endforeach
-                @endif
-                @if(!isset($is_private_form) || !$is_private_form)
-                <button type="button" class="mobile-nav-link block w-full text-left py-3" style="color: hsl(45, 70%, 50%); font-weight: 500; border-bottom: 1px solid hsl(220, 40%, 25%);" data-scroll="pricing">Fees</button>
-                @endif
-                <a href="{{ route('showEventProgram', ['event_id' => $event->id]) }}" class="mobile-nav-link block py-3" style="color: hsl(45, 70%, 50%); font-weight: 500; border-bottom: 1px solid hsl(220, 40%, 25%);">Program</a>
-                <button type="button" class="mobile-nav-link block w-full text-left py-3" style="color: hsl(45, 70%, 50%); font-weight: 500;" data-scroll="footer">Contact Us</button>
-            </nav>
-            <div style="padding: 1.5rem;">
-                <button type="button" class="mobile-nav-link w-full text-center font-bold py-3 rounded-lg" style="background: linear-gradient(135deg, hsl(45, 75%, 45%) 0%, hsl(45, 70%, 55%) 100%); color: hsl(220, 60%, 8%);" data-scroll="registration">Register Now</button>
-            </div>
-        </div>
-    </div>
-
-    {{-- Hero Section --}}
-    <section class="relative min-h-screen flex items-center justify-center overflow-hidden">
-        @php
-            // $heroBg = (isset($event) && !empty($event->bg_image_url)) ? $event->bg_image_url : asset('assets/images/hero-bg.jpg');
-            $heroBg = asset('assets/images/hero-bg.jpg');
-        @endphp
-        <div class="absolute inset-0 bg-cover bg-center bg-no-repeat" style="background-image: url('{{ $heroBg }}');">
-            <div class="absolute inset-0 bg-gradient-to-b from-background/90 via-background/70 to-background"></div>
-        </div>
-        <div class="relative z-10 container mx-auto px-4 pt-24 pb-16 text-center">
-            <div class="inline-block mb-6 opacity-0 animate-fade-up">
-                <span class="px-4 py-2 rounded-full border border-primary/30 bg-secondary/50 text-primary text-sm font-medium">Specialized Scientific Seminar</span>
-            </div>
-            <p class="text-2xl md:text-4xl lg:text-5xl font-bold text-foreground mb-3 opacity-0 animate-fade-up delay-100" dir="rtl" lang="ar">الندوة الثانية: "الطب والقضاء: المسؤولية القانونية في المهن الجراحية"</p>
-            <h1 class="text-4xl md:text-6xl lg:text-7xl font-bold mb-4 opacity-0 animate-fade-up delay-100">
-                <span class="block text-foreground">Medicine &</span>
-                <span class="text-gold-gradient">Judiciary Symposium</span>
-            </h1>
-            <p class="text-xl md:text-2xl lg:text-3xl text-muted-foreground mb-8 opacity-0 animate-fade-up delay-200 font-serif">Legal Liability in Surgical Professions</p>
-            <div class="flex flex-col md:flex-row items-center justify-center gap-4 md:gap-8 mb-10 opacity-0 animate-fade-up delay-300">
-                <div class="flex items-center gap-2 text-foreground">
-                    <svg class="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-                    {{-- <span class="text-lg">{{ isset($event) ? $event->start_date->format('F j, Y') : 'May 2, 2026' }}</span> --}}
-                    <span class="text-lg">May 2, 2026</span>
-                </div>
-                <div class="hidden md:block w-px h-6 bg-border"></div>
-                <div class="flex items-center gap-2 text-foreground">
-                    <svg class="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-                    <span class="text-lg">Crown Plaza - Al Hamra - Crystal Hall</span>
-                </div>
-            </div>
-            <div class="mb-10 opacity-0 animate-fade-up delay-400">
-                <p class="text-muted-foreground mb-4">Target Audience</p>
-                <div class="flex flex-wrap justify-center gap-3">
-                    @foreach(['Consultants', 'Specialists', 'Residents' , 'Students', 'Nursing'] as $item)
-                    <span class="px-4 py-2 rounded-full bg-secondary border border-border text-foreground text-sm">{{ $item }}</span>
-                    @endforeach
-                </div>
-            </div>
-            <button type="button" onclick="document.getElementById('registration').scrollIntoView({behavior:'smooth'})" class="btn-gold text-lg px-8 py-4 opacity-0 animate-fade-up delay-500">Register Now</button>
-        </div>
-        <div class="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-background to-transparent"></div>
-    </section>
-
-    {{-- Pricing Section (hidden on private form – registration is free) --}}
-    @if(!isset($is_private_form) || !$is_private_form)
-    <section id="pricing" class="py-20 bg-secondary/30 relative">
-        <div class="container mx-auto px-4">
-            <div class="text-center mb-12">
-                <h2 class="text-3xl md:text-4xl font-bold mb-4"><span class="text-gold-gradient">Registration Fees</span></h2>
-                <p class="text-muted-foreground text-lg max-w-2xl mx-auto">Choose your registration category. Society members enjoy exclusive discounted rates.</p>
-            </div>
-            <div class="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
-                {{-- Society Members --}}
-                <div class="relative rounded-2xl overflow-hidden transition-all duration-300 hover:scale-[1.02] card-navy border-2 border-primary/50 shadow-lg shadow-primary/10">
-                    {{-- <div class="absolute top-0 right-0 bg-primary text-primary-foreground text-xs font-bold px-3 py-1 rounded-bl-lg">Best Value</div> --}}
-                    <div class="p-6 pb-4 bg-primary/10">
-                        <div class="flex items-center gap-3 mb-2">
-                            <div class="p-2 rounded-lg bg-primary/20 text-primary">
-                                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/></svg>
-                            </div>
-                            <h3 class="text-xl font-bold text-foreground">Society Members</h3>
-                        </div>
-                    </div>
-                    <div class="p-6 pt-2 space-y-4">
-                        <div class="flex items-center justify-between p-4 rounded-xl bg-background/50 border border-border/50">
-                            <div class="flex items-start gap-3">
-                                <svg class="w-5 h-5 text-primary mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-                                <span class="text-foreground text-sm md:text-base">Consultants, Specialists & Residents</span>
-                            </div>
-                            <div class="text-right flex-shrink-0 ml-4"><span class="text-2xl font-bold text-gold-gradient">400</span><span class="text-muted-foreground text-sm block">SAR</span></div>
-                        </div>
-                        <div class="flex items-center justify-between p-4 rounded-xl bg-background/50 border border-border/50">
-                            <div class="flex items-start gap-3">
-                                <svg class="w-5 h-5 text-primary mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-                                <span class="text-foreground text-sm md:text-base">Students & Nursing</span>
-                            </div>
-                            <div class="text-right flex-shrink-0 ml-4"><span class="text-2xl font-bold text-gold-gradient">200</span><span class="text-muted-foreground text-sm block">SAR</span></div>
-                        </div>
-                    </div>
-                    <div class="p-6 pt-2">
-                        <button type="button" onclick="document.getElementById('registration').scrollIntoView({behavior:'smooth'})" class="w-full py-3 rounded-lg font-bold btn-gold">Register Now</button>
-                    </div>
-                </div>
-                {{-- Non-Members --}}
-                <div class="relative rounded-2xl overflow-hidden transition-all duration-300 hover:scale-[1.02] card-navy border border-border">
-                    <div class="p-6 pb-4">
-                        <div class="flex items-center gap-3 mb-2">
-                            <div class="p-2 rounded-lg bg-secondary text-muted-foreground">
-                                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
-                            </div>
-                            <h3 class="text-xl font-bold text-foreground">Non-Members</h3>
-                        </div>
-                    </div>
-                    <div class="p-6 pt-2 space-y-4">
-                        <div class="flex items-center justify-between p-4 rounded-xl bg-background/50 border border-border/50">
-                            <div class="flex items-start gap-3">
-                                <svg class="w-5 h-5 text-primary mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-                                <span class="text-foreground text-sm md:text-base">Consultants, Specialists & Residents</span>
-                            </div>
-                            <div class="text-right flex-shrink-0 ml-4"><span class="text-2xl font-bold text-gold-gradient">500</span><span class="text-muted-foreground text-sm block">SAR</span></div>
-                        </div>
-                        <div class="flex items-center justify-between p-4 rounded-xl bg-background/50 border border-border/50">
-                            <div class="flex items-start gap-3">
-                                <svg class="w-5 h-5 text-primary mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-                                <span class="text-foreground text-sm md:text-base">Students & Nursing</span>
-                            </div>
-                            <div class="text-right flex-shrink-0 ml-4"><span class="text-2xl font-bold text-gold-gradient">300</span><span class="text-muted-foreground text-sm block">SAR</span></div>
-                        </div>
-                    </div>
-                    <div class="p-6 pt-2">
-                        <button type="button" onclick="document.getElementById('registration').scrollIntoView({behavior:'smooth'})" class="w-full py-3 rounded-lg font-bold bg-secondary border border-border text-foreground hover:bg-secondary/80">Register Now</button>
-                    </div>
-                </div>
-            </div>
-            <div class="mt-10 text-center">
-                <p class="text-muted-foreground text-sm">All prices include seminar materials, lunch, and certificate of attendance.</p>
-            </div>
-        </div>
-        <div class="section-divider absolute bottom-0 left-0 right-0"></div>
-    </section>
-    @endif
-
+    @if(!empty($landing['registration']['enabled']))
     {{-- Registration Section --}}
     <section id="registration" class="py-20 hero-bg-custom relative">
         <div class="container mx-auto px-4 relative z-10">
             <div class="text-center mb-12">
-                <h2 class="text-3xl md:text-4xl font-bold mb-4"><span class="text-gold-gradient">Registration</span></h2>
-                <p class="text-muted-foreground text-lg">Register now to attend the Medicine & Judiciary Symposium</p>
+                <h2 class="text-3xl md:text-4xl font-bold mb-4"><span class="text-gold-gradient">{{ $landing['registration']['title'] ?? 'Registration' }}</span></h2>
+                @if(!empty($landing['registration']['description']))
+                <p class="text-muted-foreground text-lg">{{ $landing['registration']['description'] }}</p>
+                @endif
             </div>
             <div class="max-w-2xl mx-auto card-navy rounded-2xl p-6 md:p-8">
                 @if(isset($is_private_form) && $is_private_form && isset($registration))
@@ -281,11 +54,38 @@
                 <div class="flex rounded-xl overflow-hidden mb-8" role="tablist">
                     <button type="button" data-tab="non-members" class="reg-tab flex-1 py-3 px-4 font-bold transition-all duration-300 tab-active">Non-Members</button>
                     <button type="button" data-tab="members" class="reg-tab flex-1 py-3 px-4 font-bold transition-all duration-300 tab-inactive">Members</button>
+                    <button type="button" data-tab="virtual" class="reg-tab flex-1 py-3 px-4 font-bold transition-all duration-300 tab-inactive">Virtual Reg Zoom</button>
                 </div>
                 {{-- Non-Members tab (active by default) --}}
                 <div id="reg-non-members" class="reg-panel space-y-6">
+                    @php
+                        $landingForms = isset($landingRegistrations) && $landingRegistrations->count() > 0
+                            ? $landingRegistrations
+                            : collect($landingRegistration ? [$landingRegistration] : []);
+                    @endphp
+                    @if($landingForms->count() > 1)
+                        <div>
+                            <label for="landing-registration-select" class="block text-foreground mb-2 font-medium">Select registration form</label>
+                            <select id="landing-registration-select" class="w-full input-navy rounded-lg py-3 px-4">
+                                @foreach($landingForms as $landingForm)
+                                    <option value="{{ $landingForm->id }}">{{ $landingForm->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    @endif
                     <div id="non-member-form-wrap">
-                        @include('ViewEvent.partials.SymposiumRegistrationForm', ['landingRegistration' => $landingRegistration ?? null, 'event' => $event, 'countries' => $countries ?? collect()])
+                        @forelse($landingForms as $landingForm)
+                            <div class="landing-registration-form-panel {{ $loop->first ? '' : 'hidden' }}" data-registration-id="{{ $landingForm->id }}">
+                                @include('ViewEvent.partials.SymposiumRegistrationForm', [
+                                    'landingRegistration' => $landingForm,
+                                    'event' => $event,
+                                    'countries' => $countries ?? collect(),
+                                    'formId' => 'symposium-registration-form-' . $landingForm->id,
+                                ])
+                            </div>
+                        @empty
+                            @include('ViewEvent.partials.SymposiumRegistrationForm', ['landingRegistration' => null, 'event' => $event, 'countries' => $countries ?? collect()])
+                        @endforelse
                     </div>
                     <p id="non-member-register-status" class="text-sm text-muted-foreground hidden"></p>
                     <div id="non-member-payment-wrap" class="hidden mt-4 rounded-xl border border-primary/30 bg-primary/5 p-6">
@@ -360,84 +160,42 @@
                     <p class="text-muted-foreground text-center py-4">Members lookup is not configured. Add at least one &quot;Display &amp; search&quot; member field in Event → Members.</p>
                     @endif
                 </div>
+                
+                 {{-- Virtual Reg tab --}}
+                 <div id="reg-virtual" class="reg-panel hidden space-y-6" data-members-registration-id="{{ isset($virtualRegistration) && $virtualRegistration ? $virtualRegistration->id : '' }}">
+                    <div id="virtual-form-wrap">
+                        <p>Online attendees will not receive a certificate of attendance and are not eligible for CME hours</br>
+                            الحضور عن بعد لا يشمل شهادة حضور و لا يتم احتساب ساعات علمية
+                        </p>
+                        @include('ViewEvent.partials.SymposiumRegistrationForm', ['landingRegistration' => $virtualRegistration, 'event' => $event, 'countries' => $countries ?? collect(), 'formId' => 'virtual-registration-form'])
+                    
+                    </div>
+                    <p id="virtual-register-status" class="text-sm text-muted-foreground hidden"></p>
+                    <div id="virtual-payment-wrap" class="hidden mt-4 rounded-xl border border-primary/30 bg-primary/5 p-6">
+                        <h4 class="text-lg font-semibold text-foreground mb-4">إتمام الدفع</h4>
+                        <p class="text-muted-foreground mb-4">يرجى إدخال بيانات الدفع أدناه.</p>
+                        <form id="virtual-hyperpay-form" action="#" class="paymentWidgets" data-brands="VISA MASTER MADA AMEX"></form>
+                    </div>
+                    <div id="virtual-register-success" class="hidden mt-4 p-4 rounded-xl border border-green-500/40 bg-green-500/10 text-green-800 dark:text-green-200">
+                        <div class="flex items-start gap-3">
+                            <svg class="w-6 h-6 flex-shrink-0 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                            <div>
+                                <p class="font-semibold">Registration Successful</p>
+                                <p class="text-sm mt-1 opacity-90">Your registration request has been received. It will be reviewed by our team.</p>
+                                <p class="text-sm mt-1 opacity-90">Please check your email (including spam/junk folder) for confirmation.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
                 @endif
             </div>
         </div>
     </section>
+    @endif
 
-    {{-- Location Section --}}
-    <section id="location" class="py-20 bg-secondary/30 relative">
-        <div class="container mx-auto px-4">
-            <div class="text-center mb-12">
-                <h2 class="text-3xl md:text-4xl font-bold mb-4"><span class="text-gold-gradient">Venue Location</span></h2>
-                <p class="text-muted-foreground text-lg">Crown Plaza - Al Hamra - Crystal Hall</p>
-            </div>
-            <div class="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
-                <div class="card-navy rounded-2xl overflow-hidden">
-                    <div class="relative aspect-video md:aspect-square">
-                        <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d118776.07041036269!2d39.00339069726561!3d21.517424000000002!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x15c3cf8870b4f8dd%3A0x73f82606e0774b6a!2sCrowne%20Plaza%20Jeddah%20by%20IHG!5e0!3m2!1sen!2ssa!4v1770986393242!5m2!1sen!2ssa" width="600" height="450" style="border:0;" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade" class="absolute inset-0 w-full h-full" title="Crown Plaza - Al Hamra - Crystal Hall"></iframe>
-                    </div>
-                </div>
-                <div class="space-y-4">
-                    <div class="card-navy rounded-xl p-6 flex items-start gap-4">
-                        <div class="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
-                            <svg class="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/></svg>
-                        </div>
-                        <div>
-                            <h3 class="font-bold text-foreground mb-1">Address</h3>
-                            <p class="text-muted-foreground">Crown Plaza - Al Hamra - Crystal Hall, Saudi Arabia</p>
-                        </div>
-                    </div>
-                    <div class="card-navy rounded-xl p-6 flex items-start gap-4">
-                        <div class="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
-                            <svg class="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                        </div>
-                        <div>
-                            <h3 class="font-bold text-foreground mb-1">Date & Time</h3>
-                            <p class="text-muted-foreground">May 2, 2026 — Full Day Event</p>
-                        </div>
-                    </div>
-                    <a href="https://www.google.com/maps/place/Crowne+Plaza+Jeddah+by+IHG" target="_blank" rel="noopener noreferrer" class="btn-gold w-full flex items-center justify-center gap-2 py-3">
-                        <span>Get Directions</span>
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
-                    </a>
-                </div>
-            </div>
-        </div>
-        <div class="section-divider absolute bottom-0 left-0 right-0"></div>
-    </section>
-
-    {{-- Footer --}}
-    <footer id="footer" class="bg-card py-12 relative">
-        <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-primary to-transparent opacity-50"></div>
-        <div class="container mx-auto px-4">
-            <div class="grid md:grid-cols-3 gap-8 mb-8">
-                <div class="text-center md:text-left">
-                    <p class="text-muted-foreground text-sm">Medicine & Judiciary Symposium<br>Legal Liability in Surgical Professions</p>
-                </div>
-                <div class="text-center md:text-left">
-                    <h4 class="font-bold text-foreground mb-4 text-gold-gradient">Contact Us</h4>
-                    <div class="space-y-3">
-                        <a href="mailto:info@sgss.org.sa" class="flex items-center justify-center md:justify-start gap-2 text-muted-foreground hover:text-primary transition-colors"><span>info@sgss.org.sa</span></a>
-                        <a href="https://sgss.org.sa" target="_blank" rel="noopener noreferrer" class="flex items-center justify-center md:justify-start gap-2 text-muted-foreground hover:text-primary transition-colors">sgss.org.sa</a>
-                        <div class="flex items-center justify-center md:justify-start gap-2 text-muted-foreground">Jeddah, Saudi Arabia</div>
-                    </div>
-                </div>
-                <div class="text-center md:text-left">
-                    <h4 class="font-bold text-foreground mb-4 text-gold-gradient">Quick Links</h4>
-                    <ul class="space-y-2">
-                        <li><a href="#" class="text-muted-foreground hover:text-primary transition-colors">Privacy Policy</a></li>
-                        <li><a href="#" class="text-muted-foreground hover:text-primary transition-colors">Terms & Conditions</a></li>
-                        <li><a href="#" class="text-muted-foreground hover:text-primary transition-colors">Contact Us</a></li>
-                    </ul>
-                </div>
-            </div>
-            <div class="section-divider mb-6"></div>
-            <div class="text-center">
-                <p class="text-muted-foreground text-sm">© {{ date('Y') }} Saudi General Surgery Society. All Rights Reserved.</p>
-            </div>
-        </div>
-    </footer>
+    @include('ViewEvent.partials.landing.location')
+    @include('ViewEvent.partials.landing.footer')
 </main>
 <script>
 (function() {
@@ -483,12 +241,24 @@
         });
     });
 
-    // Non-Members form: submit via AJAX, show success or payment on same page (no redirect/reload)
-    var nonMemberForm = document.getElementById('symposium-registration-form');
-    if (nonMemberForm) {
-        nonMemberForm.addEventListener('submit', function(e) {
+    // Non-Members form(s): submit via AJAX, show success or payment on same page (no redirect/reload)
+    var landingRegistrationSelect = document.getElementById('landing-registration-select');
+    if (landingRegistrationSelect) {
+        landingRegistrationSelect.addEventListener('change', function() {
+            var selectedId = this.value;
+            document.querySelectorAll('.landing-registration-form-panel').forEach(function(panel) {
+                panel.classList.toggle('hidden', panel.getAttribute('data-registration-id') !== selectedId);
+            });
+        });
+    }
+
+    function bindNonMemberRegistrationForm(form) {
+        if (!form || form.dataset.bound === '1') {
+            return;
+        }
+        form.dataset.bound = '1';
+        form.addEventListener('submit', function(e) {
             e.preventDefault();
-            var form = this;
             var statusEl = document.getElementById('non-member-register-status');
             var formWrap = document.getElementById('non-member-form-wrap');
             var successEl = document.getElementById('non-member-register-success');
@@ -536,6 +306,68 @@
         });
     }
 
+    document.querySelectorAll('[id^="symposium-registration-form"]').forEach(bindNonMemberRegistrationForm);
+    var legacyNonMemberForm = document.getElementById('symposium-registration-form');
+    if (legacyNonMemberForm) {
+        bindNonMemberRegistrationForm(legacyNonMemberForm);
+    }
+
+    
+    
+     var virtualForm = document.getElementById('virtual-registration-form');
+    if (virtualForm) {
+        virtualForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            var form = this;
+            var statusEl = document.getElementById('virtual-register-status');
+            var formWrap = document.getElementById('virtual-form-wrap');
+            var successEl = document.getElementById('virtual-register-success');
+            var paymentWrap = document.getElementById('virtual-payment-wrap');
+            clearFormFieldErrors(form);
+            statusEl.textContent = 'Submitting...';
+            statusEl.classList.remove('hidden', 'text-red-400', 'text-primary', 'rounded-lg', 'p-3', 'bg-red-500/10', 'border', 'border-red-500/30', 'mb-4');
+            successEl.classList.add('hidden');
+            paymentWrap.classList.add('hidden');
+            var formData = new FormData(form);
+            fetch(form.action, {
+                method: 'POST',
+                body: formData,
+                headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' }
+            }).then(function(r) { return r.json(); }).then(function(data) {
+                statusEl.classList.add('hidden');
+                if (data.status === 'success') {
+                    if (data.requires_payment && data.checkout_id && data.widget_url) {
+                        formWrap.classList.add('hidden');
+                        paymentWrap.classList.remove('hidden');
+                        [].forEach.call(document.querySelectorAll('script[src*="paymentWidgets"]'), function(s) { s.remove(); });
+                        var script = document.createElement('script');
+                        script.src = data.widget_url + '?checkoutId=' + data.checkout_id;
+                        script.async = true;
+                        document.body.appendChild(script);
+                        paymentWrap.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                    } else {
+                        if (formWrap) formWrap.classList.add('hidden');
+                        successEl.classList.remove('hidden');
+                        successEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                    }
+                } else {
+                    statusEl.innerHTML = '';
+                    statusEl.textContent = data.message || 'An error occurred.';
+                    statusEl.classList.remove('hidden');
+                    statusEl.classList.add('text-red-400', 'rounded-lg', 'p-3', 'bg-red-500/10', 'border', 'border-red-500/30', 'mb-4');
+                    if (data.errors && typeof data.errors === 'object') showFormFieldErrors(form, data.errors);
+                    form.querySelector('[name="email"]') && form.querySelector('[name="email"]').scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            }).catch(function() {
+                statusEl.textContent = 'Submission failed. Please try again.';
+                statusEl.classList.remove('hidden');
+                statusEl.classList.add('text-red-400');
+            });
+        });
+    }
+
+    
+    
     var memberForm = document.getElementById('member-lookup-form');
     if (memberForm) {
         var eventId = memberForm.getAttribute('data-event-id');

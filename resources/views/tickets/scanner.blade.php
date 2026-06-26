@@ -147,15 +147,18 @@
                         <i class="text-xs fas fa-chevron-down" id="bulkMenuChevron"></i>
                     </button>
                     <div id="bulkMenuDropdown" class="absolute right-0 z-20 hidden w-48 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg top-full">
+                        {{-- Check-in All disabled: attendance should be recorded individually per attendee --}}
+                        {{--
                         <button type="button" onclick="confirmBulkAction('check_in'); closeBulkMenu();"
                                 class="flex items-center w-full px-4 py-3 text-left text-sm text-gray-700 hover:bg-green-50 hover:text-green-800 rounded-t-lg">
                             <i class="mr-3 text-green-600 fas fa-sign-in-alt"></i>
                             Check-in All
                         </button>
+                        --}}
                         <button type="button" onclick="confirmBulkAction('check_out'); closeBulkMenu();"
-                                class="flex items-center w-full px-4 py-3 text-left text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-800 rounded-b-lg border-t border-gray-100">
+                                class="flex items-center w-full px-4 py-3 text-left text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-800 rounded-lg">
                             <i class="mr-3 text-blue-600 fas fa-sign-out-alt"></i>
-                            Check-out All
+                            Check-out All (currently inside)
                         </button>
                     </div>
                 </div>
@@ -170,7 +173,7 @@
                         <input type="text"
                                name="unique_code"
                                id="uniqueCode"
-                               value="{{ old('unique_code', session('unique_code_input', '')) }}"
+                               value=""
                                class="w-full px-4 py-3 font-mono text-lg transition-colors duration-200 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
                                placeholder="Enter unique code or email"
                                required>
@@ -263,8 +266,9 @@
 @endsection
 
 @push('scripts')
-    <script src="{{ asset('js/script.js') }}"></script>
+    <script src="{{ asset('Js/script.js') }}"></script>
     <script>
+        document.getElementById("uniqueCode").focus();
         function startCamera() {
             var constraints = { video: { facingMode: "environment", width: { ideal: 640 }, height: { ideal: 480 } } };
             navigator.mediaDevices.getUserMedia(constraints).then(function(stream) {
@@ -368,7 +372,7 @@
                 btn.className = 'inline-flex justify-center w-full px-4 py-2 text-base font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 sm:w-auto sm:text-sm';
             } else {
                 title.textContent = 'Check-out All';
-                msg.textContent = 'Are you sure you want to check out all attendees currently in the event?';
+                msg.textContent = 'Check out only attendees who are currently inside the event (checked in, not yet checked out). Continue?';
                 btn.className = 'inline-flex justify-center w-full px-4 py-2 text-base font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 sm:w-auto sm:text-sm';
             }
             modal.classList.remove('hidden');

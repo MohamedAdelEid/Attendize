@@ -388,15 +388,33 @@
                                             <li role="separator" class="divider"></li>
                                             <li><a href="javascript:void(0);" class="bulk-action" data-action="export-selected"><i class="ico-download"></i> Export Selected</a></li>
                                             <li role="separator" class="divider"></li>
+                                            <li><a href="javascript:void(0);" class="bulk-action" data-action="render-tickets"><i class="ico-ticket"></i> Render Tickets</a></li>
                                             <li><a href="javascript:void(0);" class="bulk-action" data-action="delete-tickets"><i class="ico-trash"></i> Delete Tickets</a></li>
                                         </ul>
                                     </div>
+                                    <label class="checkbox-inline" style="margin-left: 12px; font-weight: normal;">
+                                        <input type="checkbox" id="send-email-on-status-change" value="1" checked>
+                                        Send email when approving/rejecting
+                                    </label>
                                 </div>
 
                                 <div class="export-actions">
                                     <button type="button" class="btn btn-info export-selected-btn" id="export-selected-btn" disabled>
                                         <i class="ico-download"></i> Export Selected (<span id="selected-count">0</span>)
                                     </button>
+                                    <button type="button" class="btn btn-success ticket-bulk-btn" id="render-all-event-tickets-btn">
+                                        <i class="ico-ticket"></i> Render All Tickets
+                                    </button>
+                                    <button type="button" class="btn btn-warning ticket-bulk-btn" id="delete-all-event-tickets-btn">
+                                        <i class="ico-trash"></i> Delete All Tickets
+                                    </button>
+                                </div>
+                                <div id="ticket-bulk-progress" style="display: none; margin-top: 10px;">
+                                    <div class="progress" style="margin-bottom: 0;">
+                                        <div id="ticket-bulk-progress-bar" class="progress-bar progress-bar-striped active" role="progressbar"
+                                            style="width: 0%; min-width: 2em;">0%</div>
+                                    </div>
+                                    <small id="ticket-bulk-progress-label" class="text-muted">Starting...</small>
                                 </div>
                             </div>
 
@@ -409,13 +427,14 @@
                                             </th>
                                             <th>Name</th>
                                             <th>Email</th>
+                                            <th>Phone</th>
                                             @if(!isset($registration))
                                                 <th>Registration Form</th>
                                             @endif
                                             <th>User Type</th>
                                             <th class="status-column">Status</th>
                                             <th>CR Code</th>
-                                            <th>Registered On</th>
+                                           
                                             <th class="actions-column">Actions</th>
                                         </tr>
                                     </thead>
@@ -435,6 +454,7 @@
                                                     {{ $user->first_name }} {{ $user->last_name }}
                                                 </td>
                                                 <td>{{ $user->email }}</td>
+                                                <td>{{ $user->phone }}</td>
                                                 @if(!isset($registration))
                                                     <td>
                                                         <a href="{{ route('showRegistrationUsers', ['event_id' => $event->id, 'registration_id' => $user->registration_id]) }}">
@@ -450,6 +470,8 @@
                                                     @else
                                                         <span class="text-muted">-</span>
                                                     @endif
+													
+													</br> <span class="badge badge-info">{{ $user->created_at->format('M d, Y H:i') }}</span>
                                                 </td>
                                                 <td class="status-column">
                                                     <span class="user-status status-{{ $user->status }}">
@@ -465,12 +487,17 @@
                                                                class="btn btn-xs btn-success" title="Download Ticket">
                                                                 <i class="ico-download"></i>
                                                             </a>
+                                                            
+                                                            <a href="{{ route('printUserTicket', ['event_id' => $event->id, 'user_id' => $user->id]) }}"
+                                                               class="btn btn-xs btn-success" title="Print Ticket">
+                                                                <i class="ico-print"></i>
+                                                            </a>
                                                         @endif
                                                     @else
                                                         <span class="text-muted">-</span>
                                                     @endif
                                                 </td>
-                                                <td>{{ $user->created_at->format('M d, Y H:i') }}</td>
+                                               
                                                 <td class="actions-column">
                                                     <div class="btn-group user-actions">
                                                         <button type="button"
@@ -641,6 +668,7 @@
 @stop
 
 @section('foot')
+    @include('ManageEvent.Partials.TicketBulkActionsScript')
     <script>
         $(document).ready(function() {
             // Row click: open View Details modal (unless clicking checkbox or actions)
@@ -672,6 +700,10 @@
                 const selectedCount = $('.user-checkbox:checked').length;
                 $('#selected-count').text(selectedCount);
                 $('#export-selected-btn').prop('disabled', selectedCount === 0);
+            }
+
+            function shouldSendStatusEmail() {
+                return $('#send-email-on-status-change').is(':checked') ? 1 : 0;
             }
 
             // Bulk actions
@@ -708,6 +740,9 @@
                         case 'delete-tickets':
                             confirmMessage = 'Delete generated tickets for selected users? They can get a new ticket via Download.';
                             break;
+                        case 'render-tickets':
+                            confirmMessage = 'Generate tickets for selected approved users? This may take a while.';
+                            break;
                         case 'export-selected':
                             exportSelectedUsers();
                             return;
@@ -725,6 +760,10 @@
                         user_ids: userIds
                     };
 
+                    if (action === 'approve' || action === 'reject') {
+                        data.send_email = shouldSendStatusEmail();
+                    }
+
                     switch (action) {
                         case 'approve':
                         case 'reject':
@@ -741,6 +780,17 @@
                         case 'delete-tickets':
                             url = '{{ route('bulkDeleteUserTickets', ['event_id' => $event->id]) }}';
                             break;
+                        case 'render-tickets':
+                            TicketBulkActions.runBatched({
+                                action: 'render',
+                                userIds: userIds,
+                                $progress: $('#ticket-bulk-progress'),
+                                $bar: $('#ticket-bulk-progress-bar'),
+                                $label: $('#ticket-bulk-progress-label'),
+                                $buttons: $('.ticket-bulk-btn'),
+                                reloadOnFinish: true
+                            });
+                            return;
                     }
 
                     $.ajax({
@@ -833,7 +883,8 @@
                         type: 'POST',
                         data: {
                             _token: '{{ csrf_token() }}',
-                            status: status
+                            status: status,
+                            send_email: shouldSendStatusEmail()
                         },
                         success: function(response) {
                             if (response.status === 'success') {
@@ -1012,6 +1063,34 @@
 
             // Initialize selected count
             updateSelectedCount();
+
+            $('#render-all-event-tickets-btn').on('click', function() {
+                if (!confirm('Generate tickets for all approved users? This may take several minutes.')) {
+                    return;
+                }
+                TicketBulkActions.runBatched({
+                    action: 'render',
+                    $progress: $('#ticket-bulk-progress'),
+                    $bar: $('#ticket-bulk-progress-bar'),
+                    $label: $('#ticket-bulk-progress-label'),
+                    $buttons: $('.ticket-bulk-btn'),
+                    reloadOnFinish: true
+                });
+            });
+
+            $('#delete-all-event-tickets-btn').on('click', function() {
+                if (!confirm('Delete all generated tickets for this event? Users can download new tickets later.')) {
+                    return;
+                }
+                TicketBulkActions.runBatched({
+                    action: 'delete',
+                    $progress: $('#ticket-bulk-progress'),
+                    $bar: $('#ticket-bulk-progress-bar'),
+                    $label: $('#ticket-bulk-progress-label'),
+                    $buttons: $('.ticket-bulk-btn'),
+                    reloadOnFinish: true
+                });
+            });
         });
 
         // Change per page function

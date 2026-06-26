@@ -17,6 +17,10 @@ class Registration extends MyBaseModel
         'max_participants',
         'show_on_landing',
         'is_members_form',
+        'show_on_fees_section',
+        'is_virtual_form',
+        'fees_display_order',
+        'fees_card_badge',
         'is_private',
         'private_slug',
     ];
@@ -85,6 +89,8 @@ class Registration extends MyBaseModel
         'end_date' => 'datetime',
         'show_on_landing' => 'boolean',
         'is_members_form' => 'boolean',
+        'show_on_fees_section' => 'boolean',
+        'is_virtual_form' => 'boolean',
         'is_private' => 'boolean',
     ];
 

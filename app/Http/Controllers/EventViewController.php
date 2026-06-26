@@ -6,7 +6,7 @@ use App\Attendize\Utils;
 use App\Attendize\PaymentUtils;
 use App\Mail\RegistrationApproved;
 use App\Mail\RegistrationPending;
-use App\Models\Affiliate;
+use App\Services\EventLandingPageService;
 use App\Models\Category;
 use App\Models\Conference;
 use App\Models\Country;
@@ -1334,14 +1334,27 @@ class EventViewController extends Controller
     public function showSymposium(Request $request, $event_id)
     {
         $event = Event::findOrFail($event_id);
-        $landingRegistration = Registration::where('event_id', $event_id)->where('show_on_landing', true)->with(['dynamicFormFields', 'category.conferences.professions'])->first();
+        $landingRegistrations = Registration::where('event_id', $event_id)
+            ->where('show_on_landing', true)
+            ->where('status', 'active')
+            ->where('is_private', false)
+            ->with(['dynamicFormFields', 'category.conferences.professions'])
+            ->orderBy('id')
+            ->get();
+        $landingRegistration = $landingRegistrations->first();
         $membersRegistration = Registration::where('event_id', $event_id)->where('is_members_form', true)->with(['dynamicFormFields', 'category.conferences.professions'])->first();
-        $event->load('eventMemberFields');
+        $virtualRegistration = Registration::where('event_id', $event_id)->where('is_virtual_form', true)->where('status', 'active')->with(['dynamicFormFields', 'category.conferences.professions'])->first();
+        if (!$virtualRegistration) {
+            $virtualRegistration = Registration::where('event_id', $event_id)->where('show_on_landing', true)->where('id', '10')->with(['dynamicFormFields', 'category.conferences.professions'])->first();
+        }
+
+        $event->load('eventMemberFields', 'landingPage.theme');
         $displaySearchFields = $event->eventMemberFields->where('is_unique', true)->values();
         $countries = Country::all();
-        $landingUserTypes = \App\Models\UserType::where('event_id', $event_id)->where('show_on_landing', true)->with('options')->orderBy('name')->get();
+        $landingUserTypes = UserType::where('event_id', $event_id)->where('show_on_landing', true)->with('options')->orderBy('name')->get();
+        $landing = app(EventLandingPageService::class)->resolve($event);
 
-        return view('ViewEvent.show-symposium', compact('event', 'landingRegistration', 'membersRegistration', 'displaySearchFields', 'countries', 'landingUserTypes'));
+        return view('ViewEvent.show-symposium', compact('event', 'landingRegistration', 'landingRegistrations', 'membersRegistration', 'displaySearchFields', 'countries', 'landingUserTypes', 'virtualRegistration', 'landing'));
     }
 
     /**

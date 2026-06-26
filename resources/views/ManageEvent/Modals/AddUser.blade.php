@@ -150,6 +150,13 @@
                                 'required' => 'required'
                             ]) !!}
                         </div>
+                        <div class="form-group">
+                            <input type="hidden" name="send_email" value="0">
+                            <label class="checkbox-inline">
+                                <input type="checkbox" name="send_email" value="1" checked>
+                                Send email notification if approved or rejected
+                            </label>
+                        </div>
                     </div>
                 </div>
 

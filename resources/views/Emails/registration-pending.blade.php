@@ -48,7 +48,14 @@
                     <ul>
                         <li><strong>Event:</strong> {{ $event->title }}</li>
                         <li><strong>Date:</strong> May 2, 2026</li>
-                        <li><strong>Venue:</strong> Crown Plaza - Al Hamra - Crystal Hall</li>
+                        
+                        <li><strong>Time:</strong> 9:00 am - 5:00 pm</li>
+                        
+                        
+                        @if($event->venue_name)
+                        <li><strong>Venue:</strong> {{ $event->venue_name }}</li>
+                        @endif
+                        
                         <li><strong>Status:</strong> <span class="status-badge">Pending</span></li>
                     </ul>
                 </div>

@@ -93,11 +93,9 @@
                                                     <i class="ico-calendar"></i>
                                                 </span>
                                                 {!! Form::text('start_date', $event->getFormattedDate('start_date'), [
-                                                    'class' => 'form-control start hasDatepicker',
-                                                    'data-field' => 'datetime',
-                                                    'data-startend' => 'start',
-                                                    'data-startendelem' => '.end',
-                                                    'readonly' => '',
+                                                    'class' => 'form-control registration-start-date',
+                                                    'autocomplete' => 'off',
+                                                    'placeholder' => 'YYYY-MM-DD HH:MM',
                                                 ]) !!}
                                             </div>
                                         </div>
@@ -112,11 +110,9 @@
                                                     <i class="ico-calendar"></i>
                                                 </span>
                                                 {!! Form::text('end_date', old('end_date', $event->getFormattedDate('end_date')), [
-                                                    'class' => 'form-control end hasDatepicker',
-                                                    'data-field' => 'datetime',
-                                                    'data-startend' => 'end',
-                                                    'data-startendelem' => '.start',
-                                                    'readonly' => '',
+                                                    'class' => 'form-control registration-end-date',
+                                                    'autocomplete' => 'off',
+                                                    'placeholder' => 'YYYY-MM-DD HH:MM',
                                                 ]) !!}
                                             </div>
                                         </div>
@@ -160,7 +156,7 @@
                                                     <strong>Display this form on the event landing page</strong>
                                                 </label>
                                             </div>
-                                            <p class="help-block text-muted">Only one registration form per event can be the landing page form. Non-members will see this form.</p>
+                                            <p class="help-block text-muted">Show this form on the event landing page. You can enable this for multiple registration forms.</p>
                                         </div>
                                         <div class="form-group">
                                             <div class="checkbox">
@@ -351,9 +347,15 @@
     </div>
 </div>
 
+@include('ManageEvent.Partials.RegistrationFlatpickr')
+
 <script>
 // Wait for the document to be fully loaded
 $(document).ready(function() {
+    if (typeof window.initRegistrationFlatpickr === 'function') {
+        window.initRegistrationFlatpickr($('#create-registration-modal'));
+    }
+
     // Initialize field counter
     let fieldCounter = 0;
 

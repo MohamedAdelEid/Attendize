@@ -68,6 +68,7 @@ class RegistrationUsersController extends Controller
                     ->where('first_name', 'like', "%{$search}%")
                     ->orWhere('last_name', 'like', "%{$search}%")
                     ->orWhere('email', 'like', "%{$search}%")
+                    ->orWhere('phone', 'like', "%{$search}%")
                     ->orWhere('unique_code', 'like', "%{$search}%");
             });
         }
@@ -135,6 +136,8 @@ class RegistrationUsersController extends Controller
      */
     public function showRegistrationUsers(Request $request, $event_id, $registration_id)
     {
+		
+	
         $event = Event::scope()->findOrFail($event_id);
         $registration = Registration::findOrFail($registration_id);
 
@@ -159,6 +162,7 @@ class RegistrationUsersController extends Controller
                     ->where('first_name', 'like', "%{$search}%")
                     ->orWhere('last_name', 'like', "%{$search}%")
                     ->orWhere('email', 'like', "%{$search}%")
+					->orWhere('phone', 'like', "%{$search}%")
                     ->orWhere('unique_code', 'like', "%{$search}%");
             });
         }
@@ -236,6 +240,60 @@ class RegistrationUsersController extends Controller
 
         // Log the cleanup action
         \Log::info("Cleaned up ticket data for user {$user->id} ({$user->email}) - status changed from approved to rejected");
+    }
+
+    protected function shouldSendStatusEmail(Request $request): bool
+    {
+        return $request->boolean('send_email');
+    }
+
+    protected function maybeSendApprovalEmail(RegistrationUser $user, Event $event, Request $request): void
+    {
+        if (!$this->shouldSendStatusEmail($request)) {
+            return;
+        }
+
+        Mail::to($user->email)->send(new RegistrationApproved($user, $event));
+    }
+
+    protected function maybeSendRejectionEmail(RegistrationUser $user, Event $event, Request $request): void
+    {
+        if (!$this->shouldSendStatusEmail($request)) {
+            return;
+        }
+
+        Mail::to($user->email)->send(new RegistrationRejected($user, $event));
+    }
+
+    protected function applyRegistrationUserStatusChange(
+        RegistrationUser $user,
+        string $newStatus,
+        string $oldStatus,
+        Event $event,
+        Request $request
+    ): void {
+        if ($newStatus === $oldStatus) {
+            return;
+        }
+
+        if ($newStatus === 'approved' && $oldStatus !== 'approved') {
+            $user->status = $newStatus;
+            $user->save();
+            $this->ticketService->processApproval($user);
+            $this->maybeSendApprovalEmail($user, $event, $request);
+        } elseif ($newStatus === 'rejected' && $oldStatus === 'approved') {
+            $user->status = $newStatus;
+            $user->save();
+            $this->cleanupTicketData($user);
+            $this->maybeSendRejectionEmail($user, $event, $request);
+        } elseif ($newStatus === 'rejected' && $oldStatus !== 'rejected') {
+            $user->status = $newStatus;
+            $user->save();
+            $this->maybeSendRejectionEmail($user, $event, $request);
+        } else {
+            $user->status = $newStatus;
+            $user->save();
+        }
     }
 
     /**
@@ -389,7 +447,9 @@ class RegistrationUsersController extends Controller
             // Process approval if status is approved
             if ($request->status === 'approved') {
                 $this->ticketService->processApproval($registrationUser);
-                Mail::to($registrationUser->email)->send(new RegistrationApproved($registrationUser, $event));
+                $this->maybeSendApprovalEmail($registrationUser, $event, $request);
+            } elseif ($request->status === 'rejected') {
+                $this->maybeSendRejectionEmail($registrationUser, $event, $request);
             }
 
             DB::commit();
@@ -521,7 +581,6 @@ class RegistrationUsersController extends Controller
                 'city' => $request->city,
                 'conference_id' => $request->conference_id,
                 'profession_id' => $request->profession_id,
-                'status' => $request->status,
             ];
             if ($request->hasFile('avatar') && $request->file('avatar')->isValid()) {
                 if ($user->avatar && Storage::disk('public')->exists($user->avatar)) {
@@ -581,18 +640,7 @@ class RegistrationUsersController extends Controller
             }
 
             // Handle status changes
-            if ($request->status === 'approved' && $oldStatus !== 'approved') {
-                // User is being approved - generate fresh credentials
-                $this->ticketService->processApproval($user);
-                Mail::to($user->email)->send(new RegistrationApproved($user, $event));
-            } elseif ($request->status === 'rejected' && $oldStatus === 'approved') {
-                // User was approved but now rejected - clean up ticket data
-                $this->cleanupTicketData($user);
-                Mail::to($user->email)->send(new RegistrationRejected($user, $event));
-            } elseif ($request->status === 'rejected' && $oldStatus !== 'rejected') {
-                // User is being rejected (but wasn't previously approved)
-                Mail::to($user->email)->send(new RegistrationRejected($user, $event));
-            }
+            $this->applyRegistrationUserStatusChange($user, $request->status, $oldStatus, $event, $request);
 
             DB::commit();
 
@@ -804,32 +852,7 @@ class RegistrationUsersController extends Controller
         $oldStatus = $user->status;
         $newStatus = $request->input('status');
 
-        // Handle status changes with ticket cleanup logic
-        if ($newStatus === 'approved' && $oldStatus !== 'approved') {
-            // User is being approved - generate fresh credentials
-            $user->status = $newStatus;
-            $user->save();
-
-            $this->ticketService->processApproval($user);
-            Mail::to($user->email)->send(new RegistrationApproved($user, $event));
-        } elseif ($newStatus === 'rejected' && $oldStatus === 'approved') {
-            // User was approved but now rejected - clean up ticket data
-            $user->status = $newStatus;
-            $user->save();
-
-            $this->cleanupTicketData($user);
-            Mail::to($user->email)->send(new RegistrationRejected($user, $event));
-        } elseif ($newStatus === 'rejected' && $oldStatus !== 'rejected') {
-            // User is being rejected (but wasn't previously approved)
-            $user->status = $newStatus;
-            $user->save();
-
-            Mail::to($user->email)->send(new RegistrationRejected($user, $event));
-        } else {
-            // Just update status for other cases
-            $user->status = $newStatus;
-            $user->save();
-        }
+        $this->applyRegistrationUserStatusChange($user, $newStatus, $oldStatus, $event, $request);
 
         return response()->json([
             'status' => 'success',
@@ -900,32 +923,7 @@ class RegistrationUsersController extends Controller
             // Process each user individually for proper ticket handling
             foreach ($users as $user) {
                 $oldStatus = $user->status;
-
-                if ($status === 'approved' && $oldStatus !== 'approved') {
-                    // User is being approved - generate fresh credentials
-                    $user->status = $status;
-                    $user->save();
-
-                    $this->ticketService->processApproval($user);
-                    Mail::to($user->email)->send(new RegistrationApproved($user, $event));
-                } elseif ($status === 'rejected' && $oldStatus === 'approved') {
-                    // User was approved but now rejected - clean up ticket data
-                    $user->status = $status;
-                    $user->save();
-
-                    $this->cleanupTicketData($user);
-                    Mail::to($user->email)->send(new RegistrationRejected($user, $event));
-                } elseif ($status === 'rejected' && $oldStatus !== 'rejected') {
-                    // User is being rejected (but wasn't previously approved)
-                    $user->status = $status;
-                    $user->save();
-
-                    Mail::to($user->email)->send(new RegistrationRejected($user, $event));
-                } else {
-                    // Just update status for other cases
-                    $user->status = $status;
-                    $user->save();
-                }
+                $this->applyRegistrationUserStatusChange($user, $status, $oldStatus, $event, $request);
             }
 
             $message = 'Selected users have been ' . $status;

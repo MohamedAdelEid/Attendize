@@ -19,6 +19,8 @@ use App\Http\Controllers\EventCheckoutController;
 use App\Http\Controllers\EventPaymentReportsController;
 use App\Http\Controllers\EventController;
 use App\Http\Controllers\EventCustomizeController;
+use App\Http\Controllers\EventLandingPageController;
+use App\Http\Controllers\EventThemeController;
 use App\Http\Controllers\EventDashboardController;
 use App\Http\Controllers\EventOrdersController;
 use App\Http\Controllers\EventPromoteController;
@@ -174,6 +176,9 @@ Route::group(
                 ->name('viewTicket');
             Route::get('ticket/print-view/{token}', [App\Http\Controllers\TicketController::class, 'viewTicketTemplate'])
                 ->name('viewTicketTemplate');
+				
+			Route::get('certificate/download/{token}', [App\Http\Controllers\TicketController::class, 'downloadCertificate'])
+                ->name('downloadCertificate');
         });
 
         /*
@@ -1070,6 +1075,49 @@ Route::group(
                     [EventCustomizeController::class, 'showCustomize']
                 )->name('showEventCustomizeTab');
 
+                /*
+                 * Landing Page CMS
+                 */
+                Route::get(
+                    '{event_id}/landing-page/themes/create',
+                    [EventThemeController::class, 'create']
+                )->name('createEventTheme');
+
+                Route::get(
+                    '{event_id}/landing-page/themes/{theme_id}/edit',
+                    [EventThemeController::class, 'edit']
+                )->name('editEventTheme');
+
+                Route::post(
+                    '{event_id}/landing-page/themes/{theme_id}',
+                    [EventThemeController::class, 'update']
+                )->name('updateEventTheme');
+
+                Route::get(
+                    '{event_id}/landing-page/themes',
+                    [EventThemeController::class, 'index']
+                )->name('showEventThemes');
+
+                Route::post(
+                    '{event_id}/landing-page/themes',
+                    [EventThemeController::class, 'store']
+                )->name('storeEventTheme');
+
+                Route::post(
+                    '{event_id}/landing-page',
+                    [EventLandingPageController::class, 'update']
+                )->name('postEventLandingPage');
+
+                Route::get(
+                    '{event_id}/landing-page/{tab?}',
+                    [EventLandingPageController::class, 'show']
+                )->name('showEventLandingPageTab');
+
+                Route::get(
+                    '{event_id}/landing-page',
+                    [EventLandingPageController::class, 'show']
+                )->name('showEventLandingPage');
+
                 Route::post(
                     '{event_id}/customize/order_page',
                     [EventCustomizeController::class, 'postEditEventOrderPage']
@@ -1092,12 +1140,26 @@ Route::group(
 
                 Route::get('{event_id}/download-ticket/{user_id}', [App\Http\Controllers\TicketController::class, 'downloadUserTicket'])
                     ->name('downloadUserTicket');
+                
+                
+                Route::get('{event_id}/print-ticket/{user_id}', [App\Http\Controllers\TicketController::class, 'printUserTicket'])
+                    ->name('printUserTicket');
+
 
                 Route::post('{event_id}/delete-ticket/{user_id}', [App\Http\Controllers\TicketController::class, 'deleteUserTicket'])
                     ->name('deleteUserTicket');
 
                 Route::post('{event_id}/users/bulk/delete-tickets', [App\Http\Controllers\TicketController::class, 'bulkDeleteUserTickets'])
                     ->name('bulkDeleteUserTickets');
+
+                Route::post('{event_id}/tickets/render', [App\Http\Controllers\TicketController::class, 'renderEventTickets'])
+                    ->name('renderEventTickets');
+
+                Route::post('{event_id}/tickets/delete-all', [App\Http\Controllers\TicketController::class, 'deleteEventTickets'])
+                    ->name('deleteEventTickets');
+
+                Route::get('{event_id}/tickets/stats', [App\Http\Controllers\TicketController::class, 'eventTicketStats'])
+                    ->name('eventTicketStats');
 
                 Route::post(
                     '{event_id}/customize/design',
@@ -1218,6 +1280,8 @@ Route::group(
                     '{event_id}/scan-ticket',
                     [EventCheckInController::class, 'showCheckIn']
                 )->name('showCheckIn');
+                
+                
 
                 Route::get(
                     '{event_id}/check-in-dashboard',
@@ -1306,6 +1370,7 @@ Route::delete('/contact-us/{event}/delete-selected', [ContactUsController::class
 Route::get('/events/{event_id}/registration-confirmation', [EventViewController::class, 'showRegistrationConfirmation'])->name('showRegistrationConfirmation');
 Route::get('/events/{event_id}/kiosk', [EventCheckInController::class, 'showGuestKiosk'])->name('showGuestKiosk');
 Route::post('/events/{event_id}/post-scan-ticket', [EventCheckInController::class, 'PostScanTicket'])->name('PostScanTicket');
+Route::post('/events/{event_id}/print-scan-ticket', [EventCheckInController::class, 'PrintScanTicket'])->name('PrintScanTicket');
 Route::post('/events/{event_id}/bulk-check-in', [EventCheckInController::class, 'bulkCheckIn'])->name('bulkCheckIn');
 Route::post('/events/{event_id}/bulk-check-out', [EventCheckInController::class, 'bulkCheckOut'])->name('bulkCheckOut');
 Route::get('/events/{event_id}/fetch-registration-users', [EventCheckInController::class, 'fetchRegistrationUsers'])->name('fetchRegistrationUsers');

@@ -41,6 +41,9 @@
                         <li><strong>Event:</strong> {{ $event->title }}</li>
                         {{-- <li><strong>Date:</strong> {{ \Carbon\Carbon::parse($event->start_date)->format('F j, Y') }}</li> --}}
                         <li><strong>Date:</strong> May 2, 2026</li>
+                        <li><strong>Time:</strong> 9:00 am - 5:00 pm</li>
+                        
+                        
                         @if($event->venue_name)
                         <li><strong>Venue:</strong> {{ $event->venue_name }}</li>
                         @endif

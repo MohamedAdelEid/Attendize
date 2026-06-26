@@ -13,15 +13,18 @@ class TicketTemplate extends Model
         'background_image_path',
         'name_position_x',
         'name_position_y',
+        'name_width',
         'name_font_size',
         'name_font_color',
         'code_position_x',
         'code_position_y',
         'code_font_size',
         'code_font_color',
+        'show_registration_code',
         'qr_position_x',
         'qr_position_y',
         'qr_size',
+        'show_qr_code',
         'show_user_type',
         'user_type_position_x',
         'user_type_position_y',
@@ -44,6 +47,8 @@ class TicketTemplate extends Model
     ];
 
     protected $casts = [
+        'show_registration_code' => 'boolean',
+        'show_qr_code' => 'boolean',
         'show_user_type' => 'boolean',
         'show_profession' => 'boolean',
         'show_category' => 'boolean',
