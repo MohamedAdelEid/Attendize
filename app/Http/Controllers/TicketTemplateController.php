@@ -150,7 +150,7 @@ class TicketTemplateController extends MyBaseController
             'code_position_y' => 'required|numeric',
             'qr_position_x' => 'required|numeric',
             'qr_position_y' => 'required|numeric',
-            'name_font_size' => 'nullable|numeric|min:8|max:72',
+            'name_font_size' => 'nullable|numeric|min:8|max:200',
             'name_font_color' => 'nullable|string',
             'code_font_size' => 'nullable|numeric|min:8|max:72',
             'code_font_color' => 'nullable|string',
