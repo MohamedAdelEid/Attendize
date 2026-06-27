@@ -1,3 +1,5 @@
+@include('ManageEvent.Partials.DatetimeFlatpickr')
+
 {!! Html::script('vendor/simplemde/dist/simplemde.min.js') !!}
 {!! Html::style('vendor/simplemde/dist/simplemde.min.css') !!}
 
@@ -22,15 +24,11 @@
                 status: false
             });
             simplemde.render();
-        })
-
-        $("#DatePicker").remove();
-        var $div = $("<div>", {id: "DatePicker"});
-        $("body").append($div);
-        $div.DateTimePicker({
-            dateTimeFormat: window.Attendize.DateTimeFormat,
-            dateSeparator: window.Attendize.DateSeparator
         });
+
+        if (typeof window.initDatetimeFlatpickr === 'function') {
+            window.initDatetimeFlatpickr($('form.gf'));
+        }
 
     });
 </script>

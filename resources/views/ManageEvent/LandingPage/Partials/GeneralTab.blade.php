@@ -5,6 +5,10 @@
     <h4>Section Visibility</h4>
     <div class="row">
         <div class="col-md-4">
+            <input type="hidden" name="section_header_enabled" value="0">
+            <label><input type="checkbox" name="section_header_enabled" value="1" {{ ($landingPage->section_header_enabled ?? true) ? 'checked' : '' }}> Header / Navigation</label>
+        </div>
+        <div class="col-md-4">
             <input type="hidden" name="section_hero_enabled" value="0">
             <label><input type="checkbox" name="section_hero_enabled" value="1" {{ $landingPage->section_hero_enabled ? 'checked' : '' }}> Hero</label>
         </div>

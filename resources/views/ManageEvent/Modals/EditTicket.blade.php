@@ -52,11 +52,10 @@
 
                             {!!  Form::text('start_sale_date', $ticket->getFormattedDate('start_sale_date'),
                                 [
-                                    'class' => 'form-control start hasDatepicker',
+                                    'class' => 'form-control start',
                                     'data-field' => 'datetime',
                                     'data-startend' => 'start',
                                     'data-startendelem' => '.end',
-                                    'readonly' => ''
                                 ]) !!}
                         </div>
                     </div>
@@ -69,11 +68,10 @@
                                 ])  !!}
                             {!!  Form::text('end_sale_date', $ticket->getFormattedDate('end_sale_date'),
                                 [
-                                    'class' => 'form-control end hasDatepicker',
+                                    'class' => 'form-control end',
                                     'data-field' => 'datetime',
                                     'data-startend' => 'end',
                                     'data-startendelem' => '.start',
-                                    'readonly' => ''
                                 ])  !!}
                         </div>
                     </div>

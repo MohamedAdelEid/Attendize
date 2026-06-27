@@ -316,6 +316,7 @@ class EventLandingPageService
     protected function resolveHeader(Event $event, ?EventLandingPage $landingPage, ?EventTheme $theme): array
     {
         return [
+            'enabled' => $landingPage ? (bool) ($landingPage->section_header_enabled ?? true) : true,
             'logo_url' => $this->assetUrl(
                 ($landingPage && $landingPage->logo_path)
                     ? $landingPage->logo_path

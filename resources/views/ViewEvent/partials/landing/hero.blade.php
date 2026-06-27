@@ -1,19 +1,20 @@
 @if(!empty($landing['hero']['enabled']))
+@php $headerEnabled = !empty($landing['header']['enabled']); @endphp
 <section class="relative min-h-screen flex items-center justify-center overflow-hidden">
     @if(($landing['hero']['bg_type'] ?? 'image') === 'video' && !empty($landing['hero']['bg_video_url']))
-        <div class="absolute inset-0 overflow-hidden">
+        <div class="absolute inset-x-0 bottom-0 {{ $headerEnabled ? 'top-12' : 'top-0' }} overflow-hidden">
             <video class="absolute inset-0 w-full h-full object-cover" autoplay muted loop playsinline>
                 <source src="{{ $landing['hero']['bg_video_url'] }}" type="video/mp4">
             </video>
-            <div class="absolute inset-0 bg-gradient-to-b from-background/90 via-background/70 to-background"></div>
+            <div class="absolute inset-0 bg-gradient-to-b from-background/80 via-background/70 to-background"></div>
         </div>
     @else
-        <div class="absolute inset-0 bg-cover bg-center bg-no-repeat" style="background-image: url('{{ $landing['hero']['bg_image_url'] }}');">
-            <div class="absolute inset-0 bg-gradient-to-b from-background/90 via-background/70 to-background"></div>
+        <div class="absolute inset-x-0 bottom-0 {{ $headerEnabled ? 'top-12' : 'top-0' }} bg-cover bg-center bg-no-repeat" style="background-image: url('{{ $landing['hero']['bg_image_url'] }}');">
+            <div class="absolute inset-0 bg-gradient-to-b from-background/70 via-background/50 to-background"></div>
         </div>
     @endif
 
-    <div class="relative z-10 container mx-auto px-4 pt-24 pb-16 text-center">
+    <div class="relative z-10 container mx-auto px-4 {{ $headerEnabled ? 'pt-24' : 'pt-16' }} pb-16 text-center">
         @if(!empty($landing['hero']['badge_text']))
         <div class="inline-block mb-6 opacity-0 animate-fade-up">
             <span class="px-4 py-2 rounded-full border border-primary/30 bg-secondary/50 text-primary text-sm font-medium">{{ $landing['hero']['badge_text'] }}</span>

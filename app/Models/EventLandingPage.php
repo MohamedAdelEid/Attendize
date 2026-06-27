@@ -12,6 +12,7 @@ class EventLandingPage extends MyBaseModel
         'section_registration_enabled',
         'section_location_enabled',
         'section_footer_enabled',
+        'section_header_enabled',
         'hero_bg_type',
         'hero_bg_image_path',
         'hero_bg_video_url',
@@ -60,6 +61,7 @@ class EventLandingPage extends MyBaseModel
         'section_registration_enabled' => 'boolean',
         'section_location_enabled' => 'boolean',
         'section_footer_enabled' => 'boolean',
+        'section_header_enabled' => 'boolean',
         'location_lat' => 'float',
         'location_long' => 'float',
     ];

@@ -44,11 +44,10 @@
                                 <div class="form-group">
                                     {!! Form::label('start_date', trans('Registration.start_date'), ['class' => ' control-label']) !!}
                                     {!! Form::text('start_date', old('start_date', $event->getFormattedDate('start_date')), [
-                                        'class' => 'form-control start hasDatepicker ',
+                                        'class' => 'form-control start',
                                         'data-field' => 'datetime',
                                         'data-startend' => 'start',
                                         'data-startendelem' => '.end',
-                                        'readonly' => '',
                                     ]) !!}
                                 </div>
                             </div>
@@ -59,11 +58,10 @@
                                         'class' => ' control-label ',
                                     ]) !!}
                                     {!! Form::text('end_date', old('end_date', $event->getFormattedDate('end_date')), [
-                                        'class' => 'form-control end hasDatepicker ',
+                                        'class' => 'form-control end',
                                         'data-field' => 'datetime',
                                         'data-startend' => 'end',
                                         'data-startendelem' => '.start',
-                                        'readonly' => '',
                                     ]) !!}
                                 </div>
                             </div>

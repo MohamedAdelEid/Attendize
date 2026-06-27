@@ -4,7 +4,9 @@
 
 @section('content')
 <main class="min-h-screen">
+    @if(!empty($landing['header']['enabled']))
     @include('ViewEvent.partials.landing.header')
+    @endif
     @include('ViewEvent.partials.landing.hero')
     @include('ViewEvent.partials.landing.pricing')
 

@@ -67,6 +67,7 @@ class EventLandingPageController extends MyBaseController
             $landingPage->section_registration_enabled = $request->boolean('section_registration_enabled');
             $landingPage->section_location_enabled = $request->boolean('section_location_enabled');
             $landingPage->section_footer_enabled = $request->boolean('section_footer_enabled');
+            $landingPage->section_header_enabled = $request->boolean('section_header_enabled');
         }
 
         if ($section === 'hero' || $section === 'general') {

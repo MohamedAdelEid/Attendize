@@ -202,3 +202,7 @@
         </div>
     </div>
 @stop
+
+@section('foot')
+    @include('ManageEvent.Partials.DatetimeFlatpickr')
+@stop

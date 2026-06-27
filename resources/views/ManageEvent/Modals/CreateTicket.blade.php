@@ -57,11 +57,10 @@
                                 <div class="form-group">
                                     {!! Form::label('start_sale_date', trans('ManageEvent.start_sale_on'), ['class' => ' control-label']) !!}
                                     {!! Form::text('start_sale_date', old('start_sale_date'), [
-                                        'class' => 'form-control start hasDatepicker ',
+                                        'class' => 'form-control start',
                                         'data-field' => 'datetime',
                                         'data-startend' => 'start',
                                         'data-startendelem' => '.end',
-                                        'readonly' => '',
                                     ]) !!}
                                 </div>
                             </div>
@@ -72,11 +71,10 @@
                                         'class' => ' control-label ',
                                     ]) !!}
                                     {!! Form::text('end_sale_date', old('end_sale_date'), [
-                                        'class' => 'form-control end hasDatepicker ',
+                                        'class' => 'form-control end',
                                         'data-field' => 'datetime',
                                         'data-startend' => 'end',
                                         'data-startendelem' => '.start',
-                                        'readonly' => '',
                                     ]) !!}
                                 </div>
                             </div>

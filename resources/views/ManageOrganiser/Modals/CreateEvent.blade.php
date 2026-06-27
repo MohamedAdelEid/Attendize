@@ -33,11 +33,10 @@
                                     {!! Form::label('start_date', trans("Event.event_start_date"), array('class'=>'required control-label')) !!}
                                     {!!  Form::text('start_date', old('start_date'),
                                                         [
-                                                    'class'=>'form-control start hasDatepicker ',
+                                                    'class'=>'form-control start',
                                                     'data-field'=>'datetime',
                                                     'data-startend'=>'start',
                                                     'data-startendelem'=>'.end',
-                                                    'readonly'=>''
 
                                                 ])  !!}
                                 </div>
@@ -52,11 +51,10 @@
 
                                     {!!  Form::text('end_date', old('end_date'),
                                                 [
-                                            'class'=>'form-control end hasDatepicker ',
+                                            'class'=>'form-control end',
                                             'data-field'=>'datetime',
                                             'data-startend'=>'end',
                                             'data-startendelem'=>'.start',
-                                            'readonly'=> ''
                                         ])  !!}
                                 </div>
                             </div>
