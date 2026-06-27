@@ -581,6 +581,8 @@ Route::group(
                 // Import Users
                 Route::get('{event_id}/registration/users/import', [App\Http\Controllers\RegistrationUsersController::class, 'showImportUsers'])
                     ->name('showImportUsers');
+                Route::post('{event_id}/registration/users/import/columns', [App\Http\Controllers\RegistrationUsersController::class, 'readImportColumns'])
+                    ->name('readImportColumns');
                 Route::post('{event_id}/registration/users/import', [App\Http\Controllers\RegistrationUsersController::class, 'importUsers'])
                     ->name('importUsers');
                 Route::get('{event_id}/registration/users/template', [App\Http\Controllers\RegistrationUsersController::class, 'downloadTemplate'])

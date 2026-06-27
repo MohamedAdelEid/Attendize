@@ -14,9 +14,9 @@
                     <strong>Instructions:</strong>
                     <ol>
                         <li>Select the registration form to assign users to</li>
-                        <li>Download the Excel template</li>
-                        <li>Fill in the user data</li>
-                        <li>Upload the completed file</li>
+                        <li>Upload your Excel file directly</li>
+                        <li>Map Excel columns to registration fields</li>
+                        <li>Import the mapped users</li>
                     </ol>
                 </div>
 
@@ -73,15 +73,12 @@
 
                 <div class="row">
                     <div class="col-md-12">
-                        <div class="form-group">
-                            <label class="control-label">Excel Template</label>
-                            <div class="well">
-                                <p><i class="ico-download"></i> Download the Excel template for the selected registration form:</p>
-                                <button type="button" id="download-template-btn" class="btn btn-info" disabled>
-                                    <i class="ico-download"></i> Download Template
-                                </button>
-                                <small class="help-block">Please select a registration form first to download the template.</small>
-                            </div>
+                        <div class="checkbox">
+                            <label>
+                                <input type="checkbox" name="send_mail" value="1">
+                                Send approval email to imported approved users
+                            </label>
+                            <small class="help-block">Emails are only sent when the imported user is approved and has a real email from the sheet.</small>
                         </div>
                     </div>
                 </div>
@@ -92,10 +89,42 @@
                             {!! Form::label('import_file', 'Upload Excel File', ['class' => 'control-label required']) !!}
                             {!! Form::file('import_file', [
                                 'class' => 'form-control',
+                                'id' => 'import_file',
                                 'accept' => '.xlsx,.xls,.csv',
                                 'required' => 'required'
                             ]) !!}
-                            <small class="help-block">Supported formats: .xlsx, .xls, .csv (Max: 10MB)</small>
+                            <small class="help-block">Supported formats: .xlsx, .xls, .csv (Max: 10MB). First row is treated as headers.</small>
+                        </div>
+                    </div>
+                </div>
+
+                <input type="hidden" name="column_mapping" id="column_mapping" value="">
+
+                <div class="row">
+                    <div class="col-md-12">
+                        <button type="button" id="read-columns-btn" class="btn btn-primary" disabled>
+                            <i class="ico-list"></i> Read Columns &amp; Map
+                        </button>
+                        <span id="mapping-status" class="text-muted ml-2"></span>
+                    </div>
+                </div>
+
+                <div id="column-mapping-section" class="row" style="display:none; margin-top:20px;">
+                    <div class="col-md-12">
+                        <div class="well">
+                            <strong>Column Mapping</strong>
+                            <p class="text-muted">Map each Excel column to a registration field. Use "Full Name" when the sheet has one name column; it will be split into first and last name automatically.</p>
+                            <div class="table-responsive">
+                                <table class="table table-bordered">
+                                    <thead>
+                                        <tr>
+                                            <th>Excel Column</th>
+                                            <th>Maps To</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="column-mapping-body"></tbody>
+                                </table>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -116,35 +145,121 @@
 
 <script>
 $(document).ready(function() {
-    $('#import_registration_select').on('change', function() {
-        const registrationId = $(this).val();
-        if (registrationId) {
-            $('#download-template-btn').prop('disabled', false);
-            $('.help-block').text('Click to download the template with all required fields for this registration form.');
-        } else {
-            $('#download-template-btn').prop('disabled', true);
-            $('.help-block').text('Please select a registration form first to download the template.');
+    let importTargets = [];
+    let importSuggestions = {};
+
+    function updateReadColumnsButton() {
+        const hasRegistration = !!$('#import_registration_select').val();
+        const fileInput = document.getElementById('import_file');
+        const hasFile = fileInput && fileInput.files.length > 0;
+        $('#read-columns-btn').prop('disabled', !(hasRegistration && hasFile));
+        $('#column_mapping').val('');
+        $('#column-mapping-section').hide();
+    }
+
+    $('#import_registration_select, #import_file').on('change', updateReadColumnsButton);
+
+    $('#read-columns-btn').on('click', function() {
+        const registrationId = $('#import_registration_select').val();
+        const fileInput = document.getElementById('import_file');
+        if (!registrationId || !fileInput.files.length) {
+            alert('Please select a registration form and Excel file first.');
+            return;
         }
+
+        const formData = new FormData();
+        formData.append('_token', '{{ csrf_token() }}');
+        formData.append('registration_id', registrationId);
+        formData.append('import_file', fileInput.files[0]);
+
+        const btn = $('#read-columns-btn');
+        btn.prop('disabled', true).html('<i class="ico-spinner ico-spin"></i> Reading...');
+        $('#mapping-status').text('');
+        $('#import-results, #errors-results').hide();
+
+        $.ajax({
+            url: '{{ route("readImportColumns", ["event_id" => $event->id]) }}',
+            type: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            success: function(response) {
+                if (response.status === 'success') {
+                    importTargets = response.targets || [];
+                    importSuggestions = response.suggestions || {};
+                    renderColumnMapping(response.headers || []);
+                    $('#column-mapping-section').show();
+                    $('#mapping-status').text('Columns loaded. Review mapping before importing.');
+                } else {
+                    $('#mapping-status').text(response.message || 'Could not read columns.');
+                }
+            },
+            error: function(xhr) {
+                const message = (xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : 'Could not read columns.';
+                $('#mapping-status').text(message);
+            },
+            complete: function() {
+                btn.prop('disabled', false).html('<i class="ico-list"></i> Read Columns &amp; Map');
+                updateMappingInput();
+            }
+        });
     });
 
-    $('#download-template-btn').on('click', function() {
-        const registrationId = $('#import_registration_select').val();
-        if (registrationId) {
-            const url = '{{ route("downloadTemplate", ["event_id" => $event->id]) }}?registration_id=' + registrationId;
-            window.location.href = url;
-        }
-    });
+    function renderColumnMapping(headers) {
+        const body = $('#column-mapping-body');
+        body.empty();
+
+        headers.forEach(function(header, index) {
+            if (!header) {
+                return;
+            }
+
+            let options = '<option value="">-- Skip --</option>';
+            importTargets.forEach(function(target) {
+                const selected = importSuggestions[index] === target.value ? ' selected' : '';
+                options += '<option value="' + target.value + '"' + selected + '>' + target.label + '</option>';
+            });
+
+            body.append(
+                '<tr>' +
+                    '<td>Column ' + (index + 1) + ': <strong>' + $('<div>').text(header).html() + '</strong></td>' +
+                    '<td><select class="form-control import-map-select" data-column="' + index + '">' + options + '</select></td>' +
+                '</tr>'
+            );
+        });
+
+        updateMappingInput();
+    }
+
+    $(document).on('change', '.import-map-select', updateMappingInput);
+
+    function updateMappingInput() {
+        const mapping = {};
+        $('.import-map-select').each(function() {
+            const target = $(this).val();
+            if (target) {
+                mapping[$(this).data('column')] = target;
+            }
+        });
+        $('#column_mapping').val(JSON.stringify(mapping));
+    }
 
     // Handle form submission
     $('#import-form').on('submit', function(e) {
         e.preventDefault();
+        updateMappingInput();
+
+        if (!$('#column_mapping').val() || $('#column_mapping').val() === '{}') {
+            alert('Please read the Excel columns and map at least one column before importing.');
+            return;
+        }
 
         const formData = new FormData(this);
         const submitBtn = $('#import-submit-btn');
         const originalText = submitBtn.text();
 
         submitBtn.prop('disabled', true).html('<i class="ico-spinner ico-spin"></i> Importing...');
-        $('#import-results').hide();
+        $('#import-results, #errors-results').hide();
 
         $.ajax({
             url: $(this).attr('action'),
@@ -162,7 +277,9 @@ $(document).ready(function() {
 
                     // Reset form
                     $('#import-form')[0].reset();
-                    $('#download-template-btn').prop('disabled', true);
+                    $('#column_mapping').val('');
+                    $('#column-mapping-section').hide();
+                    updateReadColumnsButton();
 
                     if(response.results && response.results.errors) {
                         $('#errors-results')
@@ -170,6 +287,8 @@ $(document).ready(function() {
                             .addClass('alert-danger')
                             .html('<i class="ico-warning"></i> ' + response.results.error_details.join('<br>'))
                             .show();
+                    } else {
+                        $('#errors-results').hide();
                     }
 
                     // Reload page after 2 seconds

@@ -23,6 +23,7 @@ use Maatwebsite\Excel\Facades\Excel;
 use App\Imports\RegistrationUsersImport;
 use App\Exports\RegistrationUsersTemplateExport;
 use App\Exports\SelectedUsersExport;
+use PhpOffice\PhpSpreadsheet\IOFactory;
 use Mail;
 
 class RegistrationUsersController extends Controller
@@ -675,6 +676,48 @@ class RegistrationUsersController extends Controller
     }
 
     /**
+     * Read uploaded Excel headers and return available registration import targets.
+     *
+     * @param Request $request
+     * @param int $event_id
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function readImportColumns(Request $request, $event_id)
+    {
+        $validator = Validator::make($request->all(), [
+            'registration_id' => 'required|exists:registrations,id',
+            'import_file' => 'required|file|mimes:xlsx,xls,csv|max:10240',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'message' => implode(' ', $validator->errors()->all()),
+            ], 422);
+        }
+
+        $registration = Registration::where('event_id', $event_id)
+            ->with('dynamicFormFields')
+            ->findOrFail($request->registration_id);
+
+        try {
+            $headers = $this->readSpreadsheetHeaders($request->file('import_file'));
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Unable to read file: ' . $e->getMessage(),
+            ], 422);
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'headers' => $headers,
+            'targets' => $this->getImportMappingTargets($registration),
+            'suggestions' => $this->guessImportMappings($headers, $registration),
+        ]);
+    }
+
+    /**
      * Download Excel template for import.
      *
      * @param Request $request
@@ -711,9 +754,11 @@ class RegistrationUsersController extends Controller
         $validator = Validator::make($request->all(), [
             'registration_id' => 'required|exists:registrations,id',
             'import_file' => 'required|file|mimes:xlsx,xls,csv|max:10240',
+            'column_mapping' => 'required',
             'user_type_ids' => 'nullable|array',
             'user_type_ids.*' => 'exists:user_types,id',
             'approval_status' => 'required|in:automatic,manual,approved,pending,rejected',
+            'send_mail' => 'nullable|boolean',
         ]);
 
         if ($validator->fails()) {
@@ -725,18 +770,28 @@ class RegistrationUsersController extends Controller
 
         try {
             $event = Event::findOrFail($event_id);
-            $registration = Registration::findOrFail($request->registration_id);
+            $registration = Registration::where('event_id', $event_id)
+                ->with('dynamicFormFields')
+                ->findOrFail($request->registration_id);
+            $mapping = $request->column_mapping;
+            if (is_string($mapping)) {
+                $mapping = json_decode($mapping, true) ?: [];
+            }
+            if (!is_array($mapping) || empty($mapping)) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Please map at least one Excel column before importing.',
+                ], 422);
+            }
 
-            $import = new RegistrationUsersImport(
+            $results = $this->importUsersWithMapping(
                 $registration,
+                $request->file('import_file'),
+                $mapping,
                 $request->user_type_ids ?? [],
                 $request->approval_status,
-                $this->ticketService
+                $request->boolean('send_mail')
             );
-
-            Excel::import($import, $request->file('import_file'));
-
-            $results = $import->getResults();
 
             return response()->json([
                 'status' => 'success',
@@ -750,6 +805,276 @@ class RegistrationUsersController extends Controller
                 'message' => 'Import failed: ' . $e->getMessage(),
             ]);
         }
+    }
+
+    protected function readSpreadsheetHeaders($file): array
+    {
+        $spreadsheet = $this->loadSpreadsheet($file);
+        $sheet = $spreadsheet->getActiveSheet();
+        $row = $sheet->rangeToArray('A1:ZZ1', null, true, true, false)[0] ?? [];
+
+        return array_values(array_map(function ($value) {
+            return trim((string) $value);
+        }, $row));
+    }
+
+    protected function loadSpreadsheet($file)
+    {
+        $extension = strtolower($file->getClientOriginalExtension());
+        if ($extension === 'csv') {
+            $reader = IOFactory::createReader('Csv');
+            return $reader->load($file->getRealPath());
+        }
+
+        return IOFactory::load($file->getRealPath());
+    }
+
+    protected function getImportMappingTargets(Registration $registration): array
+    {
+        $targets = [
+            ['value' => 'core:full_name', 'label' => 'Full Name (split to first/last)'],
+            ['value' => 'core:first_name', 'label' => 'First Name'],
+            ['value' => 'core:last_name', 'label' => 'Last Name'],
+            ['value' => 'core:email', 'label' => 'Email'],
+            ['value' => 'core:phone', 'label' => 'Phone'],
+            ['value' => 'core:user_types', 'label' => 'User Types'],
+        ];
+
+        foreach ($registration->dynamicFormFields as $field) {
+            if (in_array($field->type, ['file', 'external_payment'], true)) {
+                continue;
+            }
+            $targets[] = [
+                'value' => 'field:' . $field->id,
+                'label' => 'Field: ' . $field->label,
+            ];
+        }
+
+        return $targets;
+    }
+
+    protected function guessImportMappings(array $headers, Registration $registration): array
+    {
+        $suggestions = [];
+        $dynamicFieldsByKey = [];
+        foreach ($registration->dynamicFormFields as $field) {
+            $dynamicFieldsByKey[$this->normalizeImportHeader($field->label)] = 'field:' . $field->id;
+            $dynamicFieldsByKey[$this->normalizeImportHeader($field->name)] = 'field:' . $field->id;
+        }
+
+        foreach ($headers as $index => $header) {
+            $key = $this->normalizeImportHeader($header);
+            if ($key === '') {
+                continue;
+            }
+
+            if (in_array($key, ['name', 'full_name', 'fullname', 'full name'], true)) {
+                $suggestions[$index] = 'core:full_name';
+            } elseif (in_array($key, ['first_name', 'firstname', 'first name', 'fname', 'frist_name', 'fristname'], true)) {
+                $suggestions[$index] = 'core:first_name';
+            } elseif (in_array($key, ['last_name', 'lastname', 'last name', 'lname', 'surname'], true)) {
+                $suggestions[$index] = 'core:last_name';
+            } elseif (in_array($key, ['email', 'mail', 'email_address', 'e-mail'], true)) {
+                $suggestions[$index] = 'core:email';
+            } elseif (in_array($key, ['phone', 'mobile', 'telephone', 'tel'], true)) {
+                $suggestions[$index] = 'core:phone';
+            } elseif (in_array($key, ['user_types', 'user type', 'user_type', 'type'], true)) {
+                $suggestions[$index] = 'core:user_types';
+            } elseif (isset($dynamicFieldsByKey[$key])) {
+                $suggestions[$index] = $dynamicFieldsByKey[$key];
+            }
+        }
+
+        return $suggestions;
+    }
+
+    protected function normalizeImportHeader($value): string
+    {
+        $value = strtolower(trim((string) $value));
+        $value = preg_replace('/[^a-z0-9]+/', '_', $value);
+        return trim($value, '_');
+    }
+
+    protected function importUsersWithMapping(Registration $registration, $file, array $mapping, array $defaultUserTypeIds, string $approvalStatus, bool $sendMail): array
+    {
+        $spreadsheet = $this->loadSpreadsheet($file);
+        $sheet = $spreadsheet->getActiveSheet();
+        $rows = $sheet->toArray(null, true, true, false);
+        array_shift($rows);
+
+        $results = [
+            'success' => 0,
+            'errors' => 0,
+            'error_details' => [],
+        ];
+
+        foreach ($rows as $index => $row) {
+            $rowNumber = $index + 2;
+            if ($this->isImportRowEmpty($row)) {
+                continue;
+            }
+
+            try {
+                $payload = $this->buildMappedImportPayload($row, $mapping, $registration, $rowNumber);
+                $userTypeIds = $this->resolveImportUserTypeIds($registration, $payload['user_types'], $defaultUserTypeIds);
+                $status = $this->resolveImportApprovalStatus($registration, $approvalStatus);
+
+                if (RegistrationUser::where('registration_id', $registration->id)->where('email', $payload['email'])->exists()) {
+                    $results['errors']++;
+                    $results['error_details'][] = "Row {$rowNumber}: {$payload['email']} is already registered for this form.";
+                    continue;
+                }
+
+                DB::transaction(function () use ($registration, $payload, $userTypeIds, $status, $sendMail) {
+                    $user = RegistrationUser::create([
+                        'registration_id' => $registration->id,
+                        'category_id' => $registration->category_id,
+                        'first_name' => $payload['first_name'],
+                        'last_name' => $payload['last_name'],
+                        'email' => $payload['email'],
+                        'phone' => $payload['phone'] ?: null,
+                        'status' => $status,
+                        'is_new' => false,
+                    ]);
+
+                    $user->userTypes()->sync($userTypeIds);
+
+                    foreach ($payload['fields'] as $fieldId => $value) {
+                        if ($value === null || $value === '') {
+                            continue;
+                        }
+                        DynamicFormFieldValue::create([
+                            'registration_user_id' => $user->id,
+                            'dynamic_form_field_id' => $fieldId,
+                            'value' => $value,
+                        ]);
+                    }
+
+                    if ($status === 'approved') {
+                        $this->ticketService->processApproval($user);
+                        if ($sendMail && !$payload['generated_email']) {
+                            Mail::to($user->email)->send(new RegistrationApproved($user, $registration->event));
+                        }
+                    }
+                });
+
+                $results['success']++;
+            } catch (\Exception $e) {
+                $results['errors']++;
+                $results['error_details'][] = "Row {$rowNumber}: " . $e->getMessage();
+            }
+        }
+
+        return $results;
+    }
+
+    protected function isImportRowEmpty(array $row): bool
+    {
+        foreach ($row as $value) {
+            if (trim((string) $value) !== '') {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    protected function buildMappedImportPayload(array $row, array $mapping, Registration $registration, int $rowNumber): array
+    {
+        $payload = [
+            'first_name' => '',
+            'last_name' => '',
+            'email' => '',
+            'phone' => '',
+            'user_types' => '',
+            'generated_email' => false,
+            'fields' => [],
+        ];
+
+        foreach ($mapping as $columnIndex => $target) {
+            $columnIndex = (int) $columnIndex;
+            $value = isset($row[$columnIndex]) ? trim((string) $row[$columnIndex]) : '';
+            if ($target === '' || $value === '') {
+                continue;
+            }
+
+            if ($target === 'core:full_name') {
+                $parts = preg_split('/\s+/', $value, 2);
+                $payload['first_name'] = $payload['first_name'] ?: ($parts[0] ?? '');
+                $payload['last_name'] = $payload['last_name'] ?: ($parts[1] ?? '');
+            } elseif ($target === 'core:first_name') {
+                $payload['first_name'] = $value;
+            } elseif ($target === 'core:last_name') {
+                $payload['last_name'] = $value;
+            } elseif ($target === 'core:email') {
+                $payload['email'] = filter_var($value, FILTER_VALIDATE_EMAIL) ? $value : '';
+            } elseif ($target === 'core:phone') {
+                $payload['phone'] = $value;
+            } elseif ($target === 'core:user_types') {
+                $payload['user_types'] = $value;
+            } elseif (strpos($target, 'field:') === 0) {
+                $fieldId = (int) str_replace('field:', '', $target);
+                if ($registration->dynamicFormFields->contains('id', $fieldId)) {
+                    $payload['fields'][$fieldId] = $value;
+                }
+            }
+        }
+
+        if ($payload['first_name'] === '' && $payload['last_name'] === '') {
+            $payload['first_name'] = 'Imported';
+            $payload['last_name'] = 'User ' . $rowNumber;
+        } elseif ($payload['first_name'] === '') {
+            $payload['first_name'] = $payload['last_name'];
+            $payload['last_name'] = '';
+        }
+
+        if ($payload['email'] === '') {
+            $payload['email'] = 'import-' . $registration->id . '-' . $rowNumber . '-' . Str::random(6) . '@import.local';
+            $payload['generated_email'] = true;
+        }
+
+        return $payload;
+    }
+
+    protected function resolveImportUserTypeIds(Registration $registration, ?string $rowUserTypes, array $defaultUserTypeIds): array
+    {
+        if ($rowUserTypes) {
+            $names = array_filter(array_map('trim', explode(',', $rowUserTypes)));
+            $ids = UserType::where('event_id', $registration->event_id)
+                ->whereIn('name', $names)
+                ->pluck('id')
+                ->toArray();
+            if (!empty($ids)) {
+                return $ids;
+            }
+        }
+
+        $defaultUserTypeIds = array_values(array_filter(array_map('intval', $defaultUserTypeIds)));
+        if (!empty($defaultUserTypeIds)) {
+            return $defaultUserTypeIds;
+        }
+
+        $defaultUserType = UserType::firstOrCreate(
+            ['event_id' => $registration->event_id, 'name' => 'Delegate'],
+            ['event_id' => $registration->event_id, 'name' => 'Delegate']
+        );
+
+        return $defaultUserType ? [$defaultUserType->id] : [];
+    }
+
+    protected function resolveImportApprovalStatus(Registration $registration, string $approvalStatus): string
+    {
+        if ($approvalStatus === 'approved') {
+            return 'approved';
+        }
+        if ($approvalStatus === 'rejected') {
+            return 'rejected';
+        }
+        if ($approvalStatus === 'automatic') {
+            return $registration->approval_status === 'automatic' ? 'approved' : 'pending';
+        }
+
+        return 'pending';
     }
 
     /**
