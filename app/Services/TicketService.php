@@ -136,14 +136,9 @@ class TicketService
      */
     public function deleteRenderedTicketFiles(RegistrationUser $user, bool $clearDb = true): void
     {
-        if ($user->ticket_pdf_path && Storage::disk('public')->exists($user->ticket_pdf_path)) {
-            Storage::disk('public')->delete($user->ticket_pdf_path);
-        }
-
-        if ($user->unique_code) {
-            $ticketImagePath = 'ticket_images/ticket_' . $user->unique_code . '.png';
-            if (Storage::disk('public')->exists($ticketImagePath)) {
-                Storage::disk('public')->delete($ticketImagePath);
+        foreach ($this->getRenderedTicketPaths($user) as $path) {
+            if ($path && Storage::disk('public')->exists($path)) {
+                Storage::disk('public')->delete($path);
             }
         }
 
@@ -152,6 +147,22 @@ class TicketService
             $user->ticket_generated_at = null;
             $user->save();
         }
+    }
+
+    private function getRenderedTicketPaths(RegistrationUser $user): array
+    {
+        $paths = [];
+
+        if ($user->ticket_pdf_path) {
+            $paths[] = $user->ticket_pdf_path;
+        }
+
+        if ($user->unique_code) {
+            $paths[] = 'tickets/ticket_' . $user->unique_code . '.pdf';
+            $paths[] = 'ticket_images/ticket_' . $user->unique_code . '.png';
+        }
+
+        return array_values(array_unique(array_filter($paths)));
     }
 
     /**
