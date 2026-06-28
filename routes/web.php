@@ -607,6 +607,10 @@ Route::group(
 
                 Route::post('{event_id}/users/bulk/send-whatsapp', [App\Http\Controllers\RegistrationUsersController::class, 'sendBulkWhatsApp'])
                     ->name('sendBulkWhatsApp');
+                Route::get('{event_id}/registrations/{registration_id}/whatsapp-template', [App\Http\Controllers\RegistrationUsersController::class, 'getWhatsAppTemplate'])
+                    ->name('getWhatsAppTemplate');
+                Route::post('{event_id}/registrations/{registration_id}/whatsapp-template', [App\Http\Controllers\RegistrationUsersController::class, 'saveWhatsAppTemplate'])
+                    ->name('saveWhatsAppTemplate');
 
                 // Custom email
                 Route::get('{event_id}/users/{user_id}/custom-email', [App\Http\Controllers\RegistrationUsersController::class, 'showCustomEmail'])

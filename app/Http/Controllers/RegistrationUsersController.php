@@ -112,6 +112,7 @@ class RegistrationUsersController extends Controller
             ->orderBy('name')
             ->pluck('name', 'id')
             ->toArray();
+        $whatsappTemplates = $this->getWhatsAppTemplateMap($event_id);
 
         // Get all user types for the filter dropdown
         $userTypesFilter = UserType::where('event_id', $event_id)->orderBy('name')->pluck('name', 'id')->toArray();
@@ -125,7 +126,7 @@ class RegistrationUsersController extends Controller
             return redirect()->route('showEventRegistrationUsers', ['event_id' => $event_id]);
         }
 
-        return view('ManageEvent.RegistrationUsers', compact('event', 'users', 'filters', 'registrations', 'perPage', 'userTypesFilter', 'userTypeOptionNames'));
+        return view('ManageEvent.RegistrationUsers', compact('event', 'users', 'filters', 'registrations', 'perPage', 'userTypesFilter', 'userTypeOptionNames', 'whatsappTemplates'));
     }
 
     /**
@@ -201,6 +202,7 @@ class RegistrationUsersController extends Controller
             ->orderBy('name')
             ->pluck('name', 'id')
             ->toArray();
+        $whatsappTemplates = $this->getWhatsAppTemplateMap($event_id);
 
         $userTypesFilter = UserType::where('event_id', $event_id)->orderBy('name')->pluck('name', 'id')->toArray();
 
@@ -213,7 +215,22 @@ class RegistrationUsersController extends Controller
             return redirect()->route('showRegistrationUsers', ['event_id' => $event_id, 'registration_id' => $registration_id]);
         }
 
-        return view('ManageEvent.RegistrationUsers', compact('event', 'registration', 'users', 'filters', 'registrations', 'perPage', 'userTypesFilter', 'userTypeOptionNames'));
+        return view('ManageEvent.RegistrationUsers', compact('event', 'registration', 'users', 'filters', 'registrations', 'perPage', 'userTypesFilter', 'userTypeOptionNames', 'whatsappTemplates'));
+    }
+
+    protected function getWhatsAppTemplateMap($event_id): array
+    {
+        return Registration::where('event_id', $event_id)
+            ->get(['id', 'whatsapp_message_template', 'whatsapp_attach_ticket'])
+            ->mapWithKeys(function ($registration) {
+                return [
+                    $registration->id => [
+                        'message' => $registration->whatsapp_message_template ?? '',
+                        'attach_ticket' => (bool) $registration->whatsapp_attach_ticket,
+                    ],
+                ];
+            })
+            ->toArray();
     }
 
     /**
@@ -1462,9 +1479,38 @@ class RegistrationUsersController extends Controller
         }
     }
 
+    public function getWhatsAppTemplate($event_id, $registration_id)
+    {
+        $registration = Registration::where('event_id', $event_id)->findOrFail($registration_id);
+
+        return response()->json([
+            'status' => 'success',
+            'message' => $registration->whatsapp_message_template ?? '',
+            'attach_ticket' => (bool) $registration->whatsapp_attach_ticket,
+        ]);
+    }
+
+    public function saveWhatsAppTemplate(Request $request, $event_id, $registration_id)
+    {
+        $this->validate($request, [
+            'message' => 'nullable|string|max:4000',
+            'attach_ticket' => 'nullable|boolean',
+        ]);
+
+        $registration = Registration::where('event_id', $event_id)->findOrFail($registration_id);
+        $registration->whatsapp_message_template = $request->input('message', '');
+        $registration->whatsapp_attach_ticket = $request->boolean('attach_ticket');
+        $registration->save();
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'WhatsApp template saved.',
+        ]);
+    }
+
     /**
      * Send WhatsApp message to selected registration users (bulk).
-     * Message can contain placeholders: @first_name, @last_name, @email, @phone, @unique_code, @event_title, @registration_name, @user_type
+     * Message can contain placeholders: @first_name, @last_name, @email, @phone, @unique_code, @event_title, @registration_name, @user_type, @ticket_link, @ticket_view_link
      *
      * @param Request $request
      * @param int $event_id
@@ -1476,6 +1522,7 @@ class RegistrationUsersController extends Controller
             'user_ids' => 'required|array',
             'user_ids.*' => 'integer',
             'message' => 'required|string|max:4000',
+            'attach_ticket' => 'nullable|boolean',
         ]);
 
         $event = Event::scope()->findOrFail($event_id);
@@ -1497,19 +1544,50 @@ class RegistrationUsersController extends Controller
         $sent = 0;
         $skipped = 0;
         $failed = 0;
+        $attachTicket = $request->boolean('attach_ticket');
+        $failureDetails = [];
+
+        if ($attachTicket && !$this->hasPublicHttpsAppUrl()) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Ticket attachment requires APP_URL to be a public HTTPS URL so Twilio can download the PDF. Use ngrok locally or disable Attach ticket PDF.',
+                'sent' => 0,
+                'skipped' => 0,
+                'failed' => 0,
+                'failure_details' => ['Current APP_URL: ' . config('app.url')],
+            ], 422);
+        }
 
         foreach ($users as $user) {
             $phone = WhatsAppService::normalizePhone($user->phone);
             if (empty($phone)) {
                 $skipped++;
+                $failureDetails[] = $user->id . ': no valid phone.';
                 continue;
             }
+
+            $mediaUrls = [];
+            if ($attachTicket || strpos($request->message, '@ticket_link') !== false || strpos($request->message, '@ticket_view_link') !== false) {
+                $this->ensureTicketReadyForWhatsApp($user);
+            }
+
+            if ($attachTicket) {
+                $mediaUrl = $this->getTicketMediaUrlForWhatsApp($user);
+                if (!$mediaUrl) {
+                    $skipped++;
+                    $failureDetails[] = $user->id . ': ticket requires an approved user.';
+                    continue;
+                }
+                $mediaUrls[] = $mediaUrl;
+            }
+
             $body = WhatsAppService::replacePlaceholders($request->message, $user, $event);
-            $result = $whatsApp->send($user->phone, $body);
+            $result = $whatsApp->send($user->phone, $body, $mediaUrls);
             if ($result['success']) {
                 $sent++;
             } else {
                 $failed++;
+                $failureDetails[] = $user->id . ': ' . ($result['message'] ?? 'Unknown WhatsApp error.');
             }
         }
 
@@ -1527,6 +1605,54 @@ class RegistrationUsersController extends Controller
             'sent' => $sent,
             'skipped' => $skipped,
             'failed' => $failed,
+            'failure_details' => array_slice($failureDetails, 0, 10),
         ]);
+    }
+
+    protected function ensureTicketReadyForWhatsApp(RegistrationUser $user): void
+    {
+        if ($user->status !== 'approved') {
+            return;
+        }
+
+        if (empty($user->ticket_token) || empty($user->unique_code) || empty($user->qr_code_path)) {
+            $this->ticketService->processApproval($user);
+            $user->refresh();
+        }
+    }
+
+    protected function getTicketMediaUrlForWhatsApp(RegistrationUser $user): ?string
+    {
+        if ($user->status !== 'approved') {
+            return null;
+        }
+
+        $this->ensureTicketReadyForWhatsApp($user);
+
+        if (empty($user->ticket_pdf_path) || !Storage::disk('public')->exists($user->ticket_pdf_path)) {
+            $this->ticketService->renderTicketForUser($user);
+            $user->refresh();
+        }
+
+        if (empty($user->ticket_pdf_path) || !Storage::disk('public')->exists($user->ticket_pdf_path)) {
+            return null;
+        }
+
+        return asset('storage/' . $user->ticket_pdf_path);
+    }
+
+    protected function hasPublicHttpsAppUrl(): bool
+    {
+        $appUrl = (string) config('app.url');
+        $host = parse_url($appUrl, PHP_URL_HOST);
+        $scheme = parse_url($appUrl, PHP_URL_SCHEME);
+
+        if ($scheme !== 'https' || empty($host)) {
+            return false;
+        }
+
+        return !in_array($host, ['localhost', '127.0.0.1', '::1'], true)
+            && strpos($host, '.test') === false
+            && strpos($host, '.local') === false;
     }
 }

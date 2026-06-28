@@ -23,6 +23,8 @@ class Registration extends MyBaseModel
         'fees_card_badge',
         'is_private',
         'private_slug',
+        'whatsapp_message_template',
+        'whatsapp_attach_ticket',
     ];
 
 
@@ -92,6 +94,7 @@ class Registration extends MyBaseModel
         'show_on_fees_section' => 'boolean',
         'is_virtual_form' => 'boolean',
         'is_private' => 'boolean',
+        'whatsapp_attach_ticket' => 'boolean',
     ];
 
     /**

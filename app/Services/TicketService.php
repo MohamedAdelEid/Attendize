@@ -342,15 +342,26 @@ class TicketService
                 $qrX = (int) ($template->qr_position_x * $scaleX);
                 $qrY = (int) ($template->qr_position_y * $scaleY);
                 $qrSize = (int) (($template->qr_size ?? 100) * $scaleX);
+                $qrPadding = (int) (($template->qr_padding ?? 0) * $scaleX);
+                $qrBorderRadius = (int) (($template->qr_border_radius ?? 0) * $scaleX);
+                $qrBackgroundColor = $template->qr_background_color ?: '#ffffff';
 
                 $qrCodePath = storage_path('app/public/' . $user->qr_code_path);
                 if (file_exists($qrCodePath)) {
                     $qrImage = Image::make($qrCodePath);
                     $qrImage->resize($qrSize, $qrSize);
 
-                    // Add rounded corners to QR code
-                    $cornerRadius = min($qrSize * 0.1, 10); // 10% of size or max 10px
-                    $qrImage = $this->addRoundedCorners($qrImage, $cornerRadius);
+                    if ($qrPadding > 0 || $qrBorderRadius > 0) {
+                        $outerSize = $qrSize + ($qrPadding * 2);
+                        $qrCanvas = Image::canvas($outerSize, $outerSize, $qrBackgroundColor);
+                        $qrCanvas->insert($qrImage, 'top-left', $qrPadding, $qrPadding);
+
+                        if ($qrBorderRadius > 0) {
+                            $qrCanvas = $this->addRoundedCorners($qrCanvas, min($qrBorderRadius, (int) floor($outerSize / 2)));
+                        }
+
+                        $qrImage = $qrCanvas;
+                    }
 
                     $image->insert(
                         $qrImage,

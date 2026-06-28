@@ -28,7 +28,7 @@ class WhatsAppService
     }
 
     /**
-     * Normalize phone to E.164 for WhatsApp (e.g. 966501234567).
+     * Normalize phone to E.164 for WhatsApp without the leading plus.
      */
     public static function normalizePhone(?string $phone): ?string
     {
@@ -39,13 +39,19 @@ class WhatsAppService
         if (strlen($phone) === 0) {
             return null;
         }
-        // If starts with 0 (e.g. 05xxxxxxxx), assume Saudi and replace with 966
-        if (substr($phone, 0, 1) === '0') {
-            $phone = '966' . substr($phone, 1);
+        if (strpos($phone, '00') === 0) {
+            $phone = substr($phone, 2);
         }
-        // If 9 digits and no country code, assume Saudi
-        if (strlen($phone) === 9 && in_array(substr($phone, 0, 1), ['5', '4', '3'])) {
-            $phone = '966' . $phone;
+
+        $defaultCountryCode = preg_replace('/[^\d]/', '', (string) config('services.twilio.default_country_code', '966'));
+        if ($defaultCountryCode === '') {
+            $defaultCountryCode = '966';
+        }
+
+        if (substr($phone, 0, 1) === '0') {
+            $phone = $defaultCountryCode . substr($phone, 1);
+        } elseif (strlen($phone) <= 10 && strpos($phone, $defaultCountryCode) !== 0) {
+            $phone = $defaultCountryCode . $phone;
         }
         return $phone;
     }
@@ -55,9 +61,10 @@ class WhatsAppService
      *
      * @param string $to   E.164 number (e.g. 966501234567)
      * @param string $body Message text
+     * @param array $mediaUrls Optional public media URLs accepted by Twilio
      * @return array { 'success' => bool, 'message' => string, 'sid' => string|null }
      */
-    public function send(string $to, string $body): array
+    public function send(string $to, string $body, array $mediaUrls = []): array
     {
         if (!$this->isConfigured()) {
             return [
@@ -86,13 +93,18 @@ class WhatsAppService
 
         try {
             $client = new Client(['base_uri' => 'https://api.twilio.com']);
+            $params = [
+                'From' => $fromWhatsApp,
+                'To' => $toWhatsApp,
+                'Body' => $body,
+            ];
+            foreach (array_values(array_filter($mediaUrls)) as $index => $mediaUrl) {
+                $params['MediaUrl' . ($index > 0 ? $index : '')] = $mediaUrl;
+            }
+
             $response = $client->post('2010-04-01/Accounts/' . $this->accountSid . '/Messages.json', [
                 'auth' => [$this->accountSid, $this->authToken],
-                'form_params' => [
-                    'From' => $fromWhatsApp,
-                    'To' => $toWhatsApp,
-                    'Body' => $body,
-                ],
+                'form_params' => $params,
             ]);
 
             $statusCode = $response->getStatusCode();
@@ -136,7 +148,8 @@ class WhatsAppService
 
     /**
      * Replace placeholders in a message with user/event data.
-     * Placeholders: @first_name, @last_name, @email, @phone, @unique_code, @event_title, @registration_name, @user_type
+     * Placeholders: @first_name, @last_name, @email, @phone, @unique_code,
+     * @event_title, @registration_name, @user_type, @ticket_link, @ticket_view_link
      */
     public static function replacePlaceholders(string $message, $user, $event = null): string
     {
@@ -148,6 +161,8 @@ class WhatsAppService
             $event = $reg && $reg->relationLoaded('event') ? $reg->event : ($reg ? $reg->event : null);
         }
         $registration = $user->registration ?? $user->registration()->first();
+        $ticketLink = $user->ticket_token ? route('downloadTicket', ['token' => $user->ticket_token]) : '';
+        $ticketViewLink = $user->ticket_token ? route('viewTicketTemplate', ['token' => $user->ticket_token]) : '';
 
         $map = [
             '@first_name' => $user->first_name ?? '',
@@ -158,6 +173,8 @@ class WhatsAppService
             '@event_title' => $event ? $event->title : '',
             '@registration_name' => $registration ? $registration->name : '',
             '@user_type' => optional($user->userTypes->first())->name ?? '',
+            '@ticket_link' => $ticketLink,
+            '@ticket_view_link' => $ticketViewLink,
         ];
 
         foreach ($map as $placeholder => $value) {

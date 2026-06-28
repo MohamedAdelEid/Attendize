@@ -156,6 +156,9 @@ class TicketTemplateController extends MyBaseController
             'code_font_color' => 'nullable|string',
             'show_registration_code' => 'nullable|boolean',
             'qr_size' => 'nullable|numeric|min:50|max:300',
+            'qr_padding' => 'nullable|numeric|min:0|max:100',
+            'qr_background_color' => 'nullable|string|max:7',
+            'qr_border_radius' => 'nullable|numeric|min:0|max:100',
             'show_qr_code' => 'nullable|boolean',
             'preview_width' => 'nullable|numeric',
             'preview_height' => 'nullable|numeric',
@@ -204,6 +207,9 @@ class TicketTemplateController extends MyBaseController
             $template->code_font_color = $request->code_font_color ?? '#000000';
             $template->show_registration_code = $request->has('show_registration_code') ? (bool) $request->show_registration_code : true;
             $template->qr_size = $request->qr_size ?? 100;
+            $template->qr_padding = $request->qr_padding ?? 0;
+            $template->qr_background_color = $request->qr_background_color ?? '#ffffff';
+            $template->qr_border_radius = $request->qr_border_radius ?? 0;
             $template->show_qr_code = $request->has('show_qr_code') ? (bool) $request->show_qr_code : true;
 
             // Save UserType settings

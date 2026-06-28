@@ -586,6 +586,21 @@
                                 <input type="number" id="qrSize" class="form-control"
                                     value="{{ $template->qr_size ?? 100 }}" min="50" max="300">
                             </div>
+                            <div class="form-group">
+                                <label>Padding (px)</label>
+                                <input type="number" id="qrPadding" class="form-control"
+                                    value="{{ $template->qr_padding ?? 0 }}" min="0" max="100">
+                            </div>
+                            <div class="form-group">
+                                <label>Padding Color</label>
+                                <input type="color" id="qrBackgroundColor" class="form-control"
+                                    value="{{ $template->qr_background_color ?? '#ffffff' }}">
+                            </div>
+                            <div class="form-group">
+                                <label>Border Radius (px)</label>
+                                <input type="number" id="qrBorderRadius" class="form-control"
+                                    value="{{ $template->qr_border_radius ?? 0 }}" min="0" max="100">
+                            </div>
                             <div class="coordinate-display">
                                 Position: <span id="qrCoords">x: {{ $template->qr_position_x ?? 50 }}, y:
                                     {{ $template->qr_position_y ?? 150 }}</span>
@@ -908,7 +923,10 @@
                                 top: {{ $template->qr_position_y ?? 150 }}px;">
                             <div class="qr-placeholder"
                                 style="width: {{ $template->qr_size ?? 100 }}px;
-                                                           height: {{ $template->qr_size ?? 100 }}px;">
+                                    height: {{ $template->qr_size ?? 100 }}px;
+                                    padding: {{ $template->qr_padding ?? 0 }}px;
+                                    background: {{ $template->qr_background_color ?? '#ffffff' }};
+                                    border-radius: {{ $template->qr_border_radius ?? 0 }}px;">
                                 QR CODE
                             </div>
                         </div>
@@ -1376,13 +1394,13 @@
             });
 
             // Settings change handlers
-            $('#nameFontSize, #codeFontSize, #qrSize, #userTypeFontSize, #professionFontSize, #categoryFontSize').off(
+            $('#nameFontSize, #codeFontSize, #qrSize, #qrPadding, #qrBorderRadius, #userTypeFontSize, #professionFontSize, #categoryFontSize').off(
                 'input change').on('input change', function() {
                 console.log('Size changed:', $(this).attr('id'), $(this).val());
                 updateElementStyles();
             });
 
-            $('#nameFontColor, #codeFontColor, #userTypeFontColor, #professionFontColor, #categoryFontColor').off(
+            $('#nameFontColor, #codeFontColor, #qrBackgroundColor, #userTypeFontColor, #professionFontColor, #categoryFontColor').off(
                 'change input').on('change input', function() {
                 console.log('Color changed:', $(this).attr('id'), $(this).val());
                 updateElementStyles();
@@ -1671,9 +1689,15 @@
             // Update QR element
             if ($('#showQrCode').is(':checked')) {
                 const qrSize = $('#qrSize').val();
+                const qrPadding = $('#qrPadding').val();
+                const qrBackgroundColor = $('#qrBackgroundColor').val();
+                const qrBorderRadius = $('#qrBorderRadius').val();
                 $('#qrElement .qr-placeholder').css({
                     'width': qrSize + 'px',
-                    'height': qrSize + 'px'
+                    'height': qrSize + 'px',
+                    'padding': qrPadding + 'px',
+                    'background': qrBackgroundColor,
+                    'border-radius': qrBorderRadius + 'px'
                 });
             }
 
@@ -1811,6 +1835,9 @@
                 code_font_color: $('#codeFontColor').val(),
                 show_registration_code: $('#showRegistrationCode').is(':checked') ? 1 : 0,
                 qr_size: $('#qrSize').val(),
+                qr_padding: $('#qrPadding').val(),
+                qr_background_color: $('#qrBackgroundColor').val(),
+                qr_border_radius: $('#qrBorderRadius').val(),
                 show_qr_code: $('#showQrCode').is(':checked') ? 1 : 0,
                 show_user_type: $('#showUserType').is(':checked') ? 1 : 0,
                 user_type_position_x: $('#userTypePositionX').val() || null,

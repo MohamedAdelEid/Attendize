@@ -443,7 +443,7 @@
                                             <tr class="{{ $user->is_new ? 'new-registration' : '' }} user-row-clickable">
                                                 <td class="checkbox-column" onclick="event.stopPropagation();">
                                                     <input type="checkbox" class="user-checkbox" name="user_ids[]"
-                                                        value="{{ $user->id }}">
+                                                        value="{{ $user->id }}" data-registration-id="{{ $user->registration_id }}">
                                                 </td>
                                                 <td>
                                                     @if($user->avatar)
@@ -635,7 +635,25 @@
                     </h3>
                 </div>
                 <div class="modal-body">
-                    <p class="text-muted">Select users using the checkboxes in the table, then write your message below. Use placeholders to personalize (click to insert).</p>
+                    <p class="text-muted">Select users using the checkboxes in the table, then choose or edit the WhatsApp template below.</p>
+                    <div class="row">
+                        <div class="col-md-8">
+                            <div class="form-group">
+                                <label for="whatsapp-template-registration" class="control-label">Registration form template</label>
+                                <select id="whatsapp-template-registration" class="form-control">
+                                    @foreach($registrations as $id => $name)
+                                        <option value="{{ $id }}" {{ isset($registration) && $registration->id == $id ? 'selected' : '' }}>{{ $name }}</option>
+                                    @endforeach
+                                </select>
+                                <small class="help-block">The template is saved per registration form.</small>
+                            </div>
+                        </div>
+                        <div class="col-md-4" style="padding-top: 25px;">
+                            <button type="button" class="btn btn-default btn-block" id="whatsapp-save-template-btn">
+                                <i class="ico-disk"></i> Save Template
+                            </button>
+                        </div>
+                    </div>
                     <div class="form-group">
                         <label class="control-label">Placeholders (click to insert)</label>
                         <div class="placeholder-chips" style="margin-bottom:10px;">
@@ -647,12 +665,21 @@
                             <button type="button" class="btn btn-xs btn-default placeholder-btn" data-placeholder="@event_title">@event_title</button>
                             <button type="button" class="btn btn-xs btn-default placeholder-btn" data-placeholder="@registration_name">@registration_name</button>
                             <button type="button" class="btn btn-xs btn-default placeholder-btn" data-placeholder="@user_type">@user_type</button>
+                            <button type="button" class="btn btn-xs btn-default placeholder-btn" data-placeholder="@ticket_link">@ticket_link</button>
+                            <button type="button" class="btn btn-xs btn-default placeholder-btn" data-placeholder="@ticket_view_link">@ticket_view_link</button>
                         </div>
                     </div>
                     <div class="form-group">
                         <label for="whatsapp-message" class="control-label required">Message</label>
-                        <textarea id="whatsapp-message" class="form-control" rows="6" placeholder="e.g. مرحبا @first_name @last_name ندعوكم لحضور @event_title ..." maxlength="4000"></textarea>
-                        <small class="help-block">Recipients must have a phone number. Max 4000 characters.</small>
+                        <textarea id="whatsapp-message" class="form-control" rows="6" placeholder="Hello @first_name, your ticket for @event_title is ready: @ticket_link" maxlength="4000"></textarea>
+                        <small class="help-block">Recipients must have a phone number. Max 4000 characters. Ticket placeholders only work for approved users.</small>
+                    </div>
+                    <div class="checkbox">
+                        <label>
+                            <input type="checkbox" id="whatsapp-attach-ticket" value="1">
+                            Attach ticket PDF
+                        </label>
+                        <small class="help-block">Requires approved users and a public HTTPS APP_URL so Twilio can fetch the PDF.</small>
                     </div>
                     <p class="text-info"><strong>Recipients: <span id="whatsapp-recipient-count">0</span> selected</strong></p>
                 </div>
@@ -671,6 +698,9 @@
     @include('ManageEvent.Partials.TicketBulkActionsScript')
     <script>
         $(document).ready(function() {
+            var whatsappTemplates = @json($whatsappTemplates ?? []);
+            var defaultWhatsAppTemplate = "Hello @first_name, your registration for @event_title is approved.\nTicket: @ticket_link";
+
             // Row click: open View Details modal (unless clicking checkbox or actions)
             $(document).on('click', '.user-row-clickable', function(e) {
                 if ($(e.target).closest('.checkbox-column, .user-actions, .btn, a').length) return;
@@ -986,6 +1016,8 @@
                 $('#whatsapp-recipient-count').text(n);
                 $('#whatsapp-send-count').text(n);
                 $('#whatsapp-send-btn').prop('disabled', n === 0);
+                chooseWhatsAppTemplateFromSelection();
+                loadWhatsAppTemplate($('#whatsapp-template-registration').val());
                 $('#whatsapp-modal').modal('show');
             }
             $('#btn-open-whatsapp-modal').on('click', function() {
@@ -1004,6 +1036,60 @@
                 $('#whatsapp-recipient-count').text(n);
                 $('#whatsapp-send-count').text(n);
                 $('#whatsapp-send-btn').prop('disabled', n === 0);
+            });
+            $('#whatsapp-template-registration').on('change', function() {
+                loadWhatsAppTemplate($(this).val());
+            });
+            function chooseWhatsAppTemplateFromSelection() {
+                var registrations = {};
+                $('.user-checkbox:checked').each(function() {
+                    var registrationId = $(this).data('registration-id');
+                    if (registrationId) registrations[registrationId] = true;
+                });
+                var ids = Object.keys(registrations);
+                if (ids.length === 1) {
+                    $('#whatsapp-template-registration').val(ids[0]);
+                }
+            }
+            function loadWhatsAppTemplate(registrationId) {
+                var template = whatsappTemplates[registrationId] || {};
+                $('#whatsapp-message').val(template.message || defaultWhatsAppTemplate);
+                $('#whatsapp-attach-ticket').prop('checked', !!template.attach_ticket);
+            }
+            $('#whatsapp-save-template-btn').on('click', function() {
+                var registrationId = $('#whatsapp-template-registration').val();
+                if (!registrationId) {
+                    alert('Please select a registration form.');
+                    return;
+                }
+                var btn = $(this);
+                btn.prop('disabled', true).html('<i class="ico-spinner"></i> Saving...');
+                var url = '{{ route('saveWhatsAppTemplate', ['event_id' => $event->id, 'registration_id' => '__REGISTRATION_ID__']) }}'.replace('__REGISTRATION_ID__', registrationId);
+                $.ajax({
+                    url: url,
+                    type: 'POST',
+                    data: {
+                        _token: '{{ csrf_token() }}',
+                        message: $('#whatsapp-message').val(),
+                        attach_ticket: $('#whatsapp-attach-ticket').is(':checked') ? 1 : 0
+                    },
+                    success: function(response) {
+                        if (response.status === 'success') {
+                            whatsappTemplates[registrationId] = {
+                                message: $('#whatsapp-message').val(),
+                                attach_ticket: $('#whatsapp-attach-ticket').is(':checked')
+                            };
+                            alert(response.message);
+                        }
+                    },
+                    error: function(xhr) {
+                        console.error(xhr.responseText);
+                        alert('Could not save WhatsApp template.');
+                    },
+                    complete: function() {
+                        btn.prop('disabled', false).html('<i class="ico-disk"></i> Save Template');
+                    }
+                });
             });
             // Insert placeholder at cursor
             $('.placeholder-btn').on('click', function() {
@@ -1037,7 +1123,8 @@
                     data: {
                         _token: '{{ csrf_token() }}',
                         user_ids: userIds,
-                        message: message
+                        message: message,
+                        attach_ticket: $('#whatsapp-attach-ticket').is(':checked') ? 1 : 0
                     },
                     success: function(response) {
                         if (response.status === 'success') {
