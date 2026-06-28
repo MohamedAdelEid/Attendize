@@ -112,7 +112,8 @@ class TicketService
 
 
         // Save PDF
-        $pdfFileName = 'tickets/ticket_' . $user->unique_code . '.pdf';
+        $documentSlug = $this->getPdfDocumentSlug($template);
+        $pdfFileName = 'tickets/' . $documentSlug . '_' . $user->unique_code . '.pdf';
 
         // Ensure directory exists
         if (!Storage::disk('public')->exists('tickets')) {
@@ -137,6 +138,38 @@ class TicketService
         $user->save();
 
         return $pdfPath;
+    }
+
+    /**
+     * Slug used in saved/downloaded PDF filenames (ticket, invitation, etc.).
+     */
+    public function getPdfDocumentSlug(?TicketTemplate $template): string
+    {
+        $label = trim((string) ($template->pdf_document_label ?? 'ticket'));
+
+        return Str::slug($label, '_') ?: 'ticket';
+    }
+
+    /**
+     * Human-readable document name for UI labels.
+     */
+    public function getPdfDocumentDisplayName(?TicketTemplate $template): string
+    {
+        $label = trim((string) ($template->pdf_document_label ?? 'ticket'));
+
+        return $label !== '' ? ucfirst($label) : 'Ticket';
+    }
+
+    /**
+     * Download filename for a user's generated PDF.
+     */
+    public function getPdfDownloadFilename(RegistrationUser $user): string
+    {
+        $event = $user->registration->event;
+        $template = TicketTemplate::where('event_id', $event->id)->first();
+        $slug = $this->getPdfDocumentSlug($template);
+
+        return $slug . '_' . $user->unique_code . '.pdf';
     }
 
     /**
@@ -209,7 +242,11 @@ class TicketService
         }
 
         if ($user->unique_code) {
+            $template = TicketTemplate::where('event_id', $user->registration->event_id)->first();
+            $slug = $this->getPdfDocumentSlug($template);
+            $paths[] = 'tickets/' . $slug . '_' . $user->unique_code . '.pdf';
             $paths[] = 'tickets/ticket_' . $user->unique_code . '.pdf';
+            $paths[] = 'tickets/invitation_' . $user->unique_code . '.pdf';
             $paths[] = 'ticket_images/ticket_' . $user->unique_code . '.png';
         }
 

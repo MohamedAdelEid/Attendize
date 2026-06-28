@@ -179,6 +179,7 @@ class TicketTemplateController extends MyBaseController
             'category_font_color' => 'nullable|string',
             'pdf_page_size' => 'nullable|string|in:a4,a5,a6',
             'pdf_orientation' => 'nullable|string|in:portrait,landscape',
+            'pdf_document_label' => 'nullable|string|max:32',
         ]);
 
         if ($validator->fails()) {
@@ -257,6 +258,9 @@ class TicketTemplateController extends MyBaseController
             }
             if ($request->has('pdf_orientation')) {
                 $template->pdf_orientation = $request->pdf_orientation ?: 'portrait';
+            }
+            if ($request->has('pdf_document_label')) {
+                $template->pdf_document_label = trim($request->pdf_document_label) ?: 'ticket';
             }
 
             $template->save();

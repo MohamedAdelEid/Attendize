@@ -846,6 +846,15 @@
                             <option value="landscape" {{ $template && $template->pdf_orientation === 'landscape' ? 'selected' : '' }}>Landscape</option>
                         </select>
                     </div>
+                    <div class="form-group">
+                        <label class="control-label">PDF Document Name</label>
+                        <select id="pdfDocumentLabel" name="pdf_document_label" class="form-control">
+                            @php $docLabel = strtolower($template->pdf_document_label ?? 'ticket'); @endphp
+                            <option value="ticket" {{ $docLabel === 'ticket' ? 'selected' : '' }}>Ticket</option>
+                            <option value="invitation" {{ $docLabel === 'invitation' ? 'selected' : '' }}>Invitation</option>
+                        </select>
+                        <small class="help-block">Used for saved/downloaded PDF filename (e.g. ticket_12345.pdf or invitation_12345.pdf)</small>
+                    </div>
 
                     <button type="button" id="saveTemplate" class="btn save-button btn-block">
                         <i class="ico-save"></i> Save Template Settings
@@ -1858,6 +1867,7 @@
                 preview_height: previewHeight,
                 pdf_page_size: $('#pdfPageSize').val() || 'a6',
                 pdf_orientation: $('#pdfOrientation').val() || 'portrait',
+                pdf_document_label: $('#pdfDocumentLabel').val() || 'ticket',
                 _token: $('meta[name="_token"]').attr('content') || '{{ csrf_token() }}'
             };
 

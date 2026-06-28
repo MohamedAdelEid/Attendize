@@ -14,6 +14,8 @@ use App\Models\Conference;
 use App\Models\Profession;
 use App\Services\TicketService;
 use App\Services\WhatsAppService;
+use App\Services\RegistrationUsersExportColumns;
+use App\Models\TicketTemplate;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
@@ -126,7 +128,16 @@ class RegistrationUsersController extends Controller
             return redirect()->route('showEventRegistrationUsers', ['event_id' => $event_id]);
         }
 
-        return view('ManageEvent.RegistrationUsers', compact('event', 'users', 'filters', 'registrations', 'perPage', 'userTypesFilter', 'userTypeOptionNames', 'whatsappTemplates'));
+        return view('ManageEvent.RegistrationUsers', $this->registrationUsersViewData(
+            $event,
+            $users,
+            $filters,
+            $registrations,
+            $perPage,
+            $userTypesFilter,
+            $userTypeOptionNames,
+            $whatsappTemplates
+        ));
     }
 
     /**
@@ -215,7 +226,47 @@ class RegistrationUsersController extends Controller
             return redirect()->route('showRegistrationUsers', ['event_id' => $event_id, 'registration_id' => $registration_id]);
         }
 
-        return view('ManageEvent.RegistrationUsers', compact('event', 'registration', 'users', 'filters', 'registrations', 'perPage', 'userTypesFilter', 'userTypeOptionNames', 'whatsappTemplates'));
+        return view('ManageEvent.RegistrationUsers', $this->registrationUsersViewData(
+            $event,
+            $users,
+            $filters,
+            $registrations,
+            $perPage,
+            $userTypesFilter,
+            $userTypeOptionNames,
+            $whatsappTemplates,
+            $registration
+        ));
+    }
+
+    protected function registrationUsersViewData(
+        Event $event,
+        $users,
+        array $filters,
+        array $registrations,
+        $perPage,
+        array $userTypesFilter,
+        array $userTypeOptionNames,
+        array $whatsappTemplates,
+        Registration $registration = null
+    ): array {
+        $ticketTemplate = TicketTemplate::where('event_id', $event->id)->first();
+        $registrationId = $registration ? $registration->id : null;
+
+        return [
+            'event' => $event,
+            'registration' => $registration,
+            'users' => $users,
+            'filters' => $filters,
+            'registrations' => $registrations,
+            'perPage' => $perPage,
+            'userTypesFilter' => $userTypesFilter,
+            'userTypeOptionNames' => $userTypeOptionNames,
+            'whatsappTemplates' => $whatsappTemplates,
+            'pdfDocumentLabel' => $this->ticketService->getPdfDocumentDisplayName($ticketTemplate),
+            'exportColumns' => RegistrationUsersExportColumns::availableColumnsForEvent($event->id, $registrationId),
+            'defaultExportColumns' => RegistrationUsersExportColumns::defaultColumnKeys(),
+        ];
     }
 
     protected function getWhatsAppTemplateMap($event_id): array
@@ -1106,14 +1157,33 @@ class RegistrationUsersController extends Controller
         $this->validate($request, [
             'user_ids' => 'required|array',
             'user_ids.*' => 'integer',
+            'columns' => 'nullable|array',
+            'columns.*' => 'string|max:64',
+            'column_labels' => 'nullable|array',
+            'column_labels.*' => 'nullable|string|max:255',
+            'registration_id' => 'nullable|integer',
         ]);
 
         $userIds = $request->input('user_ids');
         $event = Event::findOrFail($event_id);
+        $registrationId = $request->input('registration_id');
+
+        $columns = RegistrationUsersExportColumns::resolveSelectedColumns(
+            $request->input('columns', []),
+            $event->id,
+            $registrationId
+        );
+
+        $columnLabels = RegistrationUsersExportColumns::resolveColumnLabels(
+            $columns,
+            $request->input('column_labels', []),
+            $event->id,
+            $registrationId
+        );
 
         // Get selected users with their relationships
         $users = RegistrationUser::whereIn('id', $userIds)
-            ->with(['registration', 'userTypes', 'formFieldValues.field'])
+            ->with(['registration', 'userTypes', 'formFieldValues.field', 'category', 'conference', 'profession'])
             ->get();
 
         if ($users->isEmpty()) {
@@ -1123,11 +1193,26 @@ class RegistrationUsersController extends Controller
             ]);
         }
 
+        $userTypeOptionNames = [];
+        foreach ($users as $user) {
+            foreach ($user->userTypes ?? [] as $userType) {
+                $optionId = $userType->pivot->user_type_option_id ?? null;
+                if ($optionId) {
+                    $userTypeOptionNames[$optionId] = true;
+                }
+            }
+        }
+        if (!empty($userTypeOptionNames)) {
+            $userTypeOptionNames = \App\Models\UserTypeOption::whereIn('id', array_keys($userTypeOptionNames))
+                ->pluck('name', 'id')
+                ->toArray();
+        }
+
         try {
-            $fileName = 'selected_users_' . $event->slug . '_' . date('Y-m-d_H-i-s') . '.xlsx';
+            $fileName = 'registration_users_' . $event->slug . '_' . date('Y-m-d_H-i-s') . '.xlsx';
 
             return Excel::download(
-                new SelectedUsersExport($users, $event),
+                new SelectedUsersExport($users, $event, $columns, $registrationId, $userTypeOptionNames, $columnLabels),
                 $fileName
             );
         } catch (\Exception $e) {

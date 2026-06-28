@@ -47,6 +47,7 @@ class TicketTemplate extends Model
         'preview_height',
         'pdf_page_size',
         'pdf_orientation',
+        'pdf_document_label',
     ];
 
     protected $casts = [

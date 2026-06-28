@@ -218,6 +218,56 @@
             background-color: #138496;
             border-color: #117a8b;
         }
+
+        .export-column-list {
+            max-height: 320px;
+            overflow-y: auto;
+            padding-right: 6px;
+        }
+
+        .export-column-item {
+            margin-bottom: 12px;
+        }
+
+        .export-column-item .checkbox {
+            margin-bottom: 0;
+        }
+
+        .export-column-label-input {
+            margin-top: 4px;
+            margin-left: 20px;
+            font-size: 12px;
+            display: none;
+        }
+
+        .export-column-label-input.is-active {
+            display: block;
+        }
+
+        .export-column-row {
+            margin-bottom: 10px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .export-column-row:last-child {
+            border-bottom: none;
+        }
+
+        .export-column-row .checkbox {
+            margin: 0 0 4px 0;
+        }
+
+        .export-column-label-input {
+            margin-top: 4px;
+            font-size: 12px;
+        }
+
+        .export-column-list {
+            max-height: 360px;
+            overflow-y: auto;
+            padding-right: 4px;
+        }
         .user-row-clickable { cursor: pointer; }
         .user-row-clickable:hover { background-color: #f5f5f5 !important; }
     </style>
@@ -484,12 +534,12 @@
                                                         @if($user->ticket_token)
                                                             <br>
                                                             <a href="{{ route('downloadUserTicket', ['event_id' => $event->id, 'user_id' => $user->id]) }}"
-                                                               class="btn btn-xs btn-success" title="Download Ticket">
+                                                               class="btn btn-xs btn-success" title="Download {{ $pdfDocumentLabel ?? 'Ticket' }}">
                                                                 <i class="ico-download"></i>
                                                             </a>
                                                             
                                                             <a href="{{ route('printUserTicket', ['event_id' => $event->id, 'user_id' => $user->id]) }}"
-                                                               class="btn btn-xs btn-success" title="Print Ticket">
+                                                               class="btn btn-xs btn-success" title="Print {{ $pdfDocumentLabel ?? 'Ticket' }}">
                                                                 <i class="ico-print"></i>
                                                             </a>
                                                         @endif
@@ -692,6 +742,106 @@
             </div>
         </div>
     </div>
+
+    <!-- Export Columns Modal -->
+    <div class="modal fade" id="export-columns-modal" tabindex="-1" role="dialog" aria-labelledby="export-columns-modal-title">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal">×</button>
+                    <h4 class="modal-title" id="export-columns-modal-title">
+                        <i class="ico-download"></i> Export Selected Users
+                    </h4>
+                </div>
+                <div class="modal-body">
+                    <p class="text-muted">Choose columns for the Excel file. You can rename any column header using the text field below each selected field.</p>
+                    <div class="row" style="margin-bottom: 10px;">
+                        <div class="col-sm-6">
+                            <button type="button" class="btn btn-xs btn-default" id="export-select-all-columns">Select All</button>
+                            <button type="button" class="btn btn-xs btn-default" id="export-deselect-all-columns">Deselect All</button>
+                        </div>
+                        <div class="col-sm-6 text-right">
+                            <button type="button" class="btn btn-xs btn-info" id="export-reset-default-columns">Reset to Default</button>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <h5>Standard Fields</h5>
+                            <div class="export-column-list" id="export-standard-columns">
+                                @foreach(($exportColumns['standard'] ?? []) as $column)
+                                    <div class="export-column-item" data-column-key="{{ $column['key'] }}">
+                                        <div class="checkbox">
+                                            <label>
+                                                <input type="checkbox" class="export-column-checkbox" name="export_columns[]"
+                                                    value="{{ $column['key'] }}"
+                                                    {{ in_array($column['key'], $defaultExportColumns ?? [], true) ? 'checked' : '' }}>
+                                                {{ $column['label'] }}
+                                            </label>
+                                        </div>
+                                        <input type="text"
+                                            class="form-control input-sm export-column-label-input"
+                                            data-column-key="{{ $column['key'] }}"
+                                            placeholder="Export as: {{ $column['label'] }}"
+                                            maxlength="255">
+                                    </div>
+                                @endforeach
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <h5>Ticket Fields</h5>
+                            <div class="export-column-list" id="export-ticket-columns">
+                                @foreach(($exportColumns['ticket'] ?? []) as $column)
+                                    <div class="export-column-item" data-column-key="{{ $column['key'] }}">
+                                        <div class="checkbox">
+                                            <label>
+                                                <input type="checkbox" class="export-column-checkbox" name="export_columns[]"
+                                                    value="{{ $column['key'] }}">
+                                                {{ $column['label'] }}
+                                            </label>
+                                        </div>
+                                        <input type="text"
+                                            class="form-control input-sm export-column-label-input"
+                                            data-column-key="{{ $column['key'] }}"
+                                            placeholder="Export as: {{ $column['label'] }}"
+                                            maxlength="255">
+                                    </div>
+                                @endforeach
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <h5>Custom Form Fields</h5>
+                            <div class="export-column-list" id="export-custom-columns">
+                                @forelse(($exportColumns['custom'] ?? []) as $column)
+                                    <div class="export-column-item" data-column-key="{{ $column['key'] }}">
+                                        <div class="checkbox">
+                                            <label>
+                                                <input type="checkbox" class="export-column-checkbox" name="export_columns[]"
+                                                    value="{{ $column['key'] }}">
+                                                {{ $column['label'] }}
+                                            </label>
+                                        </div>
+                                        <input type="text"
+                                            class="form-control input-sm export-column-label-input"
+                                            data-column-key="{{ $column['key'] }}"
+                                            placeholder="Export as: {{ $column['label'] }}"
+                                            maxlength="255">
+                                    </div>
+                                @empty
+                                    <p class="text-muted">No custom fields for this event.</p>
+                                @endforelse
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-info" id="confirm-export-selected-btn">
+                        <i class="ico-download"></i> Export
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 @stop
 
 @section('foot')
@@ -852,12 +1002,98 @@
                     return;
                 }
 
+                restoreExportColumnSelection();
+                $('#export-columns-modal').modal('show');
+            }
+
+            function getSelectedExportColumns() {
+                const columns = [];
+                $('.export-column-checkbox:checked').each(function() {
+                    columns.push($(this).val());
+                });
+                return columns;
+            }
+
+            function getExportColumnLabels() {
+                const labels = {};
+                $('.export-column-checkbox:checked').each(function() {
+                    const columnKey = $(this).val();
+                    const customLabel = $('.export-column-label-input[data-column-key="' + columnKey + '"]').val().trim();
+                    if (customLabel) {
+                        labels[columnKey] = customLabel;
+                    }
+                });
+                return labels;
+            }
+
+            function toggleExportLabelInputs() {
+                $('.export-column-checkbox').each(function() {
+                    const columnKey = $(this).val();
+                    const $labelInput = $('.export-column-label-input[data-column-key="' + columnKey + '"]');
+                    if ($(this).is(':checked')) {
+                        $labelInput.addClass('is-active').prop('disabled', false);
+                    } else {
+                        $labelInput.removeClass('is-active').prop('disabled', true);
+                    }
+                });
+            }
+
+            function restoreExportColumnSelection() {
+                const storageKey = 'registrationExportSettings_{{ $event->id }}_{{ isset($registration) ? $registration->id : 'all' }}';
+                const saved = localStorage.getItem(storageKey);
+                $('.export-column-label-input').val('');
+
+                if (!saved) {
+                    toggleExportLabelInputs();
+                    return;
+                }
+
+                try {
+                    const settings = JSON.parse(saved);
+                    const columns = settings.columns || settings;
+                    const labels = settings.labels || {};
+
+                    $('.export-column-checkbox').prop('checked', false);
+                    if (Array.isArray(columns)) {
+                        columns.forEach(function(column) {
+                            $('.export-column-checkbox[value="' + column + '"]').prop('checked', true);
+                        });
+                    }
+
+                    Object.keys(labels).forEach(function(columnKey) {
+                        $('.export-column-label-input[data-column-key="' + columnKey + '"]').val(labels[columnKey]);
+                    });
+                } catch (e) {
+                    console.warn('Could not restore export settings', e);
+                }
+
+                toggleExportLabelInputs();
+            }
+
+            function saveExportColumnSelection(columns, labels) {
+                const storageKey = 'registrationExportSettings_{{ $event->id }}_{{ isset($registration) ? $registration->id : 'all' }}';
+                localStorage.setItem(storageKey, JSON.stringify({
+                    columns: columns,
+                    labels: labels
+                }));
+            }
+
+            function submitExportSelectedUsers() {
+                const selectedUsers = $('.user-checkbox:checked');
                 const userIds = [];
                 selectedUsers.each(function() {
                     userIds.push($(this).val());
                 });
 
-                // Create a form and submit it to trigger download
+                const columns = getSelectedExportColumns();
+                if (columns.length === 0) {
+                    alert('Please select at least one column to export.');
+                    return;
+                }
+
+                const labels = getExportColumnLabels();
+                saveExportColumnSelection(columns, labels);
+
                 const form = $('<form>', {
                     method: 'POST',
                     action: '{{ route('exportSelectedUsers', ['event_id' => $event->id]) }}'
@@ -869,6 +1105,14 @@
                     value: '{{ csrf_token() }}'
                 }));
 
+                @if(isset($registration))
+                form.append($('<input>', {
+                    type: 'hidden',
+                    name: 'registration_id',
+                    value: '{{ $registration->id }}'
+                }));
+                @endif
+
                 userIds.forEach(function(id) {
                     form.append($('<input>', {
                         type: 'hidden',
@@ -877,12 +1121,58 @@
                     }));
                 });
 
+                columns.forEach(function(column) {
+                    form.append($('<input>', {
+                        type: 'hidden',
+                        name: 'columns[]',
+                        value: column
+                    }));
+
+                    if (labels[column]) {
+                        form.append($('<input>', {
+                            type: 'hidden',
+                            name: 'column_labels[' + column + ']',
+                            value: labels[column]
+                        }));
+                    }
+                });
+
                 $('body').append(form);
                 form.submit();
                 form.remove();
 
-                alert(`Exporting ${userIds.length} selected users...`);
+                $('#export-columns-modal').modal('hide');
             }
+
+            $('#confirm-export-selected-btn').on('click', function() {
+                submitExportSelectedUsers();
+            });
+
+            $(document).on('change', '.export-column-checkbox', function() {
+                toggleExportLabelInputs();
+            });
+
+            $('#export-select-all-columns').on('click', function() {
+                $('.export-column-checkbox').prop('checked', true);
+                toggleExportLabelInputs();
+            });
+
+            $('#export-deselect-all-columns').on('click', function() {
+                $('.export-column-checkbox').prop('checked', false);
+                toggleExportLabelInputs();
+            });
+
+            $('#export-reset-default-columns').on('click', function() {
+                const defaults = @json($defaultExportColumns ?? []);
+                $('.export-column-checkbox').prop('checked', false);
+                $('.export-column-label-input').val('');
+                defaults.forEach(function(column) {
+                    $('.export-column-checkbox[value="' + column + '"]').prop('checked', true);
+                });
+                toggleExportLabelInputs();
+            });
+
+            toggleExportLabelInputs();
 
             // Export selected button click
             $('#export-selected-btn').on('click', function() {

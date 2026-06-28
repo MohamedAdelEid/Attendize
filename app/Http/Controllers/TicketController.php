@@ -54,7 +54,7 @@ class TicketController extends Controller
         // Return the file for download
         return response()->download(
             storage_path('app/public/' . $user->ticket_pdf_path),
-            'ticket_' . $user->unique_code . '.pdf',
+            $this->ticketService->getPdfDownloadFilename($user),
             ['Content-Type' => 'application/pdf']
         );
     }
@@ -255,7 +255,7 @@ class TicketController extends Controller
         // Return the file for download
         return response()->download(
             storage_path('app/public/' . $user->ticket_pdf_path),
-            'ticket_' . $user->unique_code . '.pdf',
+            $this->ticketService->getPdfDownloadFilename($user),
             ['Content-Type' => 'application/pdf']
         );
     }

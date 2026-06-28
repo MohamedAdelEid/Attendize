@@ -2,6 +2,7 @@
 
 namespace App\Exports;
 
+use App\Services\RegistrationUsersExportColumns;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
@@ -10,16 +11,31 @@ use Maatwebsite\Excel\Concerns\WithColumnWidths;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use PhpOffice\PhpSpreadsheet\Style\Border;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
+use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 
 class SelectedUsersExport implements FromCollection, WithHeadings, WithMapping, WithStyles, WithColumnWidths
 {
     protected $users;
     protected $event;
+    protected $columns;
+    protected $registrationId;
+    protected $userTypeOptionNames;
+    protected $columnLabels;
 
-    public function __construct($users, $event)
-    {
+    public function __construct(
+        $users,
+        $event,
+        array $columns,
+        ?int $registrationId = null,
+        array $userTypeOptionNames = [],
+        array $columnLabels = []
+    ) {
         $this->users = $users;
         $this->event = $event;
+        $this->columns = $columns;
+        $this->registrationId = $registrationId;
+        $this->userTypeOptionNames = $userTypeOptionNames;
+        $this->columnLabels = $columnLabels;
     }
 
     public function collection()
@@ -29,56 +45,34 @@ class SelectedUsersExport implements FromCollection, WithHeadings, WithMapping, 
 
     public function headings(): array
     {
-        return [
-            'ID',
-            'First Name',
-            'Last Name',
-            'Email',
-            'Phone',
-            'Registration Form',
-            'User Type',
-            'Status',
-            'Registration Code',
-            'Registered Date',
-            'Conference',
-            'Profession',
-            'Country',
-            'City',
-            'Custom Fields'
-        ];
+        return RegistrationUsersExportColumns::headingsForColumns(
+            $this->columns,
+            $this->event->id,
+            $this->registrationId,
+            $this->columnLabels
+        );
     }
 
     public function map($user): array
     {
-        // Get custom field values
-        $customFields = [];
-        foreach ($user->formFieldValues as $fieldValue) {
-            $customFields[] = $fieldValue->field->label . ': ' . $fieldValue->value;
+        $row = [];
+        foreach ($this->columns as $column) {
+            $row[] = RegistrationUsersExportColumns::valueForColumn(
+                $column,
+                $user,
+                $this->userTypeOptionNames
+            );
         }
 
-        return [
-            $user->id,
-            $user->first_name,
-            $user->last_name,
-            $user->email,
-            $user->phone ?? 'N/A',
-            $user->registration->name ?? 'N/A',
-            optional($user->userTypes->first())->name ?? 'N/A',
-            ucfirst($user->status),
-            $user->unique_code ?? 'N/A',
-            $user->created_at->format('Y-m-d H:i:s'),
-            $user->conference->name ?? 'N/A',
-            $user->profession->name ?? 'N/A',
-            $user->country->name ?? 'N/A',
-            $user->city ?? 'N/A',
-            implode('; ', $customFields)
-        ];
+        return $row;
     }
 
     public function styles(Worksheet $sheet)
     {
+        $lastColumn = Coordinate::stringFromColumnIndex(count($this->columns));
+        $lastRow = $this->users->count() + 1;
+
         return [
-            // Style the header row
             1 => [
                 'font' => [
                     'bold' => true,
@@ -95,8 +89,7 @@ class SelectedUsersExport implements FromCollection, WithHeadings, WithMapping, 
                     ],
                 ],
             ],
-            // Style all data rows
-            'A2:O' . ($this->users->count() + 1) => [
+            'A2:' . $lastColumn . $lastRow => [
                 'borders' => [
                     'allBorders' => [
                         'borderStyle' => Border::BORDER_THIN,
@@ -109,22 +102,12 @@ class SelectedUsersExport implements FromCollection, WithHeadings, WithMapping, 
 
     public function columnWidths(): array
     {
-        return [
-            'A' => 8,   // ID
-            'B' => 15,  // First Name
-            'C' => 15,  // Last Name
-            'D' => 25,  // Email
-            'E' => 15,  // Phone
-            'F' => 20,  // Registration Form
-            'G' => 15,  // User Type
-            'H' => 12,  // Status
-            'I' => 15,  // Registration Code
-            'J' => 18,  // Registered Date
-            'K' => 15,  // Conference
-            'L' => 15,  // Profession
-            'M' => 15,  // Country
-            'N' => 15,  // City
-            'O' => 30,  // Custom Fields
-        ];
+        $widths = [];
+        foreach ($this->columns as $index => $column) {
+            $letter = Coordinate::stringFromColumnIndex($index + 1);
+            $widths[$letter] = strpos($column, 'field_') === 0 ? 24 : 18;
+        }
+
+        return $widths;
     }
 }
