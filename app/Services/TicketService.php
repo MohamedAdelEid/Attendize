@@ -95,12 +95,20 @@ class TicketService
             $pdf_page_name = 'tickets.pdf-template';
         }
 
+        $pageDimensions = $this->resolvePdfPageDimensions(
+            $ticketImagePath ?? null,
+            $pdfPageSize,
+            $pdfOrientation
+        );
+
         $pdf = PDF::loadView($pdf_page_name, [
             'user' => $user,
             'event' => $event,
             'ticket_image' => $ticketImagePath ?? null,
-            'template' => $template ?? null
-        ])->setPaper($pdfPageSize, $pdfOrientation);
+            'template' => $template ?? null,
+            'page_width_px' => $pageDimensions['width_px'],
+            'page_height_px' => $pageDimensions['height_px'],
+        ])->setPaper([0, 0, $pageDimensions['width_pt'], $pageDimensions['height_pt']]);
 
 
         // Save PDF
@@ -129,6 +137,49 @@ class TicketService
         $user->save();
 
         return $pdfPath;
+    }
+
+    /**
+     * Resolve PDF page dimensions so DomPDF renders exactly one page.
+     * When a ticket image exists, page size matches the image pixels (96 DPI → points).
+     */
+    private function resolvePdfPageDimensions(?string $ticketImagePath, string $pdfPageSize, string $pdfOrientation): array
+    {
+        if ($ticketImagePath) {
+            $imageFullPath = storage_path('app/public/' . $ticketImagePath);
+            if (file_exists($imageFullPath)) {
+                $imageInfo = @getimagesize($imageFullPath);
+                if ($imageInfo) {
+                    [$widthPx, $heightPx] = $imageInfo;
+
+                    return [
+                        'width_px' => $widthPx,
+                        'height_px' => $heightPx,
+                        'width_pt' => $widthPx * 72 / 96,
+                        'height_pt' => $heightPx * 72 / 96,
+                    ];
+                }
+            }
+        }
+
+        $sizes = [
+            'a4' => [794, 1123],
+            'a5' => [559, 794],
+            'a6' => [397, 559],
+        ];
+        $sizeKey = strtolower($pdfPageSize);
+        [$widthPx, $heightPx] = $sizes[$sizeKey] ?? $sizes['a6'];
+
+        if (strtolower($pdfOrientation) === 'landscape') {
+            [$widthPx, $heightPx] = [$heightPx, $widthPx];
+        }
+
+        return [
+            'width_px' => $widthPx,
+            'height_px' => $heightPx,
+            'width_pt' => $widthPx * 72 / 96,
+            'height_pt' => $heightPx * 72 / 96,
+        ];
     }
 
     /**

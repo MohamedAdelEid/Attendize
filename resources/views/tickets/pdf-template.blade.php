@@ -4,27 +4,37 @@
     <meta charset="UTF-8">
     <title>Ticket</title>
     <style>
-        @page { margin: 0; }
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        html, body { margin: 0; padding: 0; }
-        .ticket-wrap {
-            width: 100%;
-            max-height: 148mm;
-            overflow: hidden;
-            page-break-after: avoid;
+        @page {
+            margin: 0;
         }
-        .ticket-wrap img {
+        * {
+            margin: 0;
+            padding: 0;
+        }
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: {{ $page_width_px ?? 397 }}px;
+            height: {{ $page_height_px ?? 559 }}px;
+        }
+        .ticket-page {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: {{ $page_width_px ?? 397 }}px;
+            height: {{ $page_height_px ?? 559 }}px;
+            overflow: hidden;
+        }
+        .ticket-page img {
             display: block;
-            width: 100%;
-            height: auto;
-            max-height: 148mm;
-            vertical-align: top;
+            width: {{ $page_width_px ?? 397 }}px;
+            height: {{ $page_height_px ?? 559 }}px;
         }
     </style>
 </head>
 <body>
 @if($ticket_image)
-<div class="ticket-wrap">
+<div class="ticket-page">
     <img src="{{ storage_path('app/public/' . $ticket_image) }}" alt="Ticket">
 </div>
 @endif
