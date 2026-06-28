@@ -533,13 +533,13 @@
                                                         <span class="code-display">{{ $user->unique_code }}</span>
                                                         @if($user->ticket_token)
                                                             <br>
-                                                            <a href="{{ route('downloadTicket', ['token' => $user->ticket_token]) }}"
-                                                               class="btn btn-xs btn-success" title="Download {{ $pdfDocumentLabel ?? 'Ticket' }}" target="_blank">
+                                                            <a href="{{ route('downloadUserTicket', ['event_id' => $event->id, 'user_id' => $user->id]) }}"
+                                                               class="btn btn-xs btn-success" title="Download {{ $pdfDocumentLabel ?? 'Ticket' }}">
                                                                 <i class="ico-download"></i>
                                                             </a>
                                                             
-                                                            <a href="{{ route('viewTicketTemplate', ['token' => $user->ticket_token]) }}"
-                                                               class="btn btn-xs btn-success" title="Print {{ $pdfDocumentLabel ?? 'Ticket' }}" target="_blank">
+                                                            <a href="{{ route('printUserTicket', ['event_id' => $event->id, 'user_id' => $user->id]) }}"
+                                                               class="btn btn-xs btn-success" title="Print {{ $pdfDocumentLabel ?? 'Ticket' }}">
                                                                 <i class="ico-print"></i>
                                                             </a>
                                                         @endif

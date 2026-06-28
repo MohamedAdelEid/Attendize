@@ -14,8 +14,5 @@ class CheckForMaintenanceMode extends Middleware
     protected $except = [
         'install',
         'upgrade',
-        'ticket/download/*',
-        'ticket/view/*',
-        'ticket/print-view/*',
     ];
 }

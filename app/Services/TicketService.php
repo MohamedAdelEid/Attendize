@@ -4,7 +4,6 @@ namespace App\Services;
 
 use App\Models\RegistrationUser;
 use App\Models\TicketTemplate;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use SimpleSoftwareIO\QrCode\Facades\QrCode;
@@ -124,37 +123,6 @@ class TicketService
         Storage::disk('public')->put($pdfFileName, $pdf->output());
 
         return $pdfFileName;
-    }
-
-    /**
-     * Ensure approved users have token/code/qr required for public ticket links.
-     */
-    public function ensureTicketAccessCredentials(RegistrationUser $user): void
-    {
-        if ($user->status !== 'approved') {
-            return;
-        }
-
-        $dirty = false;
-
-        if (empty($user->unique_code)) {
-            $user->unique_code = $this->generateUniqueCode($user);
-            $dirty = true;
-        }
-
-        if (empty($user->qr_code_path) && !empty($user->unique_code)) {
-            $user->qr_code_path = $this->generateQRCode($user, $user->unique_code);
-            $dirty = true;
-        }
-
-        if (empty($user->ticket_token)) {
-            $user->ticket_token = Str::random(32);
-            $dirty = true;
-        }
-
-        if ($dirty) {
-            $user->save();
-        }
     }
 
     /**
@@ -479,35 +447,19 @@ class TicketService
 
                 $qrCodePath = storage_path('app/public/' . $user->qr_code_path);
                 if (file_exists($qrCodePath)) {
+                    $qrImage = Image::make($qrCodePath);
+                    $qrImage->resize($qrSize, $qrSize);
+
                     if ($qrPadding > 0 || $qrBorderRadius > 0) {
-                        // Style at template (preview) size, then scale up — avoids multi‑GB GD canvases
-                        // when the background image is much larger than preview_width.
-                        $previewQrSize = (int) ($template->qr_size ?? 100);
-                        $previewPadding = (int) ($template->qr_padding ?? 0);
-                        $previewBorderRadius = (int) ($template->qr_border_radius ?? 0);
-                        $previewOuterSize = $previewQrSize + ($previewPadding * 2);
+                        $outerSize = $qrSize + ($qrPadding * 2);
+                        $qrCanvas = Image::canvas($outerSize, $outerSize, $qrBackgroundColor);
+                        $qrCanvas->insert($qrImage, 'top-left', $qrPadding, $qrPadding);
 
-                        $qrImage = Image::make($qrCodePath);
-                        $qrImage->resize($previewQrSize, $previewQrSize);
-
-                        $qrCanvas = Image::canvas($previewOuterSize, $previewOuterSize, $qrBackgroundColor);
-                        $qrCanvas->insert($qrImage, 'top-left', $previewPadding, $previewPadding);
-
-                        if ($previewBorderRadius > 0) {
-                            $qrCanvas = $this->addRoundedCorners(
-                                $qrCanvas,
-                                min($previewBorderRadius, (int) floor($previewOuterSize / 2))
-                            );
+                        if ($qrBorderRadius > 0) {
+                            $qrCanvas = $this->addRoundedCorners($qrCanvas, min($qrBorderRadius, (int) floor($outerSize / 2)));
                         }
 
-                        $outerSize = $qrSize + ($qrPadding * 2);
-                        $maxQrOuterSize = min(2048, (int) (max($imageWidth, $imageHeight) * 0.5));
-                        $outerSize = min($outerSize, $maxQrOuterSize);
-                        $qrImage = $qrCanvas->resize($outerSize, $outerSize);
-                    } else {
-                        $maxQrSize = min(2048, (int) (max($imageWidth, $imageHeight) * 0.5));
-                        $qrImage = Image::make($qrCodePath);
-                        $qrImage->resize(min($qrSize, $maxQrSize), min($qrSize, $maxQrSize));
+                        $qrImage = $qrCanvas;
                     }
 
                     $image->insert(
@@ -881,11 +833,6 @@ class TicketService
     {
         $width = $image->width();
         $height = $image->height();
-        $maxMaskDimension = 4096;
-
-        if ($width > $maxMaskDimension || $height > $maxMaskDimension) {
-            return $image;
-        }
 
         // Create a mask with rounded corners
         $mask = Image::canvas($width, $height, '#000000');
@@ -917,11 +864,7 @@ class TicketService
         });
 
         // Apply mask to create rounded corners
-        try {
-            $image->mask($mask, false);
-        } catch (\Throwable $e) {
-            Log::warning('Ticket QR rounded corners skipped: ' . $e->getMessage());
-        }
+        $image->mask($mask, false);
 
         return $image;
     }
