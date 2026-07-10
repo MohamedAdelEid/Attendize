@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="event-id" content="{{ $event->id }}">
-    <title>{{ $event->title }} - @yield('title', 'Check-in')</title>
+    <title>{{ ($publicMode ?? false) ? $event->title : $event->title . ' - ' . trim($__env->yieldContent('title', 'Check-in')) }}</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
@@ -65,7 +65,9 @@
                     </div>
                     <div>
                         <h1 class="text-xl font-bold text-gray-900">{{ $event->title }}</h1>
+                        @unless($publicMode ?? false)
                         <p class="text-sm text-gray-500">Streamlined event check-in/check-out</p>
+                        @endunless
                     </div>
                 </div>
 
