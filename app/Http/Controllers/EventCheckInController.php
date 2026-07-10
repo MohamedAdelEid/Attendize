@@ -16,7 +16,12 @@ class EventCheckInController extends MyBaseController
 {
     public function __construct()
     {
-        $this->middleware('auth')->except(['showGuestKiosk', 'showCheckIn']);
+        $this->middleware('auth')->except([
+            'showGuestKiosk',
+            'showCheckIn',
+            'PostScanTicket',
+            'PrintScanTicket',
+        ]);
     }
     
     public function PrintScanTicket(Request $request, $event_id)
