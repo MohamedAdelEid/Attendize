@@ -1283,13 +1283,6 @@ Route::group(
                  * -------
                  */
                 Route::get(
-                    '{event_id}/scan-ticket',
-                    [EventCheckInController::class, 'showCheckIn']
-                )->name('showCheckIn');
-                
-                
-
-                Route::get(
                     '{event_id}/check-in-dashboard',
                     [EventCheckInController::class, 'showCheckInDashboard']
                 )->name('showCheckInDashboard');
@@ -1374,6 +1367,7 @@ Route::delete('/contact-us/{event}/delete/{message_id}', [ContactUsController::c
 Route::delete('/contact-us/{event}/delete-selected', [ContactUsController::class, 'deleteSelectedMessages'])->name('events.contact-us.delete-selected');
 
 Route::get('/events/{event_id}/registration-confirmation', [EventViewController::class, 'showRegistrationConfirmation'])->name('showRegistrationConfirmation');
+Route::get('/event/{event_id}/scan-ticket', [EventCheckInController::class, 'showCheckIn'])->name('showCheckIn');
 Route::get('/events/{event_id}/kiosk', [EventCheckInController::class, 'showGuestKiosk'])->name('showGuestKiosk');
 Route::post('/events/{event_id}/post-scan-ticket', [EventCheckInController::class, 'PostScanTicket'])->name('PostScanTicket');
 Route::post('/events/{event_id}/print-scan-ticket', [EventCheckInController::class, 'PrintScanTicket'])->name('PrintScanTicket');

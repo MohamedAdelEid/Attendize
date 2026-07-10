@@ -13,9 +13,22 @@ const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribut
 
 // Initialize the application
 document.addEventListener("DOMContentLoaded", () => {
+  const checkInForm = document.getElementById("checkInForm")
+  if (checkInForm) {
+    checkInForm.addEventListener("submit", handleManualCheckIn)
+  }
+  focusUniqueCodeInput()
   loadRegistrations()
   updateStats()
 })
+
+function focusUniqueCodeInput() {
+  const input = document.getElementById("uniqueCode")
+  if (input) {
+    input.focus()
+    input.select()
+  }
+}
 
 // Tab Management
 function showTab(tabName) {
@@ -155,9 +168,9 @@ async function performCheckIn(uniqueCode) {
     displayCheckInResult(result)
 
     if (result.status === "success") {
-      document.getElementById("uniqueCode").value = ""
       updateStats()
-      if (!document.getElementById("dashboardTab").classList.contains("hidden")) {
+      const dashboardTab = document.getElementById("dashboardTab")
+      if (dashboardTab && !dashboardTab.classList.contains("hidden")) {
         loadRegistrations()
       }
     }
@@ -170,6 +183,11 @@ async function performCheckIn(uniqueCode) {
   } finally {
     btn.innerHTML = originalHTML
     btn.disabled = false
+    const input = document.getElementById("uniqueCode")
+    if (input) {
+      input.value = ""
+    }
+    focusUniqueCodeInput()
   }
 }
 
@@ -197,6 +215,9 @@ async function callCheckInAPI(uniqueCode) {
 // Display Check-in/Check-out Result - Enhanced for attendance history
 function displayCheckInResult(result) {
   const resultDiv = document.getElementById("checkInResult")
+  if (!resultDiv) {
+    return
+  }
   const isSuccess = result.status === "success"
   const action = result.action || "check_in"
 

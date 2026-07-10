@@ -70,6 +70,7 @@
                 </div>
 
                 <div class="hidden md:block">
+                    @unless($publicMode ?? false)
                     <div class="flex items-baseline ml-10 space-x-4">
                         <a href="{{ route('showCheckIn', ['event_id' => $event->id]) }}"
                            class="flex items-center px-4 py-2 space-x-2 text-sm font-medium transition-all duration-200 rounded-lg {{ request()->routeIs('showCheckIn') ? 'text-white bg-black' : 'text-gray-700 hover:text-black hover:bg-gray-100' }}">
@@ -87,17 +88,21 @@
                             <span>Dashboard</span>
                         </a>
                     </div>
+                    @endunless
                 </div>
 
+                @unless($publicMode ?? false)
                 <!-- Mobile menu button -->
                 <div class="md:hidden">
                     <button onclick="toggleMobileMenu()" class="p-2 text-gray-700 hover:text-black">
                         <i class="text-lg fas fa-bars"></i>
                     </button>
                 </div>
+                @endunless
             </div>
         </div>
 
+        @unless($publicMode ?? false)
         <!-- Mobile menu -->
         <div id="mobileMenu" class="hidden bg-white border-t border-gray-200 md:hidden">
             <div class="px-2 pt-2 pb-3 space-y-1">
@@ -115,6 +120,7 @@
                 </a>
             </div>
         </div>
+        @endunless
     </nav>
 
     <div class="px-4 py-8 mx-auto max-w-7xl sm:px-6 lg:px-8">

@@ -16,7 +16,7 @@ class EventCheckInController extends MyBaseController
 {
     public function __construct()
     {
-        $this->middleware('auth')->except(['showGuestKiosk']);
+        $this->middleware('auth')->except(['showGuestKiosk', 'showCheckIn']);
     }
     
     public function PrintScanTicket(Request $request, $event_id)
@@ -355,9 +355,10 @@ class EventCheckInController extends MyBaseController
      */
     public function showCheckIn($event_id)
     {
-        $event = Event::scope()->findOrFail($event_id);
+        $event = Event::findOrFail($event_id);
         $data = [
             'event' => $event,
+            'publicMode' => true,
         ];
 
         return view('tickets.scanner', $data);

@@ -139,6 +139,7 @@
                     </h3>
                     <p class="mt-1 text-sm text-gray-600">First scan: Check-in • Second scan: Check-out</p>
                 </div>
+                @unless($publicMode ?? false)
                 <div class="relative">
                     <button type="button" onclick="toggleBulkMenu(event)" id="bulkMenuBtn"
                             class="flex items-center px-4 py-2 space-x-2 text-sm font-medium text-gray-700 transition-colors duration-200 border border-gray-300 rounded-lg hover:bg-gray-100 hover:border-gray-400">
@@ -162,6 +163,7 @@
                         </button>
                     </div>
                 </div>
+                @endunless
             </div>
             <div class="p-6">
                 <form method="POST" action="{{ route('PostScanTicket', ['event_id' => $event->id]) }}" id="checkInForm" class="space-y-4">
@@ -176,7 +178,8 @@
                                value=""
                                class="w-full px-4 py-3 font-mono text-lg transition-colors duration-200 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
                                placeholder="Enter unique code or email"
-                               required>
+                               autocomplete="off"
+                               autofocus>
                     </div>
                     <button type="submit"
                             id="manualCheckInBtn"
@@ -184,6 +187,8 @@
                         <i class="fas fa-exchange-alt"></i>
                         <span>Check In/Out</span>
                     </button>
+
+                    <div id="checkInResult" class="hidden mt-6"></div>
 
                     @if(session('success'))
                     <div class="mt-6 p-4 rounded-lg border-l-4 {{ session('action') === 'check_out' ? 'bg-blue-50 border-blue-400' : 'bg-green-50 border-green-400' }} animate-fade-in">
@@ -268,7 +273,16 @@
 @push('scripts')
     <script src="{{ asset('Js/script.js') }}"></script>
     <script>
-        document.getElementById("uniqueCode").focus();
+        function focusUniqueCodeInput() {
+            var input = document.getElementById('uniqueCode');
+            if (input) {
+                input.focus();
+                input.select();
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', focusUniqueCodeInput);
+
         function startCamera() {
             var constraints = { video: { facingMode: "environment", width: { ideal: 640 }, height: { ideal: 480 } } };
             navigator.mediaDevices.getUserMedia(constraints).then(function(stream) {
@@ -325,7 +339,9 @@
             window.isScanning = false;
             var value = qrData.trim().toUpperCase();
             document.getElementById("uniqueCode").value = value;
-            document.getElementById("checkInForm").submit();
+            if (typeof performCheckIn === 'function') {
+                performCheckIn(value);
+            }
         }
 
         var pendingBulkAction = null;
