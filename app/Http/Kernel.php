@@ -70,6 +70,8 @@ class Kernel extends HttpKernel
         /**** ATTENDIZE MIDDLEWARE ****/
         'first.run'  => \App\Http\Middleware\FirstRunMiddleware::class,
         'installed'  => \App\Http\Middleware\CheckInstalled::class,
+        'abstract.reviewer' => \App\Http\Middleware\EnsureAbstractReviewerEventAccess::class,
+        'attendee.portal' => \App\Http\Middleware\EnsureAttendeePortalAccess::class,
 
         /**** OTHER MIDDLEWARE ****/
         'localize' => \Mcamara\LaravelLocalization\Middleware\LaravelLocalizationRoutes::class,

@@ -68,10 +68,16 @@
                     <span class="text">Ticket Template</span>
                 </a>
             </li>
-            <li class="{{ Request::is('*registration*') && !Request::is('*user-types*') ? 'active' : '' }}">
+            <li class="{{ Request::is('*registration*') && !Request::is('*user-types*') && !Request::is('*abstract*') ? 'active' : '' }}">
                 <a href="{{ route('showEventRegistration', ['event_id' => $event->id]) }}">
                     <span class="figure"><i class="ico-file-text"></i></span>
                     <span class="text">@lang("ManageEvent.registration")</span>
+                </a>
+            </li>
+            <li class="{{ Request::is('*abstract*') ? 'active' : '' }}">
+                <a href="{{ route('showEventAbstracts', ['event_id' => $event->id]) }}">
+                    <span class="figure"><i class="ico-file"></i></span>
+                    <span class="text">@lang("Abstract.abstract")</span>
                 </a>
             </li>
             <li class="{{ Request::is('*user-types*') ? 'active' : '' }}">

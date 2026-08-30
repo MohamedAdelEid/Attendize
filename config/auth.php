@@ -46,6 +46,11 @@ return [
             'provider' => 'users',
             'hash' => false,
         ],
+
+        'abstract_reviewer' => [
+            'driver' => 'session',
+            'provider' => 'abstract_reviewers',
+        ],
     ],
 
     /*
@@ -69,6 +74,11 @@ return [
         'users' => [
             'driver' => 'eloquent',
             'model' => App\Models\User::class,
+        ],
+
+        'abstract_reviewers' => [
+            'driver' => 'eloquent',
+            'model' => App\Models\AbstractReviewer::class,
         ],
 
         // 'users' => [

@@ -128,4 +128,28 @@ class RegistrationUser extends Model
     {
         return $this->hasMany(RegistrationUserMemberData::class);
     }
+
+    public function abstractSubmissions()
+    {
+        return $this->hasMany(AbstractSubmission::class, 'registration_user_id');
+    }
+
+    public function getFullNameAttribute()
+    {
+        return trim($this->first_name . ' ' . $this->last_name);
+    }
+
+    public static function findForEvent(int $eventId, string $identifier): ?self
+    {
+        $identifier = trim($identifier);
+        if ($identifier === '') {
+            return null;
+        }
+
+        return static::where(function ($q) use ($identifier) {
+            $q->where('email', $identifier)->orWhere('unique_code', $identifier);
+        })->whereHas('registration', function ($q) use ($eventId) {
+            $q->where('event_id', $eventId);
+        })->first();
+    }
 }

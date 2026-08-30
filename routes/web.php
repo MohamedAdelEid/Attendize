@@ -13,6 +13,17 @@
 
 use App\Http\Controllers\ContactUsController;
 use App\Http\Controllers\EventAccessCodesController;
+use App\Http\Controllers\EventAbstractCategoryController;
+use App\Http\Controllers\EventAbstractController;
+use App\Http\Controllers\EventAbstractReviewerController;
+use App\Http\Controllers\EventAbstractViewController;
+use App\Http\Controllers\AbstractSubmissionsController;
+use App\Http\Controllers\AbstractReviewAuthController;
+use App\Http\Controllers\AbstractReviewSettingsController;
+use App\Http\Controllers\AttendeePortalAuthController;
+use App\Http\Controllers\AttendeePortalController;
+use App\Http\Controllers\AbstractReviewDashboardController;
+use App\Http\Controllers\AbstractReviewSubmissionController;
 use App\Http\Controllers\EventAttendeesController;
 use App\Http\Controllers\EventCheckInController;
 use App\Http\Controllers\EventCheckoutController;
@@ -194,13 +205,6 @@ Route::group(
         /*
          * Public event page routes
          */
-        // Private registration form by name: /{registration_name} (e.g. /registration%20name) — no "f", reserved words excluded; require at least 1 char so "/" does not match
-        Route::get(
-            '{registration_name}',
-            [EventViewController::class, 'showPrivateRegistrationFormByName']
-        )->name('showPrivateFormByName')
-            ->where('registration_name', '^(?!e$|r$|o$|login|signup|install|upgrade|account|organiser|events|event|user|api|index|favicon|speakers|language).+');
-
         // Private registration form by slug+token: /r/{registration_slug}/private/{private_slug}
         Route::get(
             'r/{registration_slug}/private/{private_slug}',
@@ -236,6 +240,22 @@ Route::group(
                 '/{event_id}/registration/{registration_id}',
                 [EventViewController::class, 'postEventRegistration']
             )->name('postEventRegistration');
+
+            // Abstract Form Routes (public)
+            Route::get(
+                '/{event_id}/{event_slug}/abstract/{slug}',
+                [EventAbstractViewController::class, 'showAbstractForm']
+            )->name('showEventAbstractForm');
+
+            Route::post(
+                '/{event_id}/abstract/{slug}',
+                [EventAbstractViewController::class, 'postAbstractSubmission']
+            )->name('postEventAbstractSubmission');
+
+            Route::post(
+                '/{event_id}/abstract/{slug}/verify',
+                [EventAbstractViewController::class, 'verifyRegistration']
+            )->name('postEventAbstractVerify')->middleware('throttle:30,1');
 
             Route::get(
                 '/{event_id}/registration/payment',
@@ -328,6 +348,14 @@ Route::group(
                 [EventCheckoutController::class, 'postCreateOrder']
             )->name('postCreateOrder');
         });
+
+        // Private registration form by name — must be AFTER /e, /o, /r groups.
+        // Use [^/]+ so paths like /e/{id}/abstract/{slug} are never swallowed.
+        Route::get(
+            '{registration_name}',
+            [EventViewController::class, 'showPrivateRegistrationFormByName']
+        )->name('showPrivateFormByName')
+            ->where('registration_name', '^(?!e$|r$|o$|login$|signup$|install$|upgrade$|account$|organiser$|events$|event$|user$|api$|index$|favicon$|speakers$|language$)[^/]+$');
 
         /*
          * Public view order routes
@@ -500,6 +528,126 @@ Route::group(
                     '{event_id}/registrations/create',
                     [EventRegistrationController::class, 'postCreateRegistration']
                 )->name('postCreateEventRegistration');
+
+                /*
+                 * -------
+                 * Abstracts
+                 * -------
+                 */
+                Route::get(
+                    '{event_id}/abstracts/categories',
+                    [EventAbstractCategoryController::class, 'showCategories']
+                )->name('showEventAbstractCategories');
+
+                Route::get(
+                    '{event_id}/abstracts/categories/create',
+                    [EventAbstractCategoryController::class, 'showCreateCategory']
+                )->name('showCreateEventAbstractCategory');
+
+                Route::post(
+                    '{event_id}/abstracts/categories/create',
+                    [EventAbstractCategoryController::class, 'postCreateCategory']
+                )->name('postCreateEventAbstractCategory');
+
+                Route::get(
+                    '{event_id}/abstracts/categories/{category_id}/edit',
+                    [EventAbstractCategoryController::class, 'showEditCategory']
+                )->name('showEditEventAbstractCategory');
+
+                Route::post(
+                    '{event_id}/abstracts/categories/{category_id}/edit',
+                    [EventAbstractCategoryController::class, 'postEditCategory']
+                )->name('postEditEventAbstractCategory');
+
+                Route::delete(
+                    '{event_id}/abstracts/categories/{category_id}',
+                    [EventAbstractCategoryController::class, 'postDeleteCategory']
+                )->name('postDeleteEventAbstractCategory');
+
+                Route::get(
+                    '{event_id}/abstracts',
+                    [EventAbstractController::class, 'showAbstracts']
+                )->name('showEventAbstracts');
+
+                Route::get(
+                    '{event_id}/abstracts/create',
+                    [EventAbstractController::class, 'showCreateAbstract']
+                )->name('showCreateEventAbstract');
+
+                Route::post(
+                    '{event_id}/abstracts/create',
+                    [EventAbstractController::class, 'postCreateAbstract']
+                )->name('postCreateEventAbstract');
+
+                Route::get(
+                    '{event_id}/abstracts/{abstract_id}/edit',
+                    [EventAbstractController::class, 'showEditAbstract']
+                )->name('showEditEventAbstract');
+
+                Route::post(
+                    '{event_id}/abstracts/{abstract_id}/edit',
+                    [EventAbstractController::class, 'postEditAbstract']
+                )->name('postEditEventAbstract');
+
+                Route::delete(
+                    '{event_id}/abstracts/{abstract_id}',
+                    [EventAbstractController::class, 'postDeleteAbstract']
+                )->name('postDeleteEventAbstract');
+
+                Route::post(
+                    '{event_id}/abstracts/{abstract_id}/publish',
+                    [EventAbstractController::class, 'postPublishAbstract']
+                )->name('postPublishEventAbstract');
+
+                Route::get(
+                    '{event_id}/abstracts/submissions',
+                    [AbstractSubmissionsController::class, 'showSubmissions']
+                )->name('showEventAbstractSubmissions');
+
+                Route::get(
+                    '{event_id}/abstracts/submissions/{submission_id}',
+                    [AbstractSubmissionsController::class, 'showSubmissionDetails']
+                )->name('showEventAbstractSubmissionDetails');
+
+                Route::post(
+                    '{event_id}/abstracts/submissions/{submission_id}/status',
+                    [AbstractSubmissionsController::class, 'updateSubmissionStatus']
+                )->name('updateAbstractSubmissionStatus');
+
+                Route::post(
+                    '{event_id}/abstracts/submissions/bulk',
+                    [AbstractSubmissionsController::class, 'bulkUpdateSubmissions']
+                )->name('bulkUpdateAbstractSubmissions');
+
+                Route::delete(
+                    '{event_id}/abstracts/submissions/{submission_id}',
+                    [AbstractSubmissionsController::class, 'deleteSubmission']
+                )->name('deleteAbstractSubmission');
+
+                Route::get(
+                    '{event_id}/abstracts/reviewers/create',
+                    [EventAbstractReviewerController::class, 'showCreateReviewer']
+                )->name('showCreateEventAbstractReviewer');
+
+                Route::post(
+                    '{event_id}/abstracts/reviewers/create',
+                    [EventAbstractReviewerController::class, 'postCreateReviewer']
+                )->name('postCreateEventAbstractReviewer');
+
+                Route::get(
+                    '{event_id}/abstracts/reviewers/{reviewer_id}/edit',
+                    [EventAbstractReviewerController::class, 'showEditReviewer']
+                )->name('showEditEventAbstractReviewer');
+
+                Route::post(
+                    '{event_id}/abstracts/reviewers/{reviewer_id}/edit',
+                    [EventAbstractReviewerController::class, 'postEditReviewer']
+                )->name('postEditEventAbstractReviewer');
+
+                Route::delete(
+                    '{event_id}/abstracts/reviewers/{reviewer_id}',
+                    [EventAbstractReviewerController::class, 'postDeleteReviewer']
+                )->name('postDeleteEventAbstractReviewer');
 
                 Route::post(
                     '{event_id}/registrations/bulk-delete',
@@ -1375,5 +1523,77 @@ Route::post('/events/{event_id}/bulk-check-in', [EventCheckInController::class, 
 Route::post('/events/{event_id}/bulk-check-out', [EventCheckInController::class, 'bulkCheckOut'])->name('bulkCheckOut');
 Route::get('/events/{event_id}/fetch-registration-users', [EventCheckInController::class, 'fetchRegistrationUsers'])->name('fetchRegistrationUsers');
 Route::get('/events/{event_id}/registration-user/{user_id}/logs', [EventCheckInController::class, 'getUserLogs'])->name('getUserLogs');
+
+/*
+ * Abstract Reviewer Portal
+ */
+Route::get('/event/{event_id}/abstract-review/welcome/{token}', [AbstractReviewAuthController::class, 'welcomeLogin'])
+    ->name('abstractReviewerWelcomeLogin');
+
+Route::get('/event/{event_id}/abstract-review/login', [AbstractReviewAuthController::class, 'showLogin'])
+    ->name('showAbstractReviewLogin');
+Route::post('/event/{event_id}/abstract-review/login', [AbstractReviewAuthController::class, 'login'])
+    ->middleware('throttle:20,1')
+    ->name('postAbstractReviewLogin');
+
+Route::middleware(['abstract.reviewer'])->group(function () {
+    Route::post('/event/{event_id}/abstract-review/logout', [AbstractReviewAuthController::class, 'logout'])
+        ->name('postAbstractReviewLogout');
+    Route::get('/event/{event_id}/abstract-review', [AbstractReviewDashboardController::class, 'index'])
+        ->name('showAbstractReviewDashboard');
+    Route::get('/event/{event_id}/abstract-review/submissions', [AbstractReviewSubmissionController::class, 'index'])
+        ->name('showAbstractReviewSubmissions');
+    Route::post('/event/{event_id}/abstract-review/submissions/bulk', [AbstractReviewSubmissionController::class, 'bulk'])
+        ->name('bulkAbstractReviewSubmissions');
+    Route::get('/event/{event_id}/abstract-review/submissions/{submission_id}', [AbstractReviewSubmissionController::class, 'show'])
+        ->name('showAbstractReviewSubmission');
+    Route::post('/event/{event_id}/abstract-review/submissions/{submission_id}/status', [AbstractReviewSubmissionController::class, 'updateStatus'])
+        ->name('updateAbstractReviewSubmissionStatus');
+    Route::post('/event/{event_id}/abstract-review/submissions/{submission_id}', [AbstractReviewSubmissionController::class, 'update'])
+        ->name('updateAbstractReviewSubmission');
+    Route::delete('/event/{event_id}/abstract-review/submissions/{submission_id}', [AbstractReviewSubmissionController::class, 'destroy'])
+        ->name('deleteAbstractReviewSubmission');
+    Route::get('/event/{event_id}/abstract-review/settings', [AbstractReviewSettingsController::class, 'show'])
+        ->name('showAbstractReviewSettings');
+    Route::post('/event/{event_id}/abstract-review/settings', [AbstractReviewSettingsController::class, 'update'])
+        ->name('postAbstractReviewSettings');
+});
+
+/*
+ * Attendee Portal (per event)
+ */
+Route::get('/event/{event_id}/my/login', [AttendeePortalAuthController::class, 'showLogin'])
+    ->name('showAttendeePortalLogin');
+Route::post('/event/{event_id}/my/login', [AttendeePortalAuthController::class, 'requestCode'])
+    ->middleware('throttle:10,1')
+    ->name('postAttendeePortalLogin');
+Route::get('/event/{event_id}/my/verify', [AttendeePortalAuthController::class, 'showVerify'])
+    ->name('showAttendeePortalVerify');
+Route::post('/event/{event_id}/my/verify', [AttendeePortalAuthController::class, 'verifyCode'])
+    ->middleware('throttle:20,1')
+    ->name('postAttendeePortalVerify');
+
+Route::middleware(['attendee.portal'])->group(function () {
+    Route::post('/event/{event_id}/my/logout', [AttendeePortalAuthController::class, 'logout'])
+        ->name('postAttendeePortalLogout');
+    Route::get('/event/{event_id}/my', [AttendeePortalController::class, 'dashboard'])
+        ->name('showAttendeePortalDashboard');
+    Route::get('/event/{event_id}/my/registration', [AttendeePortalController::class, 'registration'])
+        ->name('showAttendeePortalRegistration');
+    Route::get('/event/{event_id}/my/ticket', [AttendeePortalController::class, 'ticket'])
+        ->name('showAttendeePortalTicket');
+    Route::get('/event/{event_id}/my/abstracts', [AttendeePortalController::class, 'abstracts'])
+        ->name('showAttendeePortalAbstracts');
+    Route::get('/event/{event_id}/my/abstracts/{submission_id}/upload', [AttendeePortalController::class, 'showAbstractUpload'])
+        ->name('showAttendeePortalAbstractUpload');
+    Route::post('/event/{event_id}/my/abstracts/{submission_id}/upload', [AttendeePortalController::class, 'postAbstractUpload'])
+        ->name('postAttendeePortalAbstractUpload');
+    Route::get('/event/{event_id}/my/abstracts/{submission_id}/final-file', [AttendeePortalController::class, 'downloadFinalFile'])
+        ->name('downloadAttendeePortalFinalFile');
+    Route::get('/event/{event_id}/my/profile', [AttendeePortalController::class, 'profile'])
+        ->name('showAttendeePortalProfile');
+    Route::post('/event/{event_id}/my/profile', [AttendeePortalController::class, 'updateProfile'])
+        ->name('postAttendeePortalProfile');
+});
 
 Route::get('/symposium-preview', [\App\Http\Controllers\EventController::class, 'symposiumPreview']);

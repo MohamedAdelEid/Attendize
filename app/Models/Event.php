@@ -120,6 +120,30 @@ class Event extends MyBaseModel
     }
 
     /**
+     * Abstract categories for this event.
+     */
+    public function abstractCategories()
+    {
+        return $this->hasMany(AbstractCategory::class)->orderBy('sort_order');
+    }
+
+    /**
+     * Abstract campaigns / forms for this event.
+     */
+    public function eventAbstracts()
+    {
+        return $this->hasMany(EventAbstract::class);
+    }
+
+    /**
+     * Abstract reviewers for this event.
+     */
+    public function abstractReviewers()
+    {
+        return $this->hasMany(AbstractReviewer::class);
+    }
+
+    /**
      * The category associated with the event.
      *
      * @return mixed
